@@ -1,0 +1,22 @@
+1. Ultron - a automation schema-  triggers 1,000 Python jobs simultaneously across multi-core servers. We don't use a strict queue; they just 'go' all at once. Our biggest headache is jobs crashing the server or timing out because they're fighting for the same resources.
+
+------------------------------------------------------------------------------------------------
+q1. error analysis - 5 minutes
+Look at the Msg column in our screenshot. We have an error: 'No data found after filtering adunits.' If you were automating a retry, would you retry this job immediately? Why or why not?
+ 
+Answer :  No, I analyze the data given, but I inferred from the given data that it would be either filtering issue or somehow the data is not available in the dataset.
+Reason :  after analyzying this is the reponse from the api even if you are retrying with the same filtering keyword or same input if it is not available then it will throw this error.
+
+
+ 
+If the data is shared along multiple thread then it is possible to get race condition there that's thread do not the shared data at that time if this happen more frequently then you to check server end response but its not occurring often you can go with retry mechanism.
+
+----------------------------------------------------------------------------------------------
+
+q2. python or infra ?  - 5 minutes
+In the screenshot, we see a TrinoQueryError. If 100 jobs all hit the same database at the exact same second, and they all fail with this error, is the problem in the Python code or the infrastructure?
+ Answer : Most probably infrastructure error, not handling multiple query at the same time 
+Database Architecture might have concurrency problem. 
+
+-------------------------------------------------------------------------------------------------
+ 

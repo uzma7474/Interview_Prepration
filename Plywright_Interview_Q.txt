@@ -1,0 +1,465 @@
+====================================================================================================
+Q. Tell me about your roles and responsibilities in your project? Have you created framework from scratch? Explain architecture
+
+==> bsolutely. I’ll answer your upcoming questions as a 3.5-year experienced Playwright Automation Engineer, as if I’m in an actual interview.
+
+I’ll frame the answers around your Swag Labs (SauceDemo) Playwright + TypeScript/JavaScript automation framework, so the answers sound practical rather than textbook.
+
+Interview-answer style I’ll follow
+
+For each question, I’ll give you:
+
+Direct interview answer — what you should say first.
+Practical explanation — how it works in Playwright.
+Swag Labs example — how you implemented it in your framework.
+Code example — when relevant.
+Interview follow-up points — things the interviewer may ask next.
+
+For example, if asked “How do you handle multiple tabs in Playwright?”, I would answer:
+
+“In Playwright, I handle multiple tabs or pages using the Page object. If clicking an element opens a new tab, I use context.waitForEvent('page') before the click so that I can capture the newly opened page reliably. I then perform operations on the new page and can switch back to the parent page because Playwright keeps both Page objects available.”
+
+const [newPage] = await Promise.all([
+    context.waitForEvent('page'),
+    page.getByText('Sauce Demo').click()
+]);
+
+await newPage.waitForLoadState();
+
+console.log('New tab URL:', newPage.url());
+
+// Work on new tab
+await newPage.bringToFront();
+
+// Switch back to parent
+await page.bringToFront();
+
+“In my Swag Labs framework, I avoid relying on browser-level window handles like Selenium. Playwright manages tabs as Page objects within a BrowserContext, which makes tab switching simpler and more reliable.”
+
+Your framework context
+
+I’ll assume your framework includes concepts such as:
+
+Playwright + TypeScript
+        │
+        ├── Page Object Model
+        ├── BasePage
+        ├── LoginPage
+        ├── InventoryPage
+        ├── CartPage
+        ├── CheckoutPage
+        ├── Components
+        ├── Fixtures
+        ├── Hooks
+        ├── Test Data / JSON
+        ├── Custom Assertions
+        ├── Screenshots
+        ├── Traces
+        ├── Reports
+        └── Parallel Execution
+
+I’ll also distinguish between what Playwright actually provides and what you would typically implement yourself in an industry-level framework.
+
+Send me the first interview question, and I’ll answer it exactly in this format.
+
+====================================================================================================
+Q. Which design pattern you have used in framework ?
+=>  Interview Answer
+
+“In my Playwright TypeScript framework, I primarily use the Page Object Model (POM) design pattern. Along with POM, I use the Factory pattern for browser creation, Fixture pattern for managing Playwright objects and test setup, and Singleton-like management where centralized configuration or shared utilities are required.
+
+The main design pattern is POM because it separates page locators and page-specific actions from test cases. This improves maintainability, reusability, and readability.”
+
+1. Page Object Model — Main Pattern
+
+In my Swag Labs framework, I created separate page classes for different pages:
+
+pages/
+ ├── LoginPage.ts
+ ├── InventoryPage.ts
+ ├── CartPage.ts
+ ├── CheckoutInformationPage.ts
+ ├── CheckoutOverviewPage.ts
+ └── CheckoutCompletePage.ts
+
+For example:
+
+export class LoginPage {
+    constructor(private page: Page) {}
+
+    private username = this.page.locator('#user-name');
+    private password = this.page.locator('#password');
+    private loginButton = this.page.locator('#login-button');
+
+    async login(username: string, password: string) {
+        await this.username.fill(username);
+        await this.password.fill(password);
+        await this.loginButton.click();
+    }
+}
+
+Then my test doesn't directly contain locators:
+
+const loginPage = new LoginPage(page);
+
+await loginPage.login(
+    'standard_user',
+    'secret_sauce'
+);
+
+This gives me separation of concerns.
+
+2. Base Page Pattern
+
+I also created a BasePage that contains common browser/page operations.
+
+export class BasePage {
+    constructor(protected page: Page) {}
+
+    async navigate(url: string) {
+        await this.page.goto(url);
+    }
+
+    async click(locator: Locator) {
+        await locator.click();
+    }
+
+    async fill(locator: Locator, value: string) {
+        await locator.fill(value);
+    }
+}
+
+Other page objects can extend it:
+
+export class LoginPage extends BasePage {
+
+    private username = this.page.locator('#user-name');
+    private password = this.page.locator('#password');
+    private loginButton = this.page.locator('#login-button');
+
+    async login(username: string, password: string) {
+        await this.fill(this.username, username);
+        await this.fill(this.password, password);
+        await this.click(this.loginButton);
+    }
+}
+
+This avoids duplicating common functionality across page classes.
+
+3. Factory Pattern
+
+For browser creation, I can use a factory approach so that browser selection is centralized.
+
+For example:
+
+class BrowserFactory {
+
+    static async createBrowser(
+        browserType: BrowserType,
+        headless: boolean
+    ) {
+        return await browserType.launch({ headless });
+    }
+}
+
+Then the framework can decide whether to run:
+
+Chromium
+Firefox
+WebKit
+
+based on configuration.
+
+This is useful when I want to execute the same test suite across multiple browsers without changing test code.
+
+4. Fixture Pattern
+
+Playwright itself provides a powerful fixture mechanism.
+
+For example:
+
+import { test as base } from '@playwright/test';
+
+export const test = base.extend({
+    loginPage: async ({ page }, use) => {
+        const loginPage = new LoginPage(page);
+        await use(loginPage);
+    }
+});
+
+Then the test becomes cleaner:
+
+test('Login with valid user', async ({ loginPage }) => {
+
+    await loginPage.login(
+        'standard_user',
+        'secret_sauce'
+    );
+
+});
+
+The fixture is responsible for preparing and providing the required objects to the test.
+
+Why did I choose POM?
+
+I would explain it like this in an interview:
+
+“The main reason I use POM is maintainability. Suppose the SauceDemo login button locator changes. Instead of modifying 20 or 30 test cases, I only need to update the locator in LoginPage.
+
+It also improves reusability because common actions such as login, adding a product to the cart, checkout, and logout are implemented once in their respective page classes.”
+#--------------------------------------------------------------------#
+Strong 3.5-year experience answer
+
+If the interviewer asks “Which design patterns have you used?”, I would give this concise answer:
+
+“In my Playwright TypeScript framework, I primarily use the Page Object Model design pattern. I have separate page classes such as LoginPage, InventoryPage, CartPage and CheckoutPage, which encapsulate locators and page-specific actions. I also use a BasePage for common operations, Playwright fixtures for dependency setup and test isolation, and a Factory approach for browser creation. This combination helps us achieve maintainability, reusability, scalability and clean separation between test logic and application logic.”
+
+Interview tip: Don't simply say “I used POM.” At 3.5 years, immediately explain where you used it, why you used it, and what problem it solved.
+
+
+#===================================================================================================
+# Q : explain where you used it, why you used it, and what problem it solved.
+===> “In my Swag Labs Playwright TypeScript framework, I used the Page Object Model mainly to separate the UI implementation from the test/business logic.
+
+Where I used it: I created separate page classes such as LoginPage, InventoryPage, CartPage, CheckoutInformationPage, CheckoutOverviewPage, and CheckoutCompletePage. Each page class contains the locators and actions related to that particular page.
+
+Why I used it: The main reason was maintainability and reusability. If a locator changes, I only need to update it in the corresponding page class instead of modifying multiple test cases.
+
+What problem it solved: Without POM, test cases would contain locators, clicks, fills, waits, and business logic together. This creates duplicate code and makes the framework difficult to maintain. With POM, my test cases contain business-level actions such as login(), addProductToCart(), and checkout(), while the page classes handle the actual UI interaction.”**
+
+1. Where did you use POM?
+
+In my Swag Labs project, I structured the framework approximately like this:
+
+src/
+├── pages/
+│   ├── LoginPage.ts
+│   ├── InventoryPage.ts
+│   ├── CartPage.ts
+│   ├── CheckoutInformationPage.ts
+│   ├── CheckoutOverviewPage.ts
+│   └── CheckoutCompletePage.ts
+│
+├── components/
+│   ├── HeaderComponent.ts
+│   ├── ProductCardComponent.ts
+│   └── CartComponent.ts
+│
+├── fixtures/
+│   └── browserFixture.ts
+│
+├── helpers/
+│   └── ...
+│
+└── tests/
+    └── ...
+
+#==================================================================================================
+# Q : . How would you explain the complete thing in an interview?
+
+If the interviewer asks:
+
+“Where did you use POM, why did you use it, and what problem did it solve?”
+
+Give this answer:
+
+“In my Swag Labs Playwright TypeScript framework, I used POM at the page layer. I created separate page classes such as LoginPage, InventoryPage, CartPage and CheckoutPage. Each page class encapsulates its locators and page-specific actions.
+
+I used POM mainly for maintainability, reusability and separation of concerns. For example, the login functionality is implemented once in LoginPage, and all tests can reuse the login() method.
+
+The main problem it solved was duplication and maintenance issues. Without POM, locators and UI actions would be directly present in every test. If a locator changed, I would have to modify many test cases. With POM, I change the locator in one page class and all tests using that page automatically use the updated locator.
+
+It also makes the test cases more readable because they contain business-level actions like login(), addProductToCart() and checkout(), instead of low-level locator operations.”
+
+One sentence to remember
+
+“POM separates what I want to test from how I interact with the UI.”
+
+That is a strong 3.5-year-level interview explanation because you're not just defining POM—you are explaining where, why, and the actual problem it solved in your project.
+
+
+#==================================================================================================
+
+Q : Explain how do you pick which test cases to automate ?
+==>  “I don't automate every test case. I first analyze the test case based on business importance, repeatability, stability, execution frequency, and automation ROI. My goal is to automate scenarios where automation provides long-term value and reduces manual effort.”
+
+For my Swag Labs Playwright TypeScript framework, I generally categorize test cases like this:
+
+1. High-priority and business-critical scenarios
+
+I prioritize functionality that is critical to the application.
+
+For example, in Swag Labs:
+
+Login with valid credentials
+Login with invalid credentials
+Product search/filter
+Add product to cart
+Remove product from cart
+Checkout
+Order completion
+Validation of mandatory checkout fields
+
+These flows are good candidates because if they fail, the application has a significant functional issue.
+
+2. Repetitive test cases
+
+If a test needs to be executed repeatedly during every regression cycle, I prefer automation.
+
+For example:
+
+Login → Select Product → Add to Cart → Checkout
+
+Instead of manually executing this flow for every release, Playwright can execute it consistently.
+
+3. Regression test cases
+
+I strongly prioritize regression scenarios.
+
+For example, after a change in the checkout functionality, I would automatically execute:
+
+Login
+   ↓
+Inventory
+   ↓
+Cart
+   ↓
+Checkout Information
+   ↓
+Checkout Overview
+   ↓
+Order Completion
+
+This helps identify whether a new change has broken existing functionality.
+
+4. Data-driven scenarios
+
+Test cases with multiple combinations are also good candidates.
+
+For example, login:
+
+standard_user
+locked_out_user
+problem_user
+performance_glitch_user
+
+Instead of creating completely separate automation code, I can parameterize the test data.
+
+const users = [
+    { username: 'standard_user', password: 'secret_sauce' },
+    { username: 'locked_out_user', password: 'secret_sauce' },
+    { username: 'problem_user', password: 'secret_sauce' }
+];
+
+Then execute the same test logic with different data.
+
+5. Stable functionality
+
+I prefer automating functionality that is relatively stable.
+
+For example, if the login flow is stable and used throughout the application, it's a good candidate.
+
+But if a feature is still under heavy development and the UI changes every day, I may initially keep it manual until the requirements and UI stabilize.
+
+6. Cross-browser scenarios
+
+Playwright makes it easy to run the same tests against:
+
+Chromium
+Firefox
+WebKit
+
+So scenarios that are important across browsers are strong candidates for automation.
+
+7. Tests that are difficult or time-consuming manually
+
+For example:
+
+50 products
+5 different users
+10 checkout combinations
+3 browsers
+
+Doing this manually repeatedly is expensive and error-prone.
+
+Automation gives us better consistency and faster execution.
+
+What I generally don't automate
+
+I don't automatically choose every test case.
+
+For example:
+
+One-time exploratory testing
+
+If a tester needs to explore a new feature and understand unexpected behavior, manual exploratory testing is more appropriate.
+
+Frequently changing UI
+
+If the UI is changing continuously, automation may create unnecessary maintenance.
+
+Visual/usability testing
+
+For example:
+
+“Does this page feel user-friendly?”
+
+That's generally better evaluated manually, although automated visual regression can be useful for specific visual requirements.
+
+One-time tests
+
+If a test will be executed only once and takes 30 seconds manually, automation may not provide enough ROI.
+
+My decision criteria
+
+In an interview, I usually explain my decision using these factors:
+
+Factor			Automation Priority
+Business critical	High
+Frequently executed	High
+Regression		High
+Stable functionality	High
+Repetitive		High
+Data-driven		High
+Cross-browser		High
+Long manual execution	High
+Frequently changing UI	Low initially
+Exploratory testing	Usually manual
+One-time execution	Usually manual
+Usability testing	Usually manual
+How I prioritize in a real project
+
+I generally use something like:
+
+                Test Cases
+                    │
+          ┌─────────┴─────────┐
+          │                   │
+    Business Critical?       No
+          │                   │
+         Yes            Frequently Executed?
+          │                   │
+       Automate              Yes
+                              │
+                         Automate
+                              │
+                    Stable & Repeatable?
+                              │
+                         Yes → Automate
+                              │
+                             No
+                              │
+                    Manual / Exploratory
+Strong 3.5-year interview answer
+
+If the interviewer expects a concise answer, I would say:
+
+“I select test cases for automation based on business criticality, execution frequency, regression value, stability and ROI. I prioritize smoke and regression scenarios, repetitive workflows, data-driven scenarios, critical end-to-end flows and tests that take significant manual effort.
+
+For example, in my Swag Labs framework, I automated login, inventory, cart and checkout because these are stable, repeatable and business-critical flows. I generally don't automate exploratory testing, usability testing, frequently changing functionality or one-time scenarios unless there is a specific business reason.
+
+Before automating, I also consider maintenance cost. The goal is not to maximize the number of automated test cases, but to automate the right test cases that provide maximum value.”
+
+Key line to remember:
+
+“Automation is an ROI decision, not simply a decision to automate as many test cases as possible.”

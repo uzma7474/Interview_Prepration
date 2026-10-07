@@ -1,0 +1,3542 @@
+%PDF-1.6
+%ˆ‰¸ﬂ
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Metadata 64 0 R
+/Version /1.6
+>>
+endobj
+5 0 obj
+<<
+/Length 996
+/Filter [/ASCII85Decode /FlateDecode]
+>>
+stream
+Gat%!gMWKG&:N^lk,E*ZB"Re1hK!C3WKn/%WN)1!MDkhj"q0HrUjd[r0^El@[&GSo(t^Y-bad?t5k2nks*P;qSAM2M$lFcl)OMc_dVj)j-H&boW<D4F[T_Th3m+/,8ZI6AEf+h21g%kU[E_,!iHd.#Jhj5A&4Mkl*/HH-c+)+U1OL4oF#gD!:,6F4E,MI<K].LjH]Gc9&iju*m$]0=fiek!S8]c*(qul2cJe_4ELSP<-%)guhqT%I!A7E%fbS_<quGt%UjLEr1aPoWC=KnI\ZQm]3.do*>L0Wn2,*>aD^4lW=\fT_m3(Uh\ACRI)BiJaWYiMR`E.je7>+WB2\RbRC>^,&qDKir5D,_Gq;@`E+L,2c*;5I3/Ic$A*d'V;YX``01f"f!6X)mY`0flG&:LJO\p9H]A_0&)f\r;^#r+kS^^;fnM;gig5Z_IY!f%?/4-nj)9FM\(CUj`h\cM0ca+S_i:OuD(4KU&n+@0"4M*/=ChVq,(qRP;@8B-IJgk(Ke1p'j0%,YB2Xs*K6D,oY"$,9nn_4qh>_'H(e)rD?4q:obViVUQNkT-W3QA+?Q8/7s2#!%$8P_e*6q2-$l;kK<[BefAW.[r(`s4VQ3oW[HZU_"L#PBp8/2ZqK>H8HWO3(,B"7K*ZNg_WW-pMsl5l">a*NG$H,JnTkW'sWd_\tdpSBWBAt^W;j0d?difHSM#iW0\9QBcJbAUHASV!:)Ffg6Qm<A9lq=md/=[H*Ma'ZX2BnF#nn7WrT;t%?%3HPg]NE,<L(N*OEE_M*<l^3,F#M`H3]"q"D.f_*5LUl4lRBD<;<gU4r[#;hVMa'`#Rh'`Q*Uke7gMfA=TZ,Zk8/V\&5o#l*@7/2]I'mI.+RIiF9#Mf;c)-b!:dVci<rJPirLMq64(q?FXRoks_5(o"G*%[CIS<eJF&5u<p_eZ.G'qN%C)3]"a">-a0)]U_/LL:=19Cq?TXK;c0K":j9[h,Gf_p^,73qC[[361P8i+RGg~>
+endstream
+endobj
+10 0 obj
+<<
+/Length 11491
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 1) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 762.4929 cm
+q
+.419608 .466667 .482353 rg
+BT 1 0 0 1 0 1.1 Tm /F1 7.1 Tf 8.2 TL (Testing Corner By Pooja \177 Selenium Interview Guide \177 2026) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 743.0929 cm
+q
+.137255 .215686 .27451 rg
+BT 1 0 0 1 0 2 Tm /F2 15.4 Tf 17.4 TL (1. Write a program to find the highest integer in an array.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 729.6929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CONCEPT) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 570.2429 cm
+q
+.917647 .94902 .941176 rg
+n 0 156.45 470.5512 -156.45 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 131.15 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (The objective is to find the ) Tj /F2 7.8 Tf (largest integer) Tj /F1 7.8 Tf ( present in an array. The simplest and most efficient interview approach is to traverse the) Tj T* (array once and keep a variable that stores the current maximum value.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 108.85 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (We initialize ) Tj /F2 7.8 Tf (max) Tj /F1 7.8 Tf ( with the first element or with ) Tj /F2 7.8 Tf (Integer.MIN_VALUE) Tj /F1 7.8 Tf (. Then we compare every array element with max. Whenever the) Tj T* (current element is greater than max, we update max.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 86.55 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (This approach does not require sorting. Sorting would add unnecessary work because we only need the highest value. The one-pass) Tj T* (solution has ) Tj /F2 7.8 Tf (O\(n\)) Tj /F1 7.8 Tf ( time complexity and ) Tj /F2 7.8 Tf (O\(1\)) Tj /F1 7.8 Tf ( extra space.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 73.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.85 Tm /F2 7.8 Tf 9.65 TL (Important points to understand:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 61.25 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Initialize a variable to hold the current maximum.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 50.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Traverse every element using a for loop or enhanced for loop.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 39.15 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 If the current element is greater than max, update max.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 28.1 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 For negative values, Integer.MIN_VALUE is safer than initializing max to 0.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 17.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 A one-pass solution is preferred over sorting for this problem.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 11 1.85 Tm -7 0 Td 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (\177 Time complexity: ) Tj /F2 7.8 Tf (O\(n\)) Tj /F1 7.8 Tf (; extra space: ) Tj /F2 7.8 Tf (O\(1\)) Tj /F1 7.8 Tf (.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 156.45 m 470.5512 156.45 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 156.45 l S
+n 470.5512 0 m 470.5512 156.45 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 566.2429 cm
+Q
+q
+1 0 0 1 68.3622 554.8429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (INTERVIEW READY ANSWER) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 500.4429 cm
+q
+.913725 .952941 .972549 rg
+n 0 51.4 470.5512 -51.4 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 31.5 Tm 9.85 TL /F1 7.9 Tf .14902 .203922 .227451 rg (I would find the highest integer by traversing the array only once. I initialize a variable called ) Tj /F2 7.9 Tf (max) Tj /F1 7.9 Tf ( with ) Tj /F2 7.9 Tf (Integer.MIN_VALUE) Tj /F1 7.9 Tf (, then) Tj T* (compare each array element with max. If the current element is greater than max, I update max. After the loop finishes, max) Tj T* (contains the highest value. I prefer this approach because it is simple, handles negative numbers correctly, and has ) Tj /F2 7.9 Tf (O\(n\)) Tj /F1 7.9 Tf ( time) Tj T* -0.047791 Tw (complexity with ) Tj /F2 7.9 Tf (O\(1\)) Tj /F1 7.9 Tf ( extra space. I would not sort the array because sorting is unnecessary when I only need the maximum value.) Tj T* 0 Tw ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 51.4 m 470.5512 51.4 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 51.4 l S
+n 470.5512 0 m 470.5512 51.4 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 496.4429 cm
+Q
+q
+1 0 0 1 68.3622 485.0429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (IMPORTANT POINTS) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 404.9429 cm
+q
+.933333 .960784 .94902 rg
+n 0 77.1 470.5512 -77.1 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (1.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Use a one-pass approach.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (2.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Initialize max correctly so negative numbers are handled.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (3.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Update max only when the current value is greater.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (4.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (No sorting is required.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (5.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Time complexity: O\(n\).) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (6.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Space complexity: O\(1\).) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 77.1 m 470.5512 77.1 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 77.1 l S
+n 470.5512 0 m 470.5512 77.1 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 400.9429 cm
+Q
+q
+1 0 0 1 68.3622 389.5429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 242.3929 cm
+q
+.929412 .952941 .972549 rg
+n 0 144.15 470.5512 -144.15 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 124.2 Tm 6.85 TL /F3 5.95 Tf .14902 .203922 .227451 rg (public class HighestInteger {) Tj  T*  T* (public static void main\(String[] args\) {) Tj  T*  T* (int[] arr = {10, 25, 7, 42, 18};) Tj  T*  T* (int max = Integer.MIN_VALUE;) Tj  T*  T* (for \(int num : arr\) {) Tj  T*  T* (if \(num > max\) {) Tj  T* (max = num;) Tj  T* (}) Tj  T* (}) Tj  T*  T* (System.out.println\() Tj  T* (") Tj (Highest integer: " + max\);) Tj  T* (}) Tj  T* (}) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 144.15 m 470.5512 144.15 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 144.15 l S
+n 470.5512 0 m 470.5512 144.15 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 237.3929 cm
+Q
+q
+1 0 0 1 68.3622 225.9929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE EXPLANATION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 126.3929 cm
+q
+.866667 .917647 .819608 rg
+n 0 96.6 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 85.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 85.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 72 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (int[] arr) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 72 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Stores the input integers.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (int max = Integer.MIN_VALUE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Initializes max to the smallest possible int value.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (for \(int num : arr\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Reads each array element one by one.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (if \(num > max\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Checks whether the current number is greater than the current maximum.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (max = num) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Updates the maximum when a larger number is found.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (System.out.println\(...\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Prints the final highest integer.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 96.6 m 470.5512 96.6 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 96.6 l S
+n 470.5512 0 m 470.5512 96.6 l S
+n 0 82.8 m 470.5512 82.8 l S
+n 0 69 m 470.5512 69 l S
+n 0 55.2 m 470.5512 55.2 l S
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 96.6 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 121.3929 cm
+Q
+q
+1 0 0 1 68.3622 109.9929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (REAL-TIME TESTING EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 66.04291 cm
+q
+.917647 .94902 .941176 rg
+n 0 40.95 470.5512 -40.95 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (Suppose an automation suite records the execution time of several test cases in an integer array. If we need to identify the ) Tj /F2 7.8 Tf (slowest) Tj T* (test execution) Tj /F1 7.8 Tf (, we can use the same logic to find the highest execution-time value. The algorithm is simple, fast and does not) Tj T* (require sorting all test results.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 40.95 m 470.5512 40.95 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 40.95 l S
+n 470.5512 0 m 470.5512 40.95 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+19 0 obj
+<<
+/Length 1519
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 2) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 766.6929 cm
+Q
+q
+1 0 0 1 68.3622 755.2929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (QUICK REVISION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 721.4929 cm
+q
+.933333 .960784 .94902 rg
+n 0 30.8 470.5512 -30.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 11.15 Tm 9.4 TL /F2 7.65 Tf .14902 .203922 .227451 rg (Highest integer = traverse array + maintain max) Tj /F1 7.65 Tf  T* (For ) Tj /F2 7.65 Tf ({10, 25, 7, 42, 18}) Tj /F1 7.65 Tf (, the answer is ) Tj /F2 7.65 Tf (42) Tj /F1 7.65 Tf (. Use one pass, ) Tj /F2 7.65 Tf (O\(n\)) Tj /F1 7.65 Tf ( time and ) Tj /F2 7.65 Tf (O\(1\)) Tj /F1 7.65 Tf ( extra space.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 30.8 m 470.5512 30.8 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 30.8 l S
+n 470.5512 0 m 470.5512 30.8 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+23 0 obj
+<<
+/Length 10392
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 3) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 762.4929 cm
+q
+.419608 .466667 .482353 rg
+BT 1 0 0 1 0 1.1 Tm /F1 7.1 Tf 8.2 TL (Testing Corner By Pooja \177 Selenium Interview Guide \177 2026) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 743.0929 cm
+q
+.137255 .215686 .27451 rg
+BT 1 0 0 1 0 2 Tm /F2 15.4 Tf 17.4 TL (2. Provide a detailed explanation of your framework.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 729.6929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CONCEPT) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 506.5429 cm
+q
+.917647 .94902 .941176 rg
+n 0 220.15 470.5512 -220.15 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 185.2 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (In a real-time automation interview, when an interviewer asks about the framework, they usually want to understand ) Tj /F2 7.8 Tf (how the project) Tj T* (is organized, how a test starts and ends, how reusable components are designed, how test data and configuration are) Tj T* (managed, and how execution is integrated with CI/CD and reporting) Tj /F1 7.8 Tf (.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 153.25 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (A typical Selenium Java framework can be designed using ) Tj /F2 7.8 Tf (Page Object Model \(POM\)) Tj /F1 7.8 Tf (, ) Tj /F2 7.8 Tf (TestNG) Tj /F1 7.8 Tf (, ) Tj /F2 7.8 Tf (Maven) Tj /F1 7.8 Tf (, ) Tj /F2 7.8 Tf (WebDriver) Tj /F1 7.8 Tf (, utility classes,) Tj T* (configuration files, test-data management, logging and reporting. The exact structure depends on the project, but the important point) Tj T* (is to explain the responsibilities of each layer rather than simply listing tools.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 130.95 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (The execution flow should be explained from the beginning: ) Tj /F2 7.8 Tf (configuration ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( driver initialization ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( test setup ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( page/object) Tj T* (methods ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( assertions ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( reporting ) Tj /F4 7.8 Tf 9.65 TL (\256) Tj /F2 7.8 Tf 9.65 TL ( cleanup) Tj /F1 7.8 Tf (. This demonstrates that you understand the framework as an end-to-end system.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 108.65 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (A good framework explanation also covers ) Tj /F2 7.8 Tf (reusability, maintainability, synchronization, parallel execution, failure handling,) Tj T* (screenshots, CI execution and reporting) Tj /F1 7.8 Tf (. These are the areas where an experienced automation engineer adds value.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 96 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.85 Tm /F2 7.8 Tf 9.65 TL (Important points to understand:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 83.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Page classes contain locators and page-specific actions.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 72.3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Test classes contain test scenarios and validations.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 61.25 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Base class handles common setup and teardown.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 50.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Utilities provide reusable operations such as waits, screenshots, Excel/JSON handling and configuration reading.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 39.15 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Maven manages dependencies and build execution.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 28.1 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 TestNG provides annotations, assertions, grouping, data providers and parallel execution.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 17.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Jenkins can trigger the Maven test execution as part of CI/CD.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Reports such as Extent or Allure help the team analyze execution results.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 220.15 m 470.5512 220.15 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 220.15 l S
+n 470.5512 0 m 470.5512 220.15 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 502.5429 cm
+Q
+q
+1 0 0 1 68.3622 491.1429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (INTERVIEW READY ANSWER) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 348.0929 cm
+q
+.913725 .952941 .972549 rg
+n 0 140.05 470.5512 -140.05 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 120.15 Tm 9.85 TL /F1 7.9 Tf .14902 .203922 .227451 rg (In my Selenium Java automation framework, I follow a layered and reusable approach, generally based on the ) Tj /F2 7.9 Tf (Page Object) Tj T* (Model) Tj /F1 7.9 Tf (. The framework is built using ) Tj /F2 7.9 Tf (Java, Selenium WebDriver, TestNG and Maven) Tj /F1 7.9 Tf (, with supporting utilities for configuration,) Tj T* (waits, screenshots, test data and reporting.) Tj  T*  T* (At the framework level, I have a ) Tj /F2 7.9 Tf (BaseTest) Tj /F1 7.9 Tf ( or driver-management layer responsible for browser initialization and common) Tj T* (setup/teardown. I keep page-specific locators and actions inside ) Tj /F2 7.9 Tf (Page Classes) Tj /F1 7.9 Tf (, so the test classes do not contain raw locator) Tj T* (logic. The ) Tj /F2 7.9 Tf (Test Classes) Tj /F1 7.9 Tf ( contain business-level scenarios and assertions. Reusable operations such as explicit waits,) Tj T* (screenshots, configuration reading and test-data handling are maintained in ) Tj /F2 7.9 Tf (utility classes) Tj /F1 7.9 Tf (.) Tj  T*  T* (Maven manages the project dependencies and build lifecycle, while TestNG manages annotations, assertions, test grouping,) Tj T* (data-driven execution and parallel execution where required. For CI/CD, Jenkins can trigger the Maven command, execute the) Tj T* (suite and publish the generated reports. If a test fails, I capture useful evidence such as screenshots and logs. The overall goal of) Tj T* (the framework is ) Tj /F2 7.9 Tf (reusability, maintainability, scalability and reliable execution) Tj /F1 7.9 Tf (.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 140.05 m 470.5512 140.05 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 140.05 l S
+n 470.5512 0 m 470.5512 140.05 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 344.0929 cm
+Q
+q
+1 0 0 1 68.3622 332.6929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (IMPORTANT POINTS) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 226.8929 cm
+q
+.933333 .960784 .94902 rg
+n 0 102.8 470.5512 -102.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 91.75 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (1.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 91.75 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Use POM to separate page behavior from test scenarios.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 78.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (2.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 78.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Keep driver lifecycle and common setup in a base/common layer.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (3.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Keep test data and configuration outside hardcoded test logic.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (4.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Use explicit waits or reusable synchronization utilities instead of unnecessary Thread.sleep\(\).) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (5.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Integrate execution with Maven and CI/CD.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (6.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Capture screenshots/logs on failure.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (7.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Generate readable execution reports.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (8.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Design the framework so adding a new test requires minimum duplication.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 102.8 m 470.5512 102.8 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 102.8 l S
+n 470.5512 0 m 470.5512 102.8 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 222.8929 cm
+Q
+q
+1 0 0 1 68.3622 211.4929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / EXAMPLE) Tj T* ET
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+27 0 obj
+<<
+/Length 6684
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 4) Tj T* ET
+Q
+q
+1 0 0 1 62.3622 612.8429 cm
+q
+.929412 .952941 .972549 rg
+n 0 157.85 470.5512 -157.85 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 137.9 Tm 6.85 TL /F3 5.95 Tf .14902 .203922 .227451 rg (// Typical framework structure) Tj  T*  T* (src/test/java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( tests) Tj  T* /F5 5.95 Tf 6.85 TL (n) Tj /F3 5.95 Tf 6.85 TL ( ) Tj /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( LoginTest.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( pages) Tj  T* /F5 5.95 Tf 6.85 TL (n) Tj /F3 5.95 Tf 6.85 TL ( ) Tj /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( LoginPage.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( base) Tj  T* /F5 5.95 Tf 6.85 TL (n) Tj /F3 5.95 Tf 6.85 TL ( ) Tj /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( BaseTest.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( utils) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( WaitUtil.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( ScreenshotUtil.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( ExcelUtil.java) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( ConfigReader.java) Tj  T*  T* (src/test/resources) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( config.properties) Tj  T* /F5 5.95 Tf 6.85 TL (nnn) Tj /F3 5.95 Tf 6.85 TL ( testdata.xlsx) Tj  T*  T* (pom.xml) Tj  T* (testng.xml) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 157.85 m 470.5512 157.85 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 157.85 l S
+n 470.5512 0 m 470.5512 157.85 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 607.8429 cm
+Q
+q
+1 0 0 1 68.3622 596.4429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (FRAMEWORK CODE EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 188.9929 cm
+q
+.929412 .952941 .972549 rg
+n 0 404.45 470.5512 -404.45 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 384.5 Tm 6.85 TL /F3 5.95 Tf .14902 .203922 .227451 rg (// BaseTest.java) Tj  T* (public class BaseTest {) Tj  T*  T* (protected WebDriver driver;) Tj  T*  T* (@BeforeMethod) Tj  T* (public void setUp\(\) {) Tj  T* (driver = new ChromeDriver\(\);) Tj  T* (driver.manage\(\).window\(\).maximize\(\);) Tj  T* (driver.get\() Tj (") Tj (https://example.com/login) Tj (") Tj (\);) Tj  T* (}) Tj  T*  T* (@AfterMethod) Tj  T* (public void tearDown\(\) {) Tj  T* (if \(driver != null\) {) Tj  T* (driver.quit\(\);) Tj  T* (}) Tj  T* (}) Tj  T* (}) Tj  T*  T* (// LoginPage.java) Tj  T* (public class LoginPage {) Tj  T*  T* (private WebDriver driver;) Tj  T*  T* (private By username =) Tj  T* (By.id\() Tj (") Tj (username) Tj (") Tj (\);) Tj  T*  T* (private By password =) Tj  T* (By.id\() Tj (") Tj (password) Tj (") Tj (\);) Tj  T*  T* (private By loginButton =) Tj  T* (By.id\() Tj (") Tj (login) Tj (") Tj (\);) Tj  T*  T* (public LoginPage\(WebDriver driver\) {) Tj  T* (this.driver = driver;) Tj  T* (}) Tj  T*  T* (public void login\(String user, String pass\) {) Tj  T* (driver.findElement\(username\).sendKeys\(user\);) Tj  T* (driver.findElement\(password\).sendKeys\(pass\);) Tj  T* (driver.findElement\(loginButton\).click\(\);) Tj  T* (}) Tj  T* (}) Tj  T*  T* (// LoginTest.java) Tj  T* (public class LoginTest extends BaseTest {) Tj  T*  T* (@Test) Tj  T* (public void validLogin\(\) {) Tj  T* (LoginPage page =) Tj  T* (new LoginPage\(driver\);) Tj  T*  T* (page.login\() Tj (") Tj (testuser) Tj (") Tj (, ") Tj (password) Tj (") Tj (\);) Tj  T* (// assertions) Tj  T* (}) Tj  T* (}) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 404.45 m 470.5512 404.45 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 404.45 l S
+n 470.5512 0 m 470.5512 404.45 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 183.9929 cm
+Q
+q
+1 0 0 1 68.3622 172.5929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / COMPONENT EXPLANATION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 78.99291 cm
+q
+.866667 .917647 .819608 rg
+n 0 90.6 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 79.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 79.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 66 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (BaseTest) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 8.9 Tm /F1 6.7 Tf 7.8 TL (Provides common browser setup and teardown so individual tests do not duplicate driver) Tj T* (lifecycle code.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (@BeforeMethod) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Runs before each TestNG test method and prepares the test environment.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (@AfterMethod) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Runs after each test method and closes the browser.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (LoginPage) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Represents the login page and keeps its locators/actions together.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (By.id\(...\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Defines Selenium locators inside the page class.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 90.6 m 470.5512 90.6 l S
+n 0 0 m 0 90.6 l S
+n 470.5512 0 m 470.5512 90.6 l S
+n 0 0 m 470.5512 0 l S
+n 0 76.8 m 470.5512 76.8 l S
+n 0 55.2 m 470.5512 55.2 l S
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 90.6 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+31 0 obj
+<<
+/Length 4415
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 5) Tj T* ET
+Q
+q
+1 0 0 1 62.3622 701.6929 cm
+q
+.866667 .917647 .819608 rg
+n 0 69 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (login\(...\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Encapsulates the complete login action.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (LoginTest) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Contains the business-level test scenario rather than locator implementation.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Maven / pom.xml) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Manages dependencies and build execution.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Jenkins) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Can execute the Maven suite in a CI/CD pipeline.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 69 m 470.5512 69 l S
+n 0 55.2 m 0 69 l S
+n 0 0 m 0 55.2 l S
+n 470.5512 55.2 m 470.5512 69 l S
+n 470.5512 0 m 470.5512 55.2 l S
+n 0 0 m 470.5512 0 l S
+n 0 55.2 m 470.5512 55.2 l S
+n 183.515 55.2 m 183.515 69 l S
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 55.2 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 696.6929 cm
+Q
+q
+1 0 0 1 68.3622 685.2929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (REAL-TIME PROJECT EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 631.6929 cm
+q
+.917647 .94902 .941176 rg
+n 0 50.6 470.5512 -50.6 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 0 30.8 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (For an e-commerce project, I might have ) Tj /F2 7.8 Tf (LoginPage, HomePage, ProductPage, CartPage and CheckoutPage) Tj /F1 7.8 Tf (. A test such as) Tj T* /F2 7.8 Tf (PurchaseProductTest) Tj /F1 7.8 Tf ( calls reusable page methods instead of directly writing XPath and Selenium actions in every test. If the) Tj T* (product locator changes, I update the relevant page class instead of changing many test cases. This is one of the main benefits of) Tj T* (POM-based framework design.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 50.6 m 470.5512 50.6 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 50.6 l S
+n 470.5512 0 m 470.5512 50.6 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 627.6929 cm
+Q
+q
+1 0 0 1 68.3622 616.2929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (QUICK REVISION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 573.0929 cm
+q
+.933333 .960784 .94902 rg
+n 0 40.2 470.5512 -40.2 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 20.55 Tm 9.4 TL /F2 7.65 Tf .14902 .203922 .227451 rg (Framework = Driver Management + POM + Tests + Utilities + Test Data + Config + Reporting + CI/CD) Tj /F1 7.65 Tf  T* (Explain the framework as an ) Tj /F2 7.65 Tf (end-to-end execution flow) Tj /F1 7.65 Tf (, not merely as a list of tools. Emphasize ) Tj /F2 7.65 Tf (reusability, maintainability,) Tj T* (scalability and failure handling) Tj /F1 7.65 Tf (.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 40.2 m 470.5512 40.2 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 40.2 l S
+n 470.5512 0 m 470.5512 40.2 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+35 0 obj
+<<
+/Length 11605
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 6) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 762.4929 cm
+q
+.419608 .466667 .482353 rg
+BT 1 0 0 1 0 1.1 Tm /F1 7.1 Tf 8.2 TL (Testing Corner By Pooja \177 Selenium Interview Guide \177 2026) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 743.0929 cm
+q
+.137255 .215686 .27451 rg
+BT 1 0 0 1 0 2 Tm /F2 15.4 Tf 17.4 TL (3. Write an XPath for a given scenario.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 729.6929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CONCEPT) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 538.2929 cm
+q
+.917647 .94902 .941176 rg
+n 0 188.4 470.5512 -188.4 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 163.1 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (In an interview, the interviewer may give an HTML scenario and ask us to create an XPath for a particular element. The correct) Tj T* (approach is to first identify the ) Tj /F2 7.8 Tf (stable attributes) Tj /F1 7.8 Tf ( and then construct a relative XPath that uniquely identifies the required element.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 140.8 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (Consider a product page where several products are displayed and each product has a product name, price and an ) Tj /F2 7.8 Tf (Add to Cart) Tj /F1 7.8 Tf  T* (button. The interviewer asks: ) Tj /F2 7.8 Tf (Write an XPath to click Add to Cart for the product named 'iPhone 15'.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 108.85 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (A direct XPath based only on the button text may match multiple buttons. Instead, we can locate the product container using the) Tj T* (product name and then navigate to its corresponding Add to Cart button. This demonstrates an understanding of ) Tj /F2 7.8 Tf (relative XPath and) Tj T* (element relationships) Tj /F1 7.8 Tf (.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 86.55 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (When creating XPath, I prefer stable attributes or meaningful relationships and avoid brittle absolute paths such as) Tj T* /F2 7.8 Tf (/html/body/div[2]/div[3]/...) Tj /F1 7.8 Tf (.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 73.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.85 Tm /F2 7.8 Tf 9.65 TL (Important points to understand:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 61.25 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 First identify the unique text or attribute that identifies the required product.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 50.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Locate the product container using that unique product name.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 39.15 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Navigate from the product container to its Add to Cart button.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 28.1 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Use relative XPath rather than an absolute DOM path.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 17.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Use contains\(\), text\(\), ancestor\(\), descendant or following-sibling relationships when appropriate.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Validate the XPath in browser developer tools before using it.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 188.4 m 470.5512 188.4 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 188.4 l S
+n 470.5512 0 m 470.5512 188.4 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 534.2929 cm
+Q
+q
+1 0 0 1 68.3622 522.8929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (INTERVIEW READY ANSWER) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 438.9429 cm
+q
+.913725 .952941 .972549 rg
+n 0 80.95 470.5512 -80.95 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 61.05 Tm -0.102714 Tw 9.85 TL /F1 7.9 Tf .14902 .203922 .227451 rg (For the given scenario, suppose the page contains multiple products and each product has its own ) Tj /F2 7.9 Tf (Add to Cart) Tj /F1 7.9 Tf ( button. If I need to) Tj T* 0 Tw (click Add to Cart for ) Tj /F2 7.9 Tf (iPhone 15) Tj /F1 7.9 Tf (, I would first locate the product container using the text ) Tj /F2 7.9 Tf (iPhone 15) Tj /F1 7.9 Tf ( and then navigate to the button) Tj T* (within that same container. For example, if the HTML structure supports it, I can use ) Tj /F2 7.9 Tf (//div[.//h3[normalize-space\(\)='iPhone) Tj T* (15']]//button[normalize-space\(\)='Add to Cart']) Tj /F1 7.9 Tf (.) Tj  T*  T* (I prefer this approach because the XPath is tied to the business identity of the product rather than the physical position of the) Tj T* (button on the page. If the order of products changes, the XPath can still identify the correct product and its corresponding button.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 80.95 m 470.5512 80.95 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 80.95 l S
+n 470.5512 0 m 470.5512 80.95 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 434.9429 cm
+Q
+q
+1 0 0 1 68.3622 423.5429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (IMPORTANT POINTS) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 343.4429 cm
+q
+.933333 .960784 .94902 rg
+n 0 77.1 470.5512 -77.1 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (1.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Identify the element using stable information first.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (2.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Use normalize-space\(\) when whitespace can vary.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (3.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Use a parent/ancestor container to scope the search to the correct item.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (4.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Avoid indexes unless there is no better stable locator.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (5.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Avoid absolute XPath.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (6.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Always verify uniqueness before using the XPath in the test.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 77.1 m 470.5512 77.1 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 77.1 l S
+n 470.5512 0 m 470.5512 77.1 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 339.4429 cm
+Q
+q
+1 0 0 1 68.3622 328.0429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 160.3429 cm
+q
+.929412 .952941 .972549 rg
+n 0 164.7 470.5512 -164.7 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 144.75 Tm 6.85 TL /F3 5.95 Tf .14902 .203922 .227451 rg (// Example HTML) Tj  T* (<) Tj (div class=) Tj (") Tj (product-card) Tj (") Tj (>) Tj  T* (<) Tj (h3) Tj (>) Tj (iPhone 15) Tj (<) Tj (/h3) Tj (>) Tj  T* (<) Tj (span class=) Tj (") Tj (price) Tj (") Tj (>) Tj ($799) Tj (<) Tj (/span) Tj (>) Tj  T* (<) Tj (button) Tj (>) Tj (Add to Cart) Tj (<) Tj (/button) Tj (>) Tj  T* (<) Tj (/div) Tj (>) Tj  T*  T* (<) Tj (div class=) Tj (") Tj (product-card) Tj (") Tj (>) Tj  T* (<) Tj (h3) Tj (>) Tj (Samsung S24) Tj (<) Tj (/h3) Tj (>) Tj  T* (<) Tj (span class=) Tj (") Tj (price) Tj (") Tj (>) Tj ($699) Tj (<) Tj (/span) Tj (>) Tj  T* (<) Tj (button) Tj (>) Tj (Add to Cart) Tj (<) Tj (/button) Tj (>) Tj  T* (<) Tj (/div) Tj (>) Tj  T*  T* (// XPath for iPhone 15 Add to Cart) Tj  T* (//div[.//h3[normalize-space\(\)=) Tj (') Tj (iPhone 15) Tj (') Tj (]]) Tj  T* (//button[normalize-space\(\)=) Tj (') Tj (Add to Cart) Tj (') Tj (]) Tj  T*  T* (// Selenium) Tj  T* (driver.findElement\(By.xpath\() Tj  T* (") Tj (//div[.//h3[normalize-space\(\)=) Tj (') Tj (iPhone 15) Tj (') Tj (]]) Tj (") Tj  T* (+ ") Tj (//button[normalize-space\(\)=) Tj (') Tj (Add to Cart) Tj (') Tj (]) Tj (") Tj  T* (\)\).click\(\);) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 164.7 m 470.5512 164.7 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 164.7 l S
+n 470.5512 0 m 470.5512 164.7 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 155.3429 cm
+Q
+q
+1 0 0 1 68.3622 143.9429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / XPATH EXPLANATION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 71.94291 cm
+q
+.866667 .917647 .819608 rg
+n 0 69 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (//div) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Starts by looking for div elements in the page.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL ([.//h3[normalize-space\(\)='iPhone 15']]) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Keeps only the product container that contains the required product name.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (normalize-space\(\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Removes leading/trailing whitespace and normalizes text spaces.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (//button[normalize-space\(\)='Add to Cart']) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Finds the Add to Cart button inside the selected product container.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 69 m 470.5512 69 l S
+n 0 0 m 0 69 l S
+n 470.5512 0 m 470.5512 69 l S
+n 0 0 m 470.5512 0 l S
+n 0 55.2 m 470.5512 55.2 l S
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 69 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+39 0 obj
+<<
+/Length 4475
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 7) Tj T* ET
+Q
+q
+1 0 0 1 62.3622 729.2929 cm
+q
+.866667 .917647 .819608 rg
+n 0 41.4 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (By.xpath\(...\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Passes the XPath to Selenium.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (click\(\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Clicks the identified button.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 0 41.4 l S
+n 0 0 m 0 27.6 l S
+n 470.5512 27.6 m 470.5512 41.4 l S
+n 470.5512 0 m 470.5512 27.6 l S
+n 0 0 m 470.5512 0 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 183.515 27.6 m 183.515 41.4 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 27.6 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 724.2929 cm
+Q
+q
+1 0 0 1 68.3622 712.8929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (ALTERNATIVE SCENARIO) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 668.9429 cm
+q
+.917647 .94902 .941176 rg
+n 0 40.95 470.5512 -40.95 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (If the HTML provides a stable product attribute such as ) Tj /F2 7.8 Tf (data-product='iphone15') Tj /F1 7.8 Tf (, an even simpler XPath would be) Tj T* /F2 7.8 Tf (//div[@data-product='iphone15']//button[normalize-space\(\)='Add to Cart']) Tj /F1 7.8 Tf (. In practice, I would prefer a stable attribute when the) Tj T* (application provides one.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 40.95 m 470.5512 40.95 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 40.95 l S
+n 470.5512 0 m 470.5512 40.95 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 664.9429 cm
+Q
+q
+1 0 0 1 68.3622 653.5429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (REAL-TIME TESTING EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 609.5929 cm
+q
+.917647 .94902 .941176 rg
+n 0 40.95 470.5512 -40.95 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 0 21.15 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (In an e-commerce automation project, the same page can contain dozens of Add to Cart buttons. A generic locator such as) Tj T* /F2 7.8 Tf (//button[text\(\)='Add to Cart']) Tj /F1 7.8 Tf ( may return multiple elements. Scoping the XPath to the required product prevents Selenium from) Tj T* (clicking the wrong product's button.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 40.95 m 470.5512 40.95 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 40.95 l S
+n 470.5512 0 m 470.5512 40.95 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 605.5929 cm
+Q
+q
+1 0 0 1 68.3622 594.1929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (QUICK REVISION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 560.3929 cm
+q
+.933333 .960784 .94902 rg
+n 0 30.8 470.5512 -30.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 11.15 Tm 9.4 TL /F2 7.65 Tf .14902 .203922 .227451 rg (Business text/attribute ) Tj /F4 7.65 Tf 9.4 TL (\256) Tj /F2 7.65 Tf 9.4 TL ( product container ) Tj /F4 7.65 Tf 9.4 TL (\256) Tj /F2 7.65 Tf 9.4 TL ( related control) Tj /F1 7.65 Tf  T* (For dynamic pages, prefer stable attributes and relative relationships. Avoid absolute XPath and unnecessary indexes.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 30.8 m 470.5512 30.8 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 30.8 l S
+n 470.5512 0 m 470.5512 30.8 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+43 0 obj
+<<
+/Length 11093
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 8) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 762.4929 cm
+q
+.419608 .466667 .482353 rg
+BT 1 0 0 1 0 1.1 Tm /F1 7.1 Tf 8.2 TL (Testing Corner By Pooja \177 Selenium Interview Guide \177 2026) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 725.6929 cm
+q
+.137255 .215686 .27451 rg
+BT 1 0 0 1 0 19.4 Tm /F2 15.4 Tf 17.4 TL (4. Write an SQL query to retrieve the details of all employees) Tj T* (from the emp table for a given scenario.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 712.2929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CONCEPT) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 519.4929 cm
+q
+.917647 .94902 .941176 rg
+n 0 189.8 470.5512 -189.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 164.5 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (For a basic employee-data scenario, suppose the interviewer asks: ) Tj /F2 7.8 Tf (Retrieve the details of all employees from the emp table.) Tj /F1 7.8 Tf ( If) Tj T* (the requirement is to return every column and every employee record, the query is straightforward.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 142.2 cm
+q
+BT 1 0 0 1 0 11.5 Tm -0.101892 Tw 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (The SQL keyword ) Tj /F2 7.8 Tf (SELECT) Tj /F1 7.8 Tf ( is used to retrieve data, while ) Tj /F2 7.8 Tf (*) Tj /F1 7.8 Tf ( means all columns. The ) Tj /F2 7.8 Tf (FROM emp) Tj /F1 7.8 Tf ( clause specifies the table from which) Tj T* 0 Tw (the data should be retrieved.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 119.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 11.5 Tm /F1 7.8 Tf 9.65 TL (In a real interview, I would also clarify whether 'all employees' means every row or whether a condition is required, such as) Tj T* (employees from a particular department, employees with salary above a value, or employees hired after a specific date.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 97.6 cm
+q
+BT 1 0 0 1 0 11.5 Tm 9.65 TL /F1 7.8 Tf .14902 .203922 .227451 rg (For production queries, selecting only the required columns is generally preferable to SELECT *, but for a question explicitly asking) Tj T* (for all details, ) Tj /F2 7.8 Tf (SELECT *) Tj /F1 7.8 Tf ( is the direct answer.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 84.95 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.85 Tm /F2 7.8 Tf 9.65 TL (Important points to understand:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 72.3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 SELECT is used to retrieve records.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 61.25 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 The * symbol means all columns.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 50.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 FROM emp identifies the source table.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 39.15 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Without a WHERE clause, all rows from emp are returned.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 28.1 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Use WHERE when the interviewer adds a filtering condition.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 17.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 Use ORDER BY when the scenario asks for sorted output.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.8 Tf 9.65 TL -7 0 Td (\177 For production code, select only the columns actually required when possible.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 189.8 m 470.5512 189.8 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 189.8 l S
+n 470.5512 0 m 470.5512 189.8 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 515.4929 cm
+Q
+q
+1 0 0 1 68.3622 504.0929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (INTERVIEW READY ANSWER) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 420.1429 cm
+q
+.913725 .952941 .972549 rg
+n 0 80.95 470.5512 -80.95 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 61.05 Tm 9.85 TL /F1 7.9 Tf .14902 .203922 .227451 rg (If the requirement is to retrieve the details of ) Tj /F2 7.9 Tf (all employees) Tj /F1 7.9 Tf ( from the ) Tj /F2 7.9 Tf (emp) Tj /F1 7.9 Tf ( table, I would use ) Tj /F2 7.9 Tf (SELECT * FROM emp;) Tj /F1 7.9 Tf (. Here,) Tj T* (SELECT retrieves the data, the asterisk represents all columns, and FROM emp specifies the employee table. Because there is) Tj T* (no WHERE condition, the query returns every employee record in the table.) Tj  T*  T* (If the interviewer gives an additional condition, I would add a WHERE clause. For example, if they ask for employees from) Tj T* (department 10, I would use ) Tj /F2 7.9 Tf (SELECT * FROM emp WHERE deptno = 10;) Tj /F1 7.9 Tf (. I would also mention that in real projects I prefer) Tj T* (selecting only the required columns rather than using SELECT * when the requirement is specific.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 80.95 m 470.5512 80.95 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 80.95 l S
+n 470.5512 0 m 470.5512 80.95 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 416.1429 cm
+Q
+q
+1 0 0 1 68.3622 404.7429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (IMPORTANT POINTS) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 324.6429 cm
+q
+.933333 .960784 .94902 rg
+n 0 77.1 470.5512 -77.1 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (1.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 66.05 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Basic query: SELECT * FROM emp;) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (2.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 53.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (No WHERE clause means all rows are returned.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (3.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 40.35 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (WHERE is used for filtering.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (4.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 27.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (ORDER BY is used for sorting.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (5.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 14.65 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Select only required columns in production queries when possible.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (6.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.6 Tm /F1 7.65 Tf 9.25 TL -9 0 Td (Clarify the exact scenario if the interviewer has not provided a filtering condition.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 77.1 m 470.5512 77.1 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 77.1 l S
+n 470.5512 0 m 470.5512 77.1 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 320.6429 cm
+Q
+q
+1 0 0 1 68.3622 309.2429 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (CODE / EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 203.1929 cm
+q
+.929412 .952941 .972549 rg
+n 0 103.05 470.5512 -103.05 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 83.1 Tm 6.85 TL /F3 5.95 Tf .14902 .203922 .227451 rg (-- Scenario 1: Retrieve all employee details) Tj  T* (SELECT *) Tj  T* (FROM emp;) Tj  T*  T* (-- Scenario 2: Retrieve employees) Tj  T* (-- from department 10) Tj  T* (SELECT *) Tj  T* (FROM emp) Tj  T* (WHERE deptno = 10;) Tj  T*  T* (-- Scenario 3: Retrieve selected details) Tj  T* (SELECT empno, ename, job, sal) Tj  T* (FROM emp;) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 103.05 m 470.5512 103.05 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 103.05 l S
+n 470.5512 0 m 470.5512 103.05 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 198.1929 cm
+Q
+q
+1 0 0 1 68.3622 186.7929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (SQL EXPLANATION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 100.9929 cm
+q
+.866667 .917647 .819608 rg
+n 0 82.8 470.5512 -13.8 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 72 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 72 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F2 6.7 Tf 7.8 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (SELECT *) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Requests all columns from the selected table.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (FROM emp) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Specifies the emp table as the source.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (WHERE deptno = 10) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Filters the result to employees whose department number is 10.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (SELECT empno, ename, job, sal) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Retrieves only the specified employee columns.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (;) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.1 Tm /F1 6.7 Tf 7.8 TL (Marks the end of the SQL statement.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 82.8 m 470.5512 82.8 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 82.8 l S
+n 470.5512 0 m 470.5512 82.8 l S
+n 0 69 m 470.5512 69 l S
+n 0 55.2 m 470.5512 55.2 l S
+n 0 41.4 m 470.5512 41.4 l S
+n 0 27.6 m 470.5512 27.6 l S
+n 0 13.8 m 470.5512 13.8 l S
+n 183.515 0 m 183.515 82.8 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 95.99291 cm
+Q
+q
+1 0 0 1 68.3622 84.59291 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.05 Tm /F2 8.35 Tf 9.4 TL (REAL-TIME TESTING EXAMPLE) Tj T* ET
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+47 0 obj
+<<
+/Length 9654
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 5) Tj T* ET
+Q
+q
+1 0 0 1 68.3622 762.4929 cm
+q
+.419608 .466667 .482353 rg
+BT 1 0 0 1 0 1.1 Tm /F1 7.1 Tf 8.2 TL (Testing Corner By Pooja \177 Selenium Interview Guide \177 2026) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 725.4929 cm
+q
+.137255 .215686 .27451 rg
+BT 1 0 0 1 0 19.5 Tm /F2 15.5 Tf 17.5 TL (7. Explain method overloading and method overriding with) Tj T* (examples.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 68.3622 711.9929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (CONCEPT) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 508.0929 cm
+q
+.917647 .94902 .941176 rg
+n 0 200.9 470.5512 -200.9 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 165.8 cm
+q
+BT 1 0 0 1 0 21.25 Tm 9.7 TL /F2 7.85 Tf .14902 .203922 .227451 rg (Method overloading) Tj /F1 7.85 Tf ( and ) Tj /F2 7.85 Tf (method overriding) Tj /F1 7.85 Tf ( are both related to polymorphism, but they solve different problems. Overloading) Tj T* (means defining multiple methods with the ) Tj /F2 7.85 Tf (same name but different parameter lists) Tj /F1 7.85 Tf ( in the same class or related context.) Tj T* (Overriding means a child class provides a new implementation of a method inherited from its parent class.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 143.4 cm
+q
+BT 1 0 0 1 0 11.55 Tm 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (Overloading is resolved at ) Tj /F2 7.85 Tf (compile time) Tj /F1 7.85 Tf (, so it is commonly called ) Tj /F2 7.85 Tf (compile-time polymorphism) Tj /F1 7.85 Tf (. The compiler selects the method) Tj T* (based on the number, type or order of parameters.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 121 cm
+q
+BT 1 0 0 1 0 11.55 Tm 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (Overriding is resolved at ) Tj /F2 7.85 Tf (runtime) Tj /F1 7.85 Tf (, so it is commonly called ) Tj /F2 7.85 Tf (runtime polymorphism) Tj /F1 7.85 Tf (. The method that executes depends on the) Tj T* (actual object created, even when the reference is of the parent type.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 98.6 cm
+q
+BT 1 0 0 1 0 11.55 Tm 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (A key interview point is that changing only the ) Tj /F2 7.85 Tf (return type) Tj /F1 7.85 Tf ( is not sufficient for overloading. For overriding, the child method must) Tj T* (follow the parent method's compatible signature and cannot reduce access visibility.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 85.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.85 Tm /F2 7.85 Tf 9.7 TL (Important points to understand:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 73.2 cm
+q
+BT 1 0 0 1 11 1.85 Tm -7 0 Td 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (\177 ) Tj /F2 7.85 Tf (Overloading:) Tj /F1 7.85 Tf ( same method name + different parameter list.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 62 cm
+q
+BT 1 0 0 1 11 1.85 Tm -7 0 Td 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (\177 ) Tj /F2 7.85 Tf (Overriding:) Tj /F1 7.85 Tf ( child class redefines inherited method with the same signature.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 50.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.85 Tf 9.7 TL -7 0 Td (\177 Overloading ) Tj /F3 7.85 Tf 9.7 TL (\256) Tj /F1 7.85 Tf 9.7 TL ( compile-time polymorphism.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 39.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.85 Tf 9.7 TL -7 0 Td (\177 Overriding ) Tj /F3 7.85 Tf 9.7 TL (\256) Tj /F1 7.85 Tf 9.7 TL ( runtime polymorphism.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 28.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.85 Tf 9.7 TL -7 0 Td (\177 Overloading can differ by number, type or order of parameters.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 17.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.85 Tf 9.7 TL -7 0 Td (\177 Return type alone cannot create an overloaded method.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 11 1.85 Tm /F1 7.85 Tf 9.7 TL -7 0 Td (\177 Use @Override to clearly indicate an overridden method.) Tj T* 7 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 200.9 m 470.5512 200.9 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 200.9 l S
+n 470.5512 0 m 470.5512 200.9 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 504.0929 cm
+Q
+q
+1 0 0 1 68.3622 492.5929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (INTERVIEW READY ANSWER) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 378.5929 cm
+q
+.913725 .952941 .972549 rg
+n 0 111 470.5512 -111 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 91.1 Tm -0.031618 Tw 9.9 TL /F1 7.9 Tf .14902 .203922 .227451 rg (Method overloading means having multiple methods with the ) Tj /F2 7.9 Tf (same name but different parameter lists) Tj /F1 7.9 Tf (. The difference can be in) Tj T* 0 Tw (the number, type or order of parameters. It is resolved by the compiler, so it is called ) Tj /F2 7.9 Tf (compile-time polymorphism) Tj /F1 7.9 Tf (.) Tj  T*  T* (Method overriding occurs when a ) Tj /F2 7.9 Tf (child class provides its own implementation) Tj /F1 7.9 Tf ( of a method inherited from the parent class) Tj T* (using the same method signature. The decision about which implementation to execute is made at runtime based on the actual) Tj T* (object, so it is called ) Tj /F2 7.9 Tf (runtime polymorphism) Tj /F1 7.9 Tf (.) Tj  T*  T* (For example, in an automation utility I could overload a click method so it accepts either a By locator or a String locator. For) Tj T* (overriding, a specialized browser/page class could provide its own implementation of a common action defined in a parent class. I) Tj T* (normally use ) Tj /F2 7.9 Tf (@Override) Tj /F1 7.9 Tf ( because it makes the intent clear and lets the compiler validate the method signature.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 111 m 470.5512 111 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 111 l S
+n 470.5512 0 m 470.5512 111 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 374.5929 cm
+Q
+q
+1 0 0 1 68.3622 363.0929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (IMPORTANT POINTS) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 282.0929 cm
+q
+.933333 .960784 .94902 rg
+n 0 78 470.5512 -78 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 66.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (1.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 66.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (Overloading changes the parameter list; overriding keeps the compatible method signature.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 53.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (2.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 53.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (Overloading is compile-time; overriding is runtime.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 40.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (3.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 40.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (Return type alone cannot overload a method.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 27.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (4.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 27.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (A child class uses @Override for an overridden method.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 14.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (5.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 14.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (Overriding supports runtime polymorphism.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 6 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (6.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 0 0 1 34.34646 1.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 9 1.7 Tm /F1 7.7 Tf 9.4 TL -9 0 Td (Both concepts improve flexibility and reusable object-oriented design.) Tj T* 9 0 Td ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 78 m 470.5512 78 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 78 l S
+n 470.5512 0 m 470.5512 78 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 278.0929 cm
+Q
+q
+1 0 0 1 68.3622 266.5929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (CODE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 117.5429 cm
+q
+.929412 .952941 .972549 rg
+n 0 146.05 470.5512 -146.05 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 126 Tm 6.95 TL /F4 6.05 Tf .14902 .203922 .227451 rg (// Method Overloading) Tj  T* (class SeleniumUtility {) Tj  T*  T* (public void click\(By locator\) {) Tj  T* (System.out.println\() Tj  T* (") Tj (Click using By locator) Tj (") Tj (\);) Tj  T* (}) Tj  T*  T* (public void click\(String locator\) {) Tj  T* (System.out.println\() Tj  T* (") Tj (Click using String locator) Tj (") Tj (\);) Tj  T* (}) Tj  T*  T* (public void click\(By locator,) Tj  T* (int timeout\) {) Tj  T* (System.out.println\() Tj  T* (") Tj (Click with timeout: " + timeout\);) Tj  T* (}) Tj  T* (}) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 146.05 m 470.5512 146.05 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 146.05 l S
+n 470.5512 0 m 470.5512 146.05 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 112.5429 cm
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+55 0 obj
+<<
+/Length 10608
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+.862745 .937255 .929412 rg
+n 0 0 595.2756 841.8898 re f*
+.980392 .988235 .984314 rg
+n 62.3622 51.02362 470.5512 739.8425 re f*
+.788235 .835294 .823529 RG
+.7 w
+n 62.3622 45.35433 m 532.9134 45.35433 l S
+BT /F1 7.2 Tf 8.64 TL ET
+.396078 .447059 .470588 rg
+BT 1 0 0 1 62.3622 31.74803 Tm (Testing Corner By Pooja) Tj T* ET
+BT 1 0 0 1 510.0966 31.74803 Tm (Page 6) Tj T* ET
+Q
+q
+1 0 0 1 62.3622 562.0929 cm
+q
+.929412 .952941 .972549 rg
+n 0 208.6 470.5512 -208.6 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 7 7 cm
+q
+BT 1 0 0 1 0 188.55 Tm 6.95 TL /F4 6.05 Tf .14902 .203922 .227451 rg (// Method Overriding) Tj  T* (class BasePage {) Tj  T*  T* (public void openPage\(\) {) Tj  T* (System.out.println\() Tj  T* (") Tj (Opening base page) Tj (") Tj (\);) Tj  T* (}) Tj  T* (}) Tj  T*  T* (class LoginPage extends BasePage {) Tj  T*  T* (@Override) Tj  T* (public void openPage\(\) {) Tj  T* (System.out.println\() Tj  T* (") Tj (Opening login page) Tj (") Tj (\);) Tj  T* (}) Tj  T* (}) Tj  T*  T* (public class TestRunner {) Tj  T*  T* (public static void main\(String[] args\) {) Tj  T*  T* (BasePage page =) Tj  T* (new LoginPage\(\);) Tj  T*  T* (page.openPage\(\);) Tj  T* (}) Tj  T* (}) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 208.6 m 470.5512 208.6 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 208.6 l S
+n 470.5512 0 m 470.5512 208.6 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 557.0929 cm
+Q
+q
+1 0 0 1 68.3622 545.5929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (CODE EXPLANATION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 417.4929 cm
+q
+.866667 .917647 .819608 rg
+n 0 125.1 470.5512 -13.9 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 114.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F2 6.75 Tf 7.9 TL (Code / Element) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 114.2 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F2 6.75 Tf 7.9 TL (Explanation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 100.3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (click\(By locator\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 100.3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Overloaded method accepting a By locator.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 86.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (click\(String locator\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 86.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Same method name but a different parameter type, so it is an overload.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 72.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (click\(By locator, int timeout\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 72.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Same method name with an additional parameter, another overload.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 58.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (BasePage.openPage\(\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 58.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Parent class defines the common behavior.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 44.7 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (LoginPage extends BasePage) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 44.7 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Child class inherits the parent method and can replace its implementation.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 30.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (@Override) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 30.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Explicitly marks the child implementation as an override.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 16.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (BasePage page = new LoginPage\(\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 16.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Parent reference points to a child object, enabling runtime polymorphism.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (page.openPage\(\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 188.515 3 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Runtime dispatch invokes LoginPage's overridden method.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 125.1 m 470.5512 125.1 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 125.1 l S
+n 470.5512 0 m 470.5512 125.1 l S
+n 0 111.2 m 470.5512 111.2 l S
+n 0 97.3 m 470.5512 97.3 l S
+n 0 83.4 m 470.5512 83.4 l S
+n 0 69.5 m 470.5512 69.5 l S
+n 0 55.6 m 470.5512 55.6 l S
+n 0 41.7 m 470.5512 41.7 l S
+n 0 27.8 m 470.5512 27.8 l S
+n 0 13.9 m 470.5512 13.9 l S
+n 183.515 0 m 183.515 125.1 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 412.4929 cm
+Q
+q
+1 0 0 1 68.3622 400.9929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (REAL-TIME AUTOMATION EXAMPLE) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 356.8929 cm
+q
+.917647 .94902 .941176 rg
+n 0 41.1 470.5512 -41.1 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 0 21.25 Tm 9.7 TL /F1 7.85 Tf .14902 .203922 .227451 rg (For ) Tj /F2 7.85 Tf (overloading) Tj /F1 7.85 Tf (, a framework utility might provide ) Tj /F2 7.85 Tf (click\(By locator\)) Tj /F1 7.85 Tf (, ) Tj /F2 7.85 Tf (click\(String locator\)) Tj /F1 7.85 Tf ( and ) Tj /F2 7.85 Tf (click\(By locator, int timeout\)) Tj /F1 7.85 Tf (. The) Tj T* -0.000721 Tw (test can call the same method name with different inputs. For ) Tj /F2 7.85 Tf (overriding) Tj /F1 7.85 Tf (, a common BasePage method such as openPage\(\) can be) Tj T* 0 Tw (specialized by LoginPage, ProductPage or CheckoutPage when each page requires different behavior.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 41.1 m 470.5512 41.1 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 41.1 l S
+n 470.5512 0 m 470.5512 41.1 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 352.8929 cm
+Q
+q
+1 0 0 1 68.3622 341.3929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (COMPARISON) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 227.0929 cm
+q
+.866667 .917647 .819608 rg
+n 0 111.3 470.5512 -15.9 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 5 99.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F2 6.75 Tf 7.9 TL (Point) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 99.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F2 6.75 Tf 7.9 TL (Overloading) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 99.4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F2 6.75 Tf 7.9 TL (Overriding) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 83.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Meaning) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 83.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Same method name, different parameters) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 83.5 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Child provides a new implementation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 67.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Polymorphism) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 67.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Compile-time) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 67.6 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Runtime) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 51.7 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Parameters) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 51.7 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Must be different) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 51.7 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Compatible/same signature) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 35.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Inheritance required) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 35.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (No) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 35.8 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Yes, normally parent-child relationship) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 19.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Return type) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 19.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Return type alone cannot overload) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 19.9 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Must be compatible with parent method) Tj T* ET
+Q
+Q
+q
+1 0 0 1 5 4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (Annotation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 108.5213 4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (No special annotation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 292.0362 4 cm
+q
+.14902 .203922 .227451 rg
+BT 1 0 0 1 0 1.15 Tm /F1 6.75 Tf 7.9 TL (@Override recommended) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.4 w
+n 0 111.3 m 470.5512 111.3 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 111.3 l S
+n 470.5512 0 m 470.5512 111.3 l S
+n 0 95.4 m 470.5512 95.4 l S
+n 0 79.5 m 470.5512 79.5 l S
+n 0 63.6 m 470.5512 63.6 l S
+n 0 47.7 m 470.5512 47.7 l S
+n 0 31.8 m 470.5512 31.8 l S
+n 0 15.9 m 470.5512 15.9 l S
+n 103.5213 0 m 103.5213 111.3 l S
+n 287.0362 0 m 287.0362 111.3 l S
+Q
+Q
+Q
+q
+1 0 0 1 68.3622 222.0929 cm
+Q
+q
+1 0 0 1 68.3622 210.5929 cm
+q
+.243137 .466667 .443137 rg
+BT 1 0 0 1 0 1.1 Tm /F2 8.4 Tf 9.5 TL (QUICK REVISION) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.3622 157.5929 cm
+q
+.933333 .960784 .94902 rg
+n 0 50 470.5512 -50 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 6 cm
+q
+BT 1 0 0 1 3 30.3 Tm 9.5 TL /F2 7.7 Tf .14902 .203922 .227451 rg (Overloading ) Tj /F3 7.7 Tf 9.5 TL (\256) Tj /F2 7.7 Tf 9.5 TL ( same name + different parameters ) Tj /F3 7.7 Tf 9.5 TL (\256) Tj /F2 7.7 Tf 9.5 TL ( compile time.) Tj /F1 7.7 Tf  T* /F2 7.7 Tf (Overriding ) Tj /F3 7.7 Tf 9.5 TL (\256) Tj /F2 7.7 Tf 9.5 TL ( child redefines parent method ) Tj /F3 7.7 Tf 9.5 TL (\256) Tj /F2 7.7 Tf 9.5 TL ( runtime.) Tj /F1 7.7 Tf  T* (Automation example: ) Tj /F2 7.7 Tf (click\(By\)) Tj /F1 7.7 Tf ( and ) Tj /F2 7.7 Tf (click\(String\)) Tj /F1 7.7 Tf ( demonstrate overloading; ) Tj /F2 7.7 Tf (LoginPage.openPage\(\)) Tj /F1 7.7 Tf ( replacing) Tj T* /F2 7.7 Tf (BasePage.openPage\(\)) Tj /F1 7.7 Tf ( demonstrates overriding.) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+.827451 .866667 .85098 RG
+.55 w
+n 0 50 m 470.5512 50 l S
+n 0 0 m 470.5512 0 l S
+n 0 0 m 0 50 l S
+n 470.5512 0 m 470.5512 50 l S
+Q
+Q
+Q
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+59 0 obj
+<<
+/Length 851
+>>
+stream
+q
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.909804 .956863 .94902 rg
+n 0 0 595.2756 841.8898 re f*
+.301961 .505882 .470588 rg
+n 0 817.8898 595.2756 24 re f*
+.094118 .227451 .27451 rg
+BT /F2 34 Tf 40.8 TL ET
+BT 1 0 0 1 210.7338 465.9449 Tm (Thank You) Tj T* ET
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 167.5968 415.9449 Tm (Mphasis Interview Preparation) Tj T* ET
+BT /F1 14 Tf 16.8 TL ET
+BT 1 0 0 1 233.8328 385.9449 Tm (QA Automation Role) Tj T* ET
+.301961 .505882 .470588 rg
+n 0 0 595.2756 38 re f*
+1 1 1 rg
+BT /F2 12 Tf 14.4 TL ET
+BT 1 0 0 1 227.6238 14 Tm (Testing Corner By Pooja) Tj T* ET
+ 
+
+Q
+
+q
+0.0 0.0 595.2756 841.8898 re
+W
+n
+1 0 0 1 0 0 cm
+BT
+/F1-0 12 Tf
+14.4 TL
+ET
+q
+0.819152 0.573576 -0.573576 0.819152 297.6378 420.9449 cm
+0.301961 0.505882 0.470588 rg
+/gRLs0 gs
+BT
+/F2-0 42 Tf
+50.4 TL
+ET
+BT
+1 0 0 1 -149.352 0 Tm
+(Testing Corner) Tj
+T*
+ET
+Q
+Q
+
+
+endstream
+endobj
+64 0 obj
+<<
+/Length 0
+/Type /Metadata
+/Subtype /XML
+>>
+stream
+
+endstream
+endobj
+66 0 obj
+<<
+/Length 806
+/Type /ObjStm
+/N 50
+/Filter /FlateDecode
+/First 384
+>>
+stream
+xúÌXÎJQ~ïy=◊9(ÇQ”J/à
+˝±&[	ËÆ$k—∑ÔwvÕ≈“Öƒ≤	b ú€\œ|3À‰hídI©Héåå‰…KÅ¨fäƒZÅFARö"∏î!%ï$ïÑ§#≈†HM
+K¡Ì¡¬ÿC¬Ç_É’kGIQ QÉ°D[,AÑm`"±X	z Ì°\C4HÜOXJEF„'º√#¡Ic"Ëp€√æÅ„>Çñ"Y\KEáW	YYK÷Eô¨ Ç%x–±Ú†ßK;K,â3âm41[èCb?,.bÔà#Ï≤'„0êSAbCŒÇ…)rP@Nìsp÷róq8Ja˝A\=›Á$.≤õ|F‚§|(™lÒy2û—–üK ëFƒ4Ma=πzBÄÍ©a4ãmXl√¬ç⁄O::JfO ¢ ãjF\ãØ˘xíı G&ç˘P{‹.XuàÄ»âÀ|V>LGÚ}»Sc@\LÀ— Øh(.N˚$ÆÚ«äƒ˘Æ‘{ûOûÁÛ∆æ∏,´¨ !-Æ¶Yë¶”e(“8Ö{‘‹DE	_ásÔ˚
+©ZS˙ööã5Ñ^6Àk◊ƒß¸ˆw^MFâ≥bTé'≈âÔì‚∏òMñﬂ≤;É:1x∏Æj˚…5w¶÷’™˙†Wﬁé◊—Ø◊–ø@D…◊ArˆX}‘q≈ÊÊÚÀL¶ U≤ëB\€kà≤k"®dJπy8QûœÀÉ∫–õçIµﬁ,m*˜f…©‚ü£øí-ÿØ§«∫i∞˛eFÏÌ∑íH€”èœ’tíO◊Ql6R<x∫ª.o¬v#·Ÿ˝ØSÿæŒê9sºQ∆ÌW†ñˇÆ@≠ˆÿÌ˜Võ†m[–Ê=⁄£ÌwÄvhA;Ó—Óm£∂è∂iÈ•åŸ£›1⁄Ø¸3Û_hª¥˝Ìé—ﬁAóf[∫4ªÔ“:F€Ó†K≥-]ö›wi]£Ωù.ÕÜU¥„mñ+hÛ≤∂Y/–fÛn ~+Ÿ≥=˝ΩOlˆ∏±¡´…:Àó‹Ìt?/jÜ]KÕ¯w^3›|y;-èì+;µÄÿÈà›˚Û≠‰I«˙1¸+∏„
+endstream
+endobj
+67 0 obj
+<<
+/Length 183
+/Root 3 0 R
+/Info 65 0 R
+/ID [<AF1604F6A32A8563579A37F4F88F0913> <AF1604F6A32A8563579A37F4F88F0913>]
+/Type /XRef
+/Size 68
+/Index [0 1 2 65]
+/W [1 3 1]
+/Filter /FlateDecode
+>>
+stream
+xú ÀMBE—sû‡D¸†»GD@ﬂ»9!lb$∂@¥‡ƒÑ@V‡à2"˚NVNˆΩí¥I§°,ƒÚvçc%∞»Zôyvaˆ· ·rê∑“e<CN¨◊u¥S(¬ô5˘äVÇ2ú[üI¥∏Ñ+k6çVÅk∏±VŸhU∏Ööı≥àVá4≠øQ¥;∏áhA:hW”¯Î¬ÙÏ∑ﬂh}¿3ºÿÔqH∑Î[ˇpMW
+endstream
+endobj
+startxref
+85572
+%%EOF

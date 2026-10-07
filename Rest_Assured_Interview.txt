@@ -1,0 +1,977 @@
+# Q : What are the important validation you will put on a API.
+
+==> When I test an API, I don't validate only the status code. I validate the response at multiple levels—HTTP response, headers, response body, schema, business rules, and data consistency.
+
+1. Status Code Validation
+	First, I verify that the API returns the expected HTTP status code.
+200 → Successful GET
+201 → Resource created
+204 → Successful request with no response body
+400 → Bad request
+401 → Unauthorized
+403 → Forbidden
+404 → Resource not found
+500 → Internal server error
+
+given()
+    .when()
+    .get("/booking/1")
+    .then()
+    .statusCode(200);
+
+2. Response Body Validation
+	I verify that the response contains the expected data.
+.then()
+    .body("firstname", equalTo("John"))
+    .body("lastname", equalTo("Doe"));
+
+I also validate:
+
+Required fields
+Field values
+Data types
+Null/empty values
+Array size
+Nested objects
+
+3. JSON Schema Validation
+
+I validate the response structure against the expected JSON schema.
+
+.then()
+    .assertThat()
+    .body(matchesJsonSchemaInClasspath("booking-schema.json"));
+
+This helps detect issues such as a field changing from:
+
+"bookingid": 123
+
+to:
+
+"bookingid": "123"
+
+4. Headers Validation
+
+I verify important response headers such as:
+
+Content-Type
+Authorization
+Cache-Control
+Location
+
+Example :
+.then()
+    .header("Content-Type", containsString("application/json"));
+
+5. Authentication and Authorization
+
+I verify:
+
+Valid credentials/token
+Missing token
+Expired token
+Invalid token
+User permissions
+Access to protected endpoints
+
+For example:
+
+“A user without the required role should not be able to access an admin endpoint.”
+
+6. Request Validation / Negative Testing
+
+I deliberately send invalid requests and verify that the API handles them correctly.
+
+Examples:\
+Missing mandatory field
+Invalid data type
+Invalid ID
+Invalid email
+Empty request body
+Malformed JSON
+Invalid query parameter
+Duplicate data
+
+Ex: given()
+    .body(invalidRequest)
+.when()
+    .post("/booking")
+.then()
+    .statusCode(400);
+
+7. Business Logic Validation
+
+This is very important because a 200 status code doesn't necessarily mean the business logic is correct.
+
+For example, for an order API:
+
+“If the quantity is 2 and the unit price is ₹500, I would verify that the total price is ₹1,000.”
+
+Similarly:
+
+Discount calculation
+Tax calculation
+Order status
+Booking dates
+Inventory availability
+Payment status
+
+8. CRUD / Data Consistency Validation
+
+For CRUD APIs, I verify the complete lifecycle:
+
+POST → Create
+GET  → Verify created data
+PUT  → Update
+GET  → Verify update
+DELETE → Delete
+GET → Verify resource is no longer available
+
+This verifies that the API actually persists and modifies data correctly.
+
+9. Response Time / Performance
+
+I also validate that the API responds within the expected SLA.
+
+.then()
+    .time(lessThan(2000L));
+
+I would mention that the actual threshold should come from the application's performance requirements rather than being arbitrarily chosen.
+
+10. Database Validation
+
+If database access is available, I verify that API operations correctly affect the database.
+
+For example:
+
+“After creating a booking through POST, I can query the database and verify that the booking record was actually created with the expected values.”
+
+11. Idempotency
+
+For APIs where idempotency matters, I verify repeated requests behave correctly.
+
+For example:
+
+“If the same payment request is submitted twice with the same idempotency key, it should not create two payments.”
+
+12. Security Validation
+
+Depending on the API, I also consider:
+
+Unauthorized access
+Broken access control
+Sensitive data exposure
+Injection attacks
+Token handling
+Input validation
+
+#--------------------------------------------------------------#
+# Strong interview answer
+#--------------------------------------------------------------#
+“For API testing, I validate much more than just the status code. I validate the status code, response body, JSON schema, headers, authentication and authorization, request and response data types, mandatory fields, negative scenarios, business logic, CRUD data consistency, response time, and database changes when applicable. I also verify security-related scenarios and idempotency for APIs where it is relevant.
+
+For example, if I test a POST booking API, I would verify that it returns 201, validate the response body and schema, verify the generated booking ID, check the headers, verify the data is persisted correctly, and then use GET to confirm the created booking. I would also test invalid payloads, missing fields, unauthorized requests, and duplicate requests.”
+
+Easy interview formula:
+
+Status Code + Headers + Body + Schema + Business Logic + Negative Cases + Security + Performance + Data Consistency.
+
+#===================================================================================
+# Q :  How would you store API response data dynamically?
+
+==> If using Cucumber
+
+“If I'm using REST Assured with Cucumber, I can store dynamic values in a Scenario Context, so the value is available to subsequent steps within the same scenario.”
+
+Strong interview closing
+
+“I dynamically extract required values from the API response using JSONPath and store them in variables or a scenario/test context. I then pass those values into subsequent requests using path parameters, query parameters, headers, or request bodies. This avoids hardcoding and allows proper end-to-end API chaining.”
+
+
+
+#===================================================================================
+# Q : What is API and WebServices ?
+==> As a 3.5 years experienced API Automation Tester using Rest Assured, I would answer this in an interview like this:
+
+API stands for Application Programming Interface. It is a set of rules that allows two different software applications to communicate with each other. For example, when I use a banking application and request my account balance, the application communicates with the backend through an API and receives the required data.
+
+A Web Service is a type of API that is specifically designed to enable communication between applications over a network, typically using HTTP/HTTPS. Web services commonly use technologies such as REST or SOAP.
+
+In my automation framework, I mainly work with REST APIs and use Rest Assured with Java to send HTTP requests such as GET, POST, PUT, PATCH, and DELETE, and validate the status code, response body, headers, schema, and response time.
+
+Simple Difference
+API	Web Service
+General mechanism for communication between software components	API that communicates over a network
+Can be used locally or over a network	Primarily network-based
+Can include REST, SOAP, libraries, SDK interfaces, etc.	Commonly REST or SOAP based
+Broader concept	Subset/type of API
+Real-time Example
+
+Suppose I have a Swag Labs frontend and a backend service:
+
+UI / Mobile App
+      ↓
+     API
+      ↓
+Backend Server
+      ↓
+   Database
+
+For example:
+
+GET /users/101
+
+The client sends the request to the API, and the server returns:
+
+{
+  "id": 101,
+  "name": "John"
+}
+
+I can automate this API using Rest Assured:
+
+given()
+.when()
+    .get("/users/101")
+.then()
+    .statusCode(200)
+    .body("id", equalTo(101));
+One-line interview definition
+
+API is a mechanism that enables communication between software applications, whereas a Web Service is a network-accessible API that allows applications to communicate over protocols such as HTTP/HTTPS.
+
+
+#===================================================================================
+# Q : What is the difference between 201 and 204 Status Code?
+==> Difference between 201 and 204 Status Codes
+
+As a 3.5 years experienced API Automation Tester using Rest Assured, I would explain it like this:
+
+201 Created and 204 No Content both indicate that the request was successful, but they are used in different scenarios.
+
+Status Code	Meaning	Response Body	Typical Usage
+201 Created	A new resource was successfully created	Usually contains the created resource or its details	POST request
+204 No Content	Request was successful, but there is no content to return	No response body	DELETE, PUT, or PATCH
+Example — 201 Created
+
+Suppose I create a new booking:
+
+POST /booking
+
+Request:
+
+{
+  "firstname": "John",
+  "lastname": "Doe"
+}
+
+Response:
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "id": 101,
+  "firstname": "John",
+  "lastname": "Doe"
+}
+
+Here, 201 indicates that the server successfully created the booking. The response may provide the newly created resource or its ID.
+
+In Rest Assured, I can validate:
+
+given()
+    .body(requestBody)
+.when()
+    .post("/booking")
+.then()
+    .statusCode(201)
+    .body("id", notNullValue());
+Example — 204 No Content
+
+Suppose I delete the booking:
+
+DELETE /booking/101
+
+Response:
+
+HTTP/1.1 204 No Content
+
+There is no response body because the server successfully processed the request and has nothing to return.
+
+In Rest Assured:
+
+given()
+.when()
+    .delete("/booking/101")
+.then()
+    .statusCode(204)
+    .body(emptyString());
+Interview Answer
+
+201 means the request was successful and a new resource was created, so the response may contain details of that newly created resource. 204 means the request was successful, but the server intentionally does not return any response content. In my Rest Assured framework, I validate 201 for resource-creation APIs like POST and 204 for operations such as successful DELETE or update APIs where no response body is expected.
+
+Key point:
+201 = Created + response can contain data
+204 = Success + no response body
+
+
+
+#===================================================================================
+# Q : What is the difference between 401 and 403 Status Code?
+==> Difference between 401 and 403 Status Codes
+
+As a 3.5 years experienced API Automation Tester using Rest Assured, I would explain it like this:
+
+401 Unauthorized means the client has not provided valid authentication credentials, or the credentials are missing/invalid.
+
+403 Forbidden means the user is authenticated, but does not have sufficient permission to access the requested resource.
+
+Status Code	Meaning	Authentication	Authorization
+401 Unauthorized	Authentication is missing or invalid	❌ Failed	Not reached/irrelevant
+403 Forbidden	User is authenticated but not allowed	✅ Successful	❌ Failed
+Example of 401
+
+Suppose an API requires a JWT token:
+
+GET /api/admin/users
+Authorization: Bearer <token>
+
+If the token is missing, expired, or invalid, the API may return:
+
+401 Unauthorized
+
+In Rest Assured:
+
+given()
+    .when()
+    .get("/api/admin/users")
+    .then()
+    .statusCode(401);
+Example of 403
+
+Suppose I have a valid token, but my user has a normal-user role and I'm trying to access an admin API:
+
+GET /api/admin/users
+Authorization: Bearer <valid-token>
+
+Authentication succeeds, but the user doesn't have admin permission.
+
+The API returns:
+
+403 Forbidden
+
+Rest Assured validation:
+
+given()
+    .header("Authorization", "Bearer " + validToken)
+.when()
+    .get("/api/admin/users")
+.then()
+    .statusCode(403);
+Easy way to remember
+
+Think of entering an office:
+
+401 → "Who are you?" → You haven't provided valid identification.
+403 → "I know who you are, but you can't enter this room." → You are authenticated but don't have permission.
+Interview Answer
+
+The main difference between 401 and 403 is authentication versus authorization. 401 indicates an authentication problem, such as a missing, invalid, or expired token. 403 indicates that authentication was successful, but the authenticated user doesn't have sufficient permission to access the resource. In my Rest Assured framework, I create negative test cases for both scenarios by validating the appropriate status code and error response.
+
+
+#===================================================================================
+# Q : What are the components of an API Request?
+==> As a 3.5 years experienced API Automation Tester using Rest Assured, I would answer:
+
+An API request generally consists of HTTP Method, URL/Endpoint, Headers, Query Parameters, Path Parameters, Request Body, and Authentication details. Depending on the API, some components may be optional.
+
+1. HTTP Method
+
+It defines what operation we want to perform.
+
+GET → Retrieve data
+POST → Create data
+PUT → Completely update data
+PATCH → Partially update data
+DELETE → Delete data
+
+2. URL / Endpoint
+
+It specifies where the request needs to be sent.
+
+https://restful-booker.herokuapp.com/booking
+
+It generally consists of:
+
+Base URL + Endpoint
+
+For example:
+
+Base URL  : https://restful-booker.herokuapp.com
+Endpoint  : /booking
+3. Headers
+
+Headers provide additional information about the request.
+
+Common headers are:
+
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer <token>
+
+For example:
+
+Content-Type → tells the server the format of request body.
+Accept → tells the server what response format the client expects.
+Authorization → provides authentication credentials/token.
+4. Query Parameters
+
+Query parameters are used to filter or customize the request.
+
+Example:
+
+GET /users?status=active&page=2
+
+Here:
+
+status=active
+page=2
+
+are query parameters.
+
+In Rest Assured:
+
+given()
+    .queryParam("status", "active")
+    .queryParam("page", 2)
+.when()
+    .get("/users");
+5. Path Parameters
+
+Path parameters identify a specific resource.
+
+Example:
+
+GET /users/101
+
+Here 101 is the path parameter.
+
+In Rest Assured:
+
+given()
+    .pathParam("id", 101)
+.when()
+    .get("/users/{id}");
+6. Request Body
+
+The request body contains the actual data that we want to send to the server, mainly with POST, PUT, and PATCH requests.
+
+Example:
+
+{
+  "firstname": "John",
+  "lastname": "Doe",
+  "totalprice": 100
+}
+
+In Rest Assured:
+
+given()
+    .contentType(ContentType.JSON)
+    .body(requestBody)
+.when()
+    .post("/booking");
+7. Authentication / Authorization
+
+If the API is secured, we need to provide authentication details.
+
+For example:
+
+given()
+    .auth()
+    .oauth2(token)
+.when()
+    .get("/users");
+Complete Request Example
+POST https://api.example.com/users?source=web
+Authorization: Bearer abc123
+Content-Type: application/json
+Accept: application/json
+
+{
+    "name": "John",
+    "email": "john@test.com"
+}
+
+Here:
+
+Component		Example
+1. HTTP Method		POST
+2. Base URL		https://api.example.com
+3. Endpoint		/users
+4. Query Parameter	 source=web
+5. Headers		Authorization, Content-Type, Accept
+6. Request Body		JSON user details
+7. Authentication		Bearer token
+8. Interview Answer
+
+The major components of an API request are HTTP method, URL or endpoint, headers, query parameters, path parameters, request body, and authentication details. In my Rest Assured framework, I use these components based on the API requirement. For example, while testing a POST API, I typically pass the endpoint, headers, authentication token, and JSON request body, and then validate the response status code, headers, response body, and response time.
+
+Easy way to remember:
+Method + URL + Headers + Parameters + Body + Authentication.
+
+
+
+#===================================================================================
+# Q : What is the difference between Query Parameters and Path Parameters?
+==> As a 3.5 years experienced API Automation Tester using Rest Assured, I would explain it like this:
+
+Path parameters are used to identify a specific resource, whereas query parameters are generally used to filter, sort, search, or customize the data returned by an API.
+
+Path Parameter					Query Parameter
+Used to identify a specific resource		Used to filter/customize resources
+Part of the URL path				Comes after ? in the URL
+Usually mandatory when defined by the endpoint	Usually optional
+Example: /users/101				Example: /users?status=active
+Used commonly for retrieving/updating a 	Used commonly for filtering/searching/pagination
+specific resource	
+
+1. Path Parameter
+Suppose we want to get a specific booking:
+GET /booking/123
+Here, 123 is the path parameter.
+
+In Rest Assured:
+
+given()
+    .pathParam("bookingId", 123)
+.when()
+    .get("/booking/{bookingId}")
+.then()
+    .statusCode(200);
+
+The URL becomes:
+
+/booking/123
+
+The path parameter tells the API which specific booking we want.
+
+2. Query Parameter
+
+Suppose we want to retrieve users based on their status:
+
+GET /users?status=active
+
+Here:
+
+status=active
+
+is a query parameter.
+
+In Rest Assured:
+
+given()
+    .queryParam("status", "active")
+.when()
+    .get("/users")
+.then()
+    .statusCode(200);
+
+We can also have multiple query parameters:
+
+GET /users?status=active&page=2&limit=10
+
+This could mean:
+
+status=active → filter active users
+page=2 → retrieve page 2
+limit=10 → return 10 records
+Easy Example
+
+Think about an API for products:
+
+/products/101
+
+Path parameter: 101 → "Give me product number 101."
+
+Whereas:
+
+/products?category=mobile&sort=price
+
+Query parameters: category=mobile, sort=price → "Give me mobile products and sort them by price."
+
+Interview Answer
+
+Path parameters identify a specific resource and are part of the URL path. Query parameters are used to filter, search, sort, or paginate the response and are appended to the URL after ?. For example, /booking/123 uses 123 as a path parameter to identify a specific booking, while /booking?status=active uses status as a query parameter to filter the bookings. In Rest Assured, I use pathParam() for path parameters and queryParam() for query parameters.
+
+
+#===================================================================================
+# Q : Meaning of 405 status code in Postman , what does it means and how to resolve it?
+==> As a 3.5-year experienced Rest Assured/API automation engineer, I would explain 405 Method Not Allowed like this:
+
+What does 405 mean?
+
+HTTP 405 – Method Not Allowed means:
+
+The API endpoint exists, but the HTTP method you are using is not allowed for that endpoint.
+
+For example, suppose the API supports:
+
+GET /users/123
+
+but in Postman I send:
+
+POST /users/123
+
+The server may return:
+
+405 Method Not Allowed
+
+So the problem is usually not that the URL doesn't exist. The problem is that the HTTP method doesn't match what the endpoint supports.
+
+Common example in Postman
+
+Suppose the API documentation says:
+
+GET    /booking/{id}       → Get booking
+PUT    /booking/{id}       → Update booking
+DELETE /booking/{id}       → Delete booking
+
+If I send:
+
+POST /booking/123
+
+I may get:
+
+405 Method Not Allowed
+How would I resolve it?
+
+I would check the following:
+
+1. Verify the HTTP method
+
+In Postman, make sure I am using the method expected by the API:
+
+GET
+POST
+PUT
+PATCH
+DELETE
+
+2. Verify the endpoint
+
+Check that the URL and path are correct.
+
+For example:
+
+Correct:
+PUT /booking/123
+
+Incorrect:
+PUT /booking
+
+if the API specifically requires an ID.
+
+3. Check API documentation
+
+I would verify which methods are supported for that particular endpoint.
+
+Sometimes the response also contains an Allow header:
+
+Allow: GET, PUT, DELETE
+
+This tells me which methods are permitted.
+
+4. Check environment/base URL
+
+In an automation framework, I would also verify that I'm hitting the correct environment:
+
+QA
+UAT
+Production
+
+because different environments can have different API configurations.
+
+5. Check routing/API gateway configuration
+
+If the method is definitely correct but I still receive 405, I would check:
+
+API Gateway
+Reverse proxy
+Server routing
+Web server configuration
+Authentication/authorization middleware
+HTTP method restrictions
+Rest Assured example
+
+If the API expects PUT but I accidentally use POST:
+
+given()
+    .contentType(ContentType.JSON)
+    .body(requestBody)
+.when()
+    .post("/booking/123")
+.then()
+    .statusCode(405);
+
+I would correct it to:
+
+given()
+    .contentType(ContentType.JSON)
+    .body(requestBody)
+.when()
+    .put("/booking/123")
+.then()
+    .statusCode(200);
+Difference from 404
+
+This is a common interview follow-up:
+
+Status	Meaning
+404	Resource/endpoint was not found
+405	Endpoint exists, but the HTTP method is not allowed
+Interview answer
+
+“405 Method Not Allowed means the requested API endpoint exists, but the HTTP method I'm using is not supported for that endpoint. For example, if an endpoint supports GET but I send POST, I can receive 405. To resolve it, I first verify the HTTP method against the API documentation, then check the endpoint path, request URL, environment, and the Allow header if available. If the method is correct and the issue still occurs, I would investigate API Gateway or server-side routing configuration.”
+
+Easy way to remember:
+404 = Wrong/unknown endpoint.
+405 = Endpoint is there, but wrong HTTP method.
+
+Files, images, and data analysis are unavailable until usage resets at 4:37 PM. Continue chatting with text only, or upgrade for more access.
+Upgrade to Plus
+
+
+
+#===================================================================================
+# Q : how to use objectMapper 
+
+As a 3.5-year experienced Rest Assured + Java automation engineer, I use Jackson's ObjectMapper mainly to convert Java objects to JSON and JSON responses to Java objects.
+
+1. Add Jackson dependency
+
+If you're using Rest Assured, Jackson is commonly used for JSON serialization/deserialization.
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.17.2</version>
+</dependency>
+2. Java Object → JSON
+
+Suppose I have a POJO:
+
+public class User {
+
+    private String username;
+    private String password;
+
+    public User() {
+    }
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    // getters and setters
+}
+
+I can convert it to JSON using ObjectMapper:
+
+ObjectMapper mapper = new ObjectMapper();
+
+User user = new User("standard_user", "secret_sauce");
+
+String jsonRequest = mapper.writeValueAsString(user);
+
+System.out.println(jsonRequest);
+
+Output:
+
+{
+  "username": "standard_user",
+  "password": "secret_sauce"
+}
+
+This is called serialization.
+
+Java Object
+     ↓
+ObjectMapper
+     ↓
+JSON
+3. JSON → Java Object
+
+Suppose the API returns:
+
+{
+  "username": "standard_user",
+  "password": "secret_sauce"
+}
+
+I can convert it back to a Java object:
+
+ObjectMapper mapper = new ObjectMapper();
+
+User user = mapper.readValue(jsonResponse, User.class);
+
+System.out.println(user.getUsername());
+
+This is called deserialization.
+
+JSON
+ ↓
+ObjectMapper
+ ↓
+Java Object
+4. Using ObjectMapper with Rest Assured
+
+For example, in a POST request:
+
+@Test
+public void createUser() throws Exception {
+
+    User user = new User(
+        "standard_user",
+        "secret_sauce"
+    );
+
+    ObjectMapper mapper = new ObjectMapper();
+
+    String requestBody = mapper.writeValueAsString(user);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(requestBody)
+    .when()
+        .post("/users")
+    .then()
+        .statusCode(201);
+}
+
+However, Rest Assured can also serialize POJOs automatically if Jackson is available:
+
+given()
+    .contentType(ContentType.JSON)
+    .body(user)
+.when()
+    .post("/users");
+
+So I don't always need to explicitly call writeValueAsString().
+
+5. Deserialize API response
+
+Suppose the API response is:
+
+{
+    "id": 101,
+    "username": "john"
+}
+
+POJO:
+
+public class UserResponse {
+
+    private int id;
+    private String username;
+
+    // getters and setters
+}
+
+Then:
+
+Response response =
+    given()
+    .when()
+        .get("/users/101");
+
+ObjectMapper mapper = new ObjectMapper();
+
+UserResponse userResponse =
+    mapper.readValue(
+        response.asString(),
+        UserResponse.class
+    );
+
+Assert.assertEquals(userResponse.getId(), 101);
+Assert.assertEquals(userResponse.getUsername(), "john");
+Why do I use ObjectMapper?
+
+In my framework, it is useful when the JSON becomes complex.
+
+Instead of doing:
+
+response.jsonPath().getString("user.address.city");
+response.jsonPath().getInt("user.id");
+response.jsonPath().getString("user.email");
+
+I can deserialize the entire response into a Java model:
+
+UserResponse user = mapper.readValue(
+    response.asString(),
+    UserResponse.class
+);
+
+Then I work with normal Java objects.
+
+Interview answer
+
+“I use Jackson's ObjectMapper for JSON serialization and deserialization. writeValueAsString() converts a Java POJO into a JSON string, which I can send as an API request body. readValue() converts a JSON response into a Java POJO, which makes response validation easier, especially for complex nested JSON. In Rest Assured, Jackson can also be integrated automatically so Rest Assured can serialize and deserialize POJOs.”
+
+Easy way to remember:
+
+writeValueAsString() → Java Object → JSON
+readValue()          → JSON → Java Object
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+

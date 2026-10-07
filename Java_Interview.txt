@@ -1,0 +1,563 @@
+You can use an IAnnotationTransformer to apply the retry analyzer globally.
+
+public class RetryListener implements IAnnotationTransformer {
+
+    @Override
+    public void transform(
+            ITestAnnotation annotation,
+            Class testClass,
+            Constructor testConstructor,
+            Method testMethod) {
+
+        annotation.setRetryAnalyzer(
+                RetryAnalyzer.class
+        );
+    }
+}
+
+--------------------------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------------------------
+1) What is the purpose of the finalize() method?
+
+The finalize() method is invoked just before the object is garbage collected. It is used to perform cleanup processing. The Garbage collector of JVM collects only those objects that are created by new keyword. So if you have created an object without new, you can use the finalize method to perform cleanup processing (destroying remaining objects). The cleanup processing is the process to free up all the resources, network which was previously used and no longer needed. It is essential to remember that it is not a reserved keyword, finalize method is present in the object class hence it is available in every class as object class is the superclass of every class in java. Here, we must note that neither finalization nor garbage collection is guaranteed. Consider the following example.
+
+public class FinalizeTest {  
+    int j=12;  
+    void add()  
+    {  
+        j=j+12;  
+        System.out.println("J="+j);  
+    }  
+    public void finalize()  
+    {  
+        System.out.println("Object is garbage collected");  
+    }  
+    public static void main(String[] args) {  
+        new FinalizeTest().add();  
+        System.gc();  
+        new FinalizeTest().add();  
+    }  
+}  
+
+----------------------------------------------------------------------------------------------------
+
+Why abstract classes have a constructor? 
+
+The main purpose of the constructor is to initialize the newly created object. In abstract class, we have an instance variable, abstract methods, and non-abstract methods. We need to initialize the non-abstract methods and instance variables, therefore abstract classes have a constructor.
+Also, even if we don’t provide any constructor the compiler will add default constructor in an abstract class.
+An abstract class can be inherited by any number of sub-classes, thus functionality of constructor present in abstract class can be used by them.
+The constructor inside the abstract class can only be called during constructor chaining i.e. when we create an instance of sub-classes. This is also one of the reasons abstract class can have a constructor.
+
+---------------------------------------------------------------------------------------------------
+
+Why interfaces can not have the constructor?
+
+An Interface is a complete abstraction of class. All data members present in the interface are by default public, static, and final. All the static final fields should be assigned values at the time of declaration, otherwise it will throw compilation error saying “variable variable_Name not initialized in default constructor”.
+The methods inside the interface are by default public abstract which means the method implementation cannot be provided by the interface itself, it has to be provided by the implementing class. Therefore, no need of having a constructor inside the interface.
+A constructor is used to initializing non-static data members and as there are no non-static data members in the interface, there is no need of constructor
+Methods present in the interface are only declared not defined, As there is no implementation of methods, there is no need of making objects for calling methods in the interface and thus no point of having constructor in it.
+If we try to create a constructor inside the interface, the compiler will give a compile-time error.
+
+
+-------------------------------------------------
+
+When should you use an abstract class?
+
+An abstract class is a great choice if you are bringing into account the inheritance concept because it provides the common base class implementation to the derived classes.
+An abstract class is also good if you want to declare non-public members. In an interface, all methods must be public.
+If you want to add new methods in the future, then it is great to go with the abstract class. Because if you add new methods to the interface, then all of the classes that are already implemented in the interface will have to be changed in order to implement these new methods.
+If you want to create multiple versions of your component, then go with the abstract class. Abstract classes provide a simple and easy way to version your components. When you go with updating the base class, all of the inheriting classes would be automatically updated with the change. Interfaces, on the other hand, can’t be changed once these are created. If you want a new version of the interface, then you must create a new interface.
+Abstract classes always have the advantage of allowing better forwarding compatibility. Once the clients are onto an interface then you simply can't change it in the end. But if the abstract class is set up, then you can still add the behavior without breaking the existing code.
+An abstract class is used if you want to provide a common, implemented functionality among all the implementations of the component. Abstract classes will allow you to partially implement your class, whereas interfaces would have no implementation for any members whatsoever
+---------------------------------------------------
+
+When Should You Use an Interface?
+
+If you are creating functionality that will be useful across a wide range of objects, then you must use an interface. Abstract classes, at the end of the day, should be used for objects that are closely related. But the interfaces are best suited for providing common functionality to unrelated cases.
+Interfaces are a great choice if you think that the API won’t be changing for a while.
+Interfaces are also a great choice. If you want to have something similar to the multiple inheritances, then you can implement various interfaces.
+If we are going to design the small, concise bits of functionality, then you must use interfaces. But if you are designing the large functional units, then you must use an abstract class.
+But, at the end of the day, it all comes down to what you require and what you are going to do about it. The same functionalities can be accomplished with both interface and abstract classes. With the coding standards, the interface would help you accomplish the abstraction and polymorphism which are among the main principles of coding or programming.
+
+It also helps to keep your code loosely coupled instead of tightly coupled, which happens when the high-level modules depend on the low-level modules as well. Interfaces can also be used for the dependency injection that makes it easier to mock the derived classes when testing.
+
+If you want to become a coding expert or programming enthusiast, then join an IT boot camp right now to work on your skillset and acquire more knowledge on the subject. QuickStart’s web developer Bootcamp can help you earn the certifications you need to become an expert at web development.
+
+#===============================================================================================
+# Q : What are cases where you will use finally block ?
+
+==> “I use the finally block when I have some cleanup code that should execute regardless of whether an exception occurs or not.”
+
+# Common use cases
+1. Closing resources
+2. Closing files
+3. Closing database connections
+4. Closing streams
+5. Closing network connections
+
+# Selenium WebDriver cleanup
+
+In automation, I can use finally to ensure the browser is closed even if a test fails.
+
+WebDriver driver = null;
+
+try {
+    driver = new ChromeDriver();
+    driver.get("https://www.saucedemo.com/");
+    
+    // Test execution
+
+} catch (Exception e) {
+    System.out.println("Test failed: " + e.getMessage());
+
+} finally {
+    if (driver != null) {
+        driver.quit();
+    }
+}
+Here, driver.quit() will execute whether the test passes or an exception occurs.
+
+# Releasing locks or other resources
+try {
+    lock.lock();
+    // critical section
+} finally {
+    lock.unlock();
+}
+
+# Important interview point
+
+“The finally block normally executes regardless of whether an exception occurs, whether it is caught or not. However, there are exceptional situations where it may not execute, such as JVM termination using System.exit() or a JVM crash.”
+
+final, finally, and finalize()
+
+# A common follow-up question is:
+
+final → keyword used for constants, preventing method overriding or inheritance.
+finally → block used for cleanup after try/catch.
+finalize() → old GC-related method; it has been deprecated for removal and should not be used for resource cleanup.
+Short interview answer
+
+“I mainly use finally for cleanup operations that must happen whether the code succeeds or fails. In Selenium, for example, I can use it to make sure driver.quit() is executed after test execution, and in general it can be used for closing files, database connections, streams, or releasing locks.
+
+
+=====================================================================================================
+
+Thank you for reaching out. Please find my responses below:
+
+1. Projects using Selenium and Playwright
+
+In my current role at Forvia Faurecia, I have worked on both web UI automation and API testing.
+
+With Selenium, I developed automation for workflows on the Leshan server, where the objective was to automate and validate different application workflows. I also worked on UI automation for automatically creating defects in the defect-tracking system. One of the challenges was making the automation reliable across different application states and handling dynamic elements. I addressed this by designing reusable automation components, implementing proper synchronization, and following a structured framework approach.
+
+With Playwright, I worked on web-based regression and API testing for an AI chatbot UI. The main challenge was validating the integration between the UI and backend services, including AI-driven test case generation. I addressed this by combining UI automation with API validation and creating reusable test flows to improve coverage and execution efficiency.
+
+2. Ownership of test automation
+
+I have taken ownership of automation from understanding the requirement and test scenarios through framework development, execution, debugging, and result validation.
+
+For example, I developed Python-based automation for ECU flashing and performance testing, automated client-server socket communication including handshake and protocol validation, and built end-to-end automation for Connected Services. I also designed frameworks to automatically build, execute, and manage test cases in PUMBA/SIMBA simulation environments.
+
+I have also taken initiatives to improve the overall testing process, including developing an advanced logging framework that captures synchronized serial and video logs during automated execution. Additionally, I developed an AI-powered defect summary generator using Copilot AI to improve the quality and efficiency of defect reporting.
+
+These contributions were recognized through two Spot Awards at Forvia, including one for automation development and another for Connected Services framework development.
+
+3. Fast-paced environment and cross-functional collaboration
+
+Working in an automotive product environment has given me experience working in fast-paced projects with changing requirements, tight execution timelines, and multiple dependencies.
+
+I have collaborated with developers, testers, system engineers, and other stakeholders during integration, regression, and system-level testing. My responsibilities involved understanding requirements, preparing automation environments, executing tests, analyzing failures, debugging issues, and communicating results or defects to the respective teams.
+
+I am comfortable taking ownership of tasks independently while also collaborating closely with cross-functional teams to resolve issues and meet project deadlines.
+
+4. Notice Period / Earliest Joining Availability: Immediate Joiner
+
+I have served notice period, 13/05/2026 is the LWD.
+
+5. Current and Expected CTC
+
+My current CTC is 6LPA, and my expected CTC is As per market standards.
+
+6. Location : Pune
+
+Please let me know if you need any additional information from my side. I look forward to discussing the opportunity further
+
+#===================================================================================================
+# Q : 
+
+==> In Java, Comparable and Comparator are both interfaces used to sort collections or arrays of objects. However, they serve completely different purposes regarding how and where the sorting logic is defined
+
+The core difference is that Comparable defines the "natural" default ordering of a class internally, whereas Comparator defines custom or alternative sorting logic externally.
+
+1. Understanding Comparable
+	Comparable is an interface in Java used to define the natural ordering of objects. A class implements Comparable and overrides the compareTo() method to specify how its objects should be compared and sorted.
+
+Belongs to the java.lang package.
+Uses the compareTo() method.
+Implemented by the class whose objects need to be sorted.
+You use Comparable when a class has an obvious, default way of being sorted. For example, numbers are naturally sorted by value, and strings are naturally sorted alphabetically.
+• How it works: The target class implements Comparable<T> and overrides the compareTo() method.
+• Limitation: You only get one chance to implement it. If you implement it to sort by ID, you cannot easily change it to sort by Name later using Comparable.
+
+It is present in java.lang.
+We implement Comparable<T> in the class.
+We override the compareTo() method.
+It provides one default sorting order.
+
+Example:
+public class Developer implements Comparable<Developer> {
+    private int id;
+    private String name;
+
+    public Developer(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    // Sorts naturally by ID in ascending order
+    @Override
+    public int compareTo(Developer other) {
+        return Integer.compare(this.id, other.id);
+    }
+}
+
+// Usage:
+List<Developer> list = new ArrayList<>();
+Collections.sort(list); // Automatically uses compareTo()
+
+2. Understanding Comparator
+	Comparator is an interface in Java used to define custom sorting logic for objects. Unlike Comparable, the sorting logic is defined separately from the class, allowing the same objects to be sorted using different criteria.
+
+Belongs to the java.util package.
+Uses the compare() method.
+Can be used with Collections.sort() and List.sort().
+
+You use Comparator when you need to sort objects using different criteria, or when you are working with a third-party class whose source code you cannot modify to add Comparable.
+• How it works: Since Comparator is a functional interface, it is highly flexible and typically implemented via separate classes, anonymous classes, or lambdas.
+
+Comparator is used when we want to define custom or multiple sorting strategies without modifying the original class.
+
+It is present in java.util.
+We implement Comparator<T> or use a lambda expression.
+We override compare().
+We can create multiple sorting orders.
+
+
+Example (Using Lambdas):
+
+public class Developer {
+    public int id;
+    public String name;
+    // Constructor, getters, setters...
+}
+
+// Usage:
+List<Developer> list = new ArrayList<>();
+
+// Strategy A: Sort by name
+Collections.sort(list, (d1, d2) -> d1.name.compareTo(d2.name));
+
+// Strategy B: Sort by ID (alternative syntax using Comparator factory methods)
+list.sort(Comparator.comparingInt(d -> d.id));
+
+
+Interviewer: Where have you used Comparator?
+
+My answer:
+
+"In my automation framework, if I have a collection of test results or objects such as test execution details, I can use Comparator when I need different sorting criteria—for example, sorting by execution time, test case name, or priority. I prefer Comparator when multiple sorting strategies are required because it keeps the model class independent of the sorting logic."
+
+One-line answer to remember
+
+Comparable = default/natural sorting inside the class.
+Comparator = custom/multiple sorting outside the class.
+
+Interview follow-up: If they ask "Which one would you prefer and why?", a good answer is: I prefer Comparable when the class has one obvious natural order; I use Comparator when I need multiple sorting strategies or cannot modify the class.
+
+If they ask “Comparable vs Comparator and where have you used it?”, give this concise answer:
+
+“Comparable and Comparator are both used for sorting objects. Comparable is used when we want to define the natural ordering of a class, and we implement Comparable and override compareTo(). Comparator is used when we need custom or multiple sorting criteria, and we implement Comparator and override compare().
+
+For example, an Employee can implement Comparable to sort naturally by employee ID. If I later need to sort the same employees by salary, name, or joining date, I would use Comparator.
+
+In automation, I can use Comparator when validating sorted UI tables or API response data—for example, extracting employee records from the UI, sorting the expected list by salary using Comparator, and comparing it with the actual UI order.”
+
+One thing to remember for interviews:
+Comparable = “I am defining my object's default order.”
+Comparator = “I am telling you how I want to sort it this time.”
+
+
+#===================================================================================================
+# Q : What is a NullPointerException?
+
+A NullPointerException (NPE) is a runtime exception in Java that occurs when we try to use an object reference that currently contains null.
+
+In simple words:
+
+When a reference variable is null, but we try to access a method, field, or property through that reference, Java throws NullPointerException.
+String name = null;
+
+System.out.println(name.length());
+
+#---------------------------------------#
+How do you prevent it?
+
+1. Initialize objects before using them.
+2. Perform null checks where appropriate.
+3. Use Objects.requireNonNull() when a value must not be null.
+4. Use safe comparison patterns such as "expected".equals(actual).
+5. Avoid unnecessary null values in application design.
+6. Use proper debugging/logging to identify where the null reference originated.
+
+Automation example : Suppose I have:
+
+WebElement username = driver.findElement(By.id("username"));
+username.sendKeys("Uzma");
+
+If username itself were null, calling sendKeys() would result in an NPE. However, Selenium-specific failures such as an element not being found typically result in exceptions such as NoSuchElementException, not NullPointerException.
+
+#-------------------------------------#
+Short interview answer
+
+"NullPointerException is a runtime exception that occurs when we try to access a method, field, or property using an object reference whose value is null. I usually prevent it by proper object initialization, null checks, and safe handling of nullable values."
+
+
+
+#===================================================================================================
+# Q :  Difference between == and .equals() with real-time scenario.
+
+==> == and .equals() are used for comparison in Java, but they compare different things.
+
+== compares primitive values or object references.
+.equals() compares the content/state of objects, if the class has overridden equals() properly.
+Example
+String s1 = new String("Login");
+String s2 = new String("Login");
+
+System.out.println(s1 == s2);       // false
+System.out.println(s1.equals(s2));  // true
+
+Here, s1 and s2 are two different String objects, so == compares their references and returns false.
+
+.equals() compares the actual String content, "Login", so it returns true.
+
+Real-time SDET scenario
+
+Suppose I'm validating an API response or UI value:
+
+String actualStatus = new String("PASS");
+String expectedStatus = new String("PASS");
+
+if (actualStatus.equals(expectedStatus)) {
+    System.out.println("Test Passed");
+}
+
+I would use .equals() because I want to verify that the actual value matches the expected value, not whether both variables point to the same object.
+
+For example, in Selenium:
+
+String actualTitle = driver.getTitle();
+String expectedTitle = "Login Page";
+
+Assert.assertEquals(actualTitle, expectedTitle);
+
+Here, we're validating content, so .equals() or TestNG's assertEquals() is appropriate.
+
+Important interview point
+
+For objects:
+
+String a = "Hello";
+String b = "Hello";
+
+System.out.println(a == b);       // true, because of String pool
+System.out.println(a.equals(b));  // true
+
+Although == may return true for String literals because of String Pool, I would not use == for String content comparison. I use .equals().
+
+Short interview answer:
+
+"== checks primitive values or whether two object references point to the same object, whereas .equals() checks object content when it is properly overridden. In automation testing, I mainly use .equals() when comparing expected and actual String values, such as validating a page title, API response, status, or UI text."
+
+
+#===================================================================================================
+# Q : Explain a situation where .equals() failed due to improper override.
+
+===> A real-time situation is when we compare custom Java objects in automation, for example, comparing expected API response data with actual response data.
+
+Suppose I have a User class:
+
+class User {
+    String name;
+    int id;
+
+    User(String name, int id) {
+        this.name = name;
+        this.id = id;
+    }
+}
+
+Now I create two objects with the same data:
+
+User expected = new User("Uzma", 101);
+User actual = new User("Uzma", 101);
+
+System.out.println(expected.equals(actual));
+
+It returns:
+
+false
+Why?
+
+Because I haven't overridden equals() in the User class.
+
+The default equals() implementation from Object essentially compares object references, so although both objects contain the same data, they are different objects in memory.
+
+Correct implementation
+
+I would override equals() based on the fields that define equality:
+
+@Override
+public boolean equals(Object obj) {
+    if (this == obj)
+        return true;
+
+    if (!(obj instanceof User))
+        return false;
+
+    User user = (User) obj;
+
+    return id == user.id &&
+           Objects.equals(name, user.name);
+}
+
+And I should also override hashCode():
+
+@Override
+public int hashCode() {
+    return Objects.hash(name, id);
+}
+
+Now:
+
+System.out.println(expected.equals(actual));
+
+returns:
+
+true
+SDET real-time scenario
+
+"I faced this type of issue when comparing expected and actual custom objects in test automation. The values were identical, but the assertion failed because the object's equals() method had not been properly overridden. I fixed it by overriding equals() based on the business-relevant fields and also overriding hashCode() to maintain the Java contract."
+
+Important interview point: If you override equals(), you should also override hashCode(). Two objects that are equal according to equals() must have the same hashCode().
+
+Files, ima
+
+
+#===================================================================================================
+# Q : 1. What is the meaning of :: in Java Streams?
+      2. Where have you used Java Streams in your framework?
+
+==> :: is called the method reference operator in Java. It is used to refer to an existing method or constructor without actually calling it.
+
+It is mainly used as a shorter and cleaner alternative to lambda expressions.
+
+For example:
+
+List<String> users = Arrays.asList("John", "David", "Alex");
+
+users.stream()
+     .forEach(System.out::println);
+
+Here:
+
+System.out::println
+
+is equivalent to:
+
+user -> System.out.println(user)
+
+So, :: basically means "use this existing method here."
+
+Common types of method references are:
+
+ClassName::staticMethod
+object::instanceMethod
+ClassName::instanceMethod
+ClassName::new — constructor reference
+
+For example:
+
+List<String> names = Arrays.asList("John", "Alex", "David");
+
+List<String> result = names.stream()
+        .filter(String::isEmpty)
+        .toList();
+
+Although for filter, a more practical example would be:
+
+names.stream()
+     .map(String::toUpperCase)
+     .forEach(System.out::println);
+2. Where have you used Java Streams in your framework?
+
+Interview answer:
+
+In my automation framework, I have used Java Streams mainly for processing collections of test data and web elements, filtering required data, transforming values, and performing validations.
+
+For example, on the SauceDemo application, when I retrieve multiple product elements from the inventory page, I can use Streams to extract product names or prices and filter the product that I want to validate.
+
+Example:
+
+List<String> productNames = driver.findElements(
+        By.className("inventory_item_name"))
+        .stream()
+        .map(WebElement::getText)
+        .collect(Collectors.toList());
+
+Here:
+
+.map(WebElement::getText)
+
+uses a method reference to extract text from every WebElement.
+
+I have also used Streams for filtering:
+
+Optional<String> product = productNames.stream()
+        .filter(name -> name.equals("Sauce Labs Backpack"))
+        .findFirst();
+
+Another example is validating that a particular product exists:
+
+boolean isProductPresent = productNames.stream()
+        .anyMatch(name -> name.equals("Sauce Labs Backpack"));
+
+I can also use Streams for extracting prices and performing calculations:
+
+List<Double> prices = priceElements.stream()
+        .map(WebElement::getText)
+        .map(price -> price.replace("$", ""))
+        .map(Double::parseDouble)
+        .collect(Collectors.toList());
+⭐ Short interview version
+
+I have used Java Streams in my Selenium automation framework mainly for collection processing. For example, while working with multiple web elements, I use stream(), map(), filter(), anyMatch(), findFirst() and collect() to extract product names, filter specific products, validate whether an element exists, and process prices. I also use method references like WebElement::getText and Double::parseDouble to make the code cleaner and readable.
+
+
+
+
+#===================================================================================================
+# Q : 
+
+
+
+#===================================================================================================
+# Q : 
+
+
+
+#===================================================================================================
+# Q : 

@@ -1,0 +1,379 @@
+#==============================================================================================
+# Q : Smoke VS Sanity Testing , Regression vs Retesting .
+
+==>  Smoke and Sanity testing are both build-verification testing, while Retesting and Regression testing are generally performed after defect fixes or changes. The main difference is their purpose and scope
+
+*************************************
+* 1. Smoke Testing vs Sanity Testing
+*************************************
+# Smoke Testing :
+
+1. Checks whether the build is stable enough for detailed testing
+2. Broad but shallow
+3. Covers major/critical functionalities
+4. Usually performed on a new build
+5. Helps decide whether QA should proceed
+6. Example: Login → Inventory → Cart → Checkout basic flow
+
+# Sanity Testing :
+
+1. Checks whether a specific change or bug fix is working correctly
+2. Narrow but relatively deep
+3. Focuses on a particular functionality or impacted area
+4. Usually performed after a minor change/fix
+5. Helps decide whether the specific change is behaving correctly
+6. Example: If cart quantity was fixed, test cart quantity and related cart behavior
+
+
+Example:
+
+“Suppose I receive a new build of an e-commerce application. I first perform smoke testing on login, product search, cart, and checkout. If these major functionalities work, I proceed with detailed testing.”
+
+“Now suppose the developer fixes a defect where the cart badge was showing the wrong count. I perform sanity testing around the cart functionality to verify the fix and its immediate impact.”
+
+******************************************
+* 2. Retesting vs Regression Testing
+******************************************
+# Retesting Testing :
+1. Verifies that a specific defect has been fixed
+2. Focuses on the failed test case
+3. Uses the same conditions/data where applicable
+4. Performed specifically because of a defect fix
+5. Does not necessarily involve new test cases
+
+
+# Regression Testing :
+
+1. Verifies that existing functionality has not broken because of changes
+2. Covers related and potentially unaffected areas
+3. Uses a broader set of existing test cases
+4. Performed after changes, enhancements, bug fixes, configuration changes, etc.
+5. Can involve a regression suite containing many existing tests
+
+Example:
+
+“Suppose the login button was not working with valid credentials. After the developer fixes it, I execute the failed login test case again. That's retesting.”
+
+“After the same login fix, I might execute login, logout, inventory, cart, and checkout tests to make sure the change didn't break other functionality. That's regression testing.”
+
+Easy way to remember
+
+Smoke → Is the build testable?
+Sanity → Does this specific change look okay?
+Retesting → Is the defect actually fixed?
+Regression → Did the change break anything else?
+
+Strong interview answer
+
+“Smoke testing is broad and shallow testing of critical functionality to verify that a build is stable enough for further testing. Sanity testing is narrow and focused testing performed after a specific change or fix to verify the affected functionality. Retesting specifically verifies that a previously failed test now passes after a defect fix, whereas regression testing checks whether the change has introduced defects in existing functionality.”
+
+#=================================================================================================
+
+
+
+#=================================================================================================
+# Q : Difference between Scrum and Kanban
+
+==> In an interview, I would answer it like this:
+
+“Scrum and Kanban are both Agile methodologies, but Scrum works with defined iterations called sprints, whereas Kanban focuses on continuous flow of work.”
+
+Scrum	Kanban
+
+Scrum:
+
+“Suppose our team works in 2-week sprints. During Sprint Planning, we select automation stories such as Login, Inventory, Cart, and Checkout. The team works on those stories during the sprint, and at the end we demonstrate the completed work and discuss improvements in the retrospective.”
+
+Kanban:
+
+“If we have a continuous stream of automation tasks, we can maintain a board such as To Do → In Progress → Testing → Done. We might set a WIP limit of 2, meaning only two automation tasks can be in progress at a time. When one task is completed, the next task is pulled into development.”
+
+Key difference to remember
+
+Scrum = Sprint-based Agile
+Kanban = Continuous-flow Agile
+
+Interview tip: If asked “Which one is better?”, don't say one is universally better. Say:
+
+“It depends on the nature of the project. Scrum is useful when work can be planned and delivered in fixed iterations, while Kanban is useful when work arrives continuously and priorities change frequently.”
+
+#===============================================================================================
+# Q : What is the “3 Amigos” concept in Agile?
+
+==> The 3 Amigos is an Agile/BDD concept where three different perspectives come together before development starts to make sure the requirement is clear and testable.
+
+The three Amigos are:
+
+Business/PO – explains what the business needs and why.
+Developer – explains how the requirement can be implemented and identifies technical considerations.
+QA/Tester – focuses on how the requirement will be tested, including positive, negative, and edge cases.
+Example
+
+Suppose the requirement is:
+
+"A user should be able to log in using a valid username and password."
+
+During a 3 Amigos discussion:
+
+Business:
+
+What should happen after successful login?
+What happens if the credentials are invalid?
+
+Developer:
+
+How will authentication work?
+What validation/API changes are required?
+
+QA:
+
+Valid username/password
+Invalid username
+Invalid password
+Empty fields
+Account locked after multiple failures
+Error message validation
+
+These discussions can be converted into BDD scenarios using Given-When-Then:
+
+Scenario: Successful login
+  Given the user is on the login page
+  When the user enters valid username and password
+  And clicks the Login button
+  Then the user should be redirected to the home page
+Why is it useful?
+
+The main goal is to identify ambiguity and misunderstandings early, before development and testing.
+
+As an Automation Engineer, I would contribute mainly from the QA and automation perspective, helping define acceptance criteria and making sure the scenarios are clear enough to automate with Cucumber.
+
+Short interview version
+
+"3 Amigos is a collaborative Agile discussion between Business, Development, and QA. Business explains what is required, Development discusses implementation, and QA defines how it will be validated. We use this discussion to clarify acceptance criteria, identify edge cases early, and convert the agreed behavior into BDD scenarios such as Given-When-Then. It helps reduce requirement gaps and rework."
+
+
+#===================================================================================================
+#  Q  : What is the defect life cycle?
+===> What is Defect Life Cycle?
+
+The Defect Life Cycle is the sequence of stages a defect goes through from the time it is identified and reported until it is closed.
+
+As a 3.5-year experienced Automation Tester, I would explain it like this in an interview:
+
+“Defect Life Cycle defines the different states through which a defect moves during the testing and development process. It starts when a tester identifies and logs a defect and ends when the defect is verified and closed.”
+
+Typical Defect Life Cycle
+
+New → Assigned → Open → Fixed → Retest → Verified → Closed
+
+If the fix doesn't work:
+
+Retest → Reopened → Assigned → Fixed → Retest
+
+There can also be states like Rejected, Duplicate, Deferred, Cannot Reproduce, or Won't Fix depending on the project.
+
+Status	Meaning
+New	Tester has identified and reported the defect.
+Assigned	Defect is assigned to a developer/team for investigation.
+Open	Developer has acknowledged and started working on it.
+Fixed	Developer has implemented a fix.
+Retest	Tester tests the defect again using the new build.
+Verified	Tester confirms that the defect has been successfully fixed.
+Closed	Defect is officially closed.
+Reopened	Defect still exists after the fix, so tester reopens it.
+Rejected	Developer/BA determines it is not a valid defect.
+Duplicate	The same defect has already been reported.
+Deferred	Defect is valid but planned for a future release.
+Cannot Reproduce	Developer cannot reproduce the reported issue.
+Example
+
+Suppose I'm testing the SauceDemo login functionality.
+
+I enter a valid username and password, but clicking Login doesn't navigate to the inventory page.
+
+I reproduce the issue and collect evidence.
+I log the defect as New with steps, expected result, actual result, severity, screenshots/logs, and environment.
+Developer gets the defect → Assigned/Open.
+Developer fixes the login issue → Fixed.
+I execute the same test case again → Retest.
+Login works correctly → Verified.
+Defect is marked → Closed.
+
+If login still fails, I mark it Reopened and send it back to development.
+
+Interview Answer
+
+“Defect Life Cycle is the complete journey of a defect from identification to closure. Typically, a defect moves through New, Assigned, Open, Fixed, Retest, Verified, and Closed states. If the issue still exists during retesting, I reopen the defect. Depending on the situation, defects can also be marked as Rejected, Duplicate, Deferred, or Cannot Reproduce. As a tester, my responsibility is to report the defect with proper evidence, retest the fix, perform regression where required, and close the defect only after confirming the expected behavior.”
+
+
+#===================================================================================================
+#  Q  :  What is the difference between Agile and Waterfall Model?
+==> Difference between Agile and Waterfall Model
+
+The main difference is that Waterfall follows a sequential approach, while Agile follows an iterative and incremental approach.
+
+As a 3.5-year experienced Automation Tester, I would answer in an interview like this:
+
+“Waterfall is a traditional software development model where requirements, development, testing, and deployment happen sequentially. Once a phase is completed, we generally move to the next phase, so changes later in the project can be costly.
+
+Agile, on the other hand, develops the application in small iterations or sprints, usually 1–2 weeks. Development and testing happen continuously within each sprint, and we can receive feedback and accommodate changing requirements more easily.
+
+Key Differences
+Parameter	Waterfall	Agile
+Approach	Sequential	Iterative & incremental
+Requirements	Usually finalized upfront	Can evolve during development
+Development	Entire product developed phase-by-phase	Product developed in small increments
+Testing	Usually starts after development phase	Testing happens continuously
+Customer Feedback	Mostly at milestones/end	Frequent feedback
+Change Management	Changes are difficult/costly	Changes are easier to accommodate
+Release	Usually one major release	Frequent/smaller releases
+Risk	Issues may be discovered late	Issues are identified earlier
+Documentation	Heavy documentation	Documentation is important but more lightweight
+Team Structure	Often phase-oriented	Cross-functional team
+Best suited for	Stable, well-defined requirements	Frequently changing requirements
+Example from an Automation Project
+
+Waterfall:
+
+Requirements
+     ↓
+Development
+     ↓
+Testing
+     ↓
+UAT
+     ↓
+Production
+
+If a requirement changes during testing, it may require significant rework.
+
+Agile:
+
+Sprint 1 → Development + Testing → Feedback
+Sprint 2 → Development + Testing → Feedback
+Sprint 3 → Development + Testing → Feedback
+
+For example, in a SauceDemo-like e-commerce application, Sprint 1 could cover login, Sprint 2 inventory/cart, and Sprint 3 checkout. I can develop and automate tests for each feature within the same sprint rather than waiting until the entire application is developed.
+
+What I do as a Tester in Agile
+
+As an automation tester, I participate throughout the sprint:
+
+1. Attend daily stand-ups
+2. Understand requirements and acceptance criteria
+3. Participate in refinement and sprint planning
+4. Identify automation candidates
+5. Develop Selenium/Playwright automation scripts
+6. Execute functional and regression tests
+7. Report and retest defects
+8. Participate in Sprint Review and Retrospective
+9. Maintain the automation framework as the application changes
+
+Short Interview Answer
+
+“Waterfall is a sequential model where requirements, development, testing, and deployment happen one after another, whereas Agile is an iterative model where development and testing happen continuously in short sprints. Waterfall works well when requirements are stable, while Agile is better when requirements can change frequently. In my automation projects, I prefer the Agile approach because testing starts early, we get continuous feedback, and automation can be integrated into every sprint.”
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+#===================================================================================================
+#  Q  : 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
