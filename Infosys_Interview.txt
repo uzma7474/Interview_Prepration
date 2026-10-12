@@ -1,3 +1,38 @@
+Selenium Java Interview Questions
+Part 1: Scenario-based coding questions
+
+Locators and elements
+
+A table shows 50 orders over several pages. Write code to find the row with Order ID “ORD-1042” and click its “View” button, handling pagination.
+Print all the links on a page, and report any broken ones (status code ≥ 400).
+A dropdown is a custom <div> list, not a <select>. Write code to pick “India” from it.
+An element’s ID changes on every page load. Write a stable locator strategy (relative XPath, contains(), CSS) to click the “Submit” button.
+Find the 3rd item in a dynamic list, and verify the list is sorted alphabetically.
+
+Waits and synchronization
+6. A button becomes clickable only after a loader disappears. Write code that waits for the loader to vanish, then clicks.
+7. Write a FluentWait that polls every 500ms for up to 20s, ignoring NoSuchElementException.
+8. A page loads content through infinite scroll. Scroll until a particular product appears or the list stops growing.
+9. Explain why Thread.sleep() is a problem, then rewrite a flaky test to use explicit waits.
+
+Browser handling
+10. Clicking a link opens a new tab. Switch to it, verify the title, close it, and return to the parent window.
+11. A page has a nested iframe, and the login form is inside it. Write code to fill the form and return to the main page.
+12. Handle JS alert, confirm and prompt popups. Accept one, dismiss one, and type text into the prompt.
+13. Upload a file where the input is hidden or a custom button. Then download a file and verify it exists in the download folder.
+14. Hover over a menu, then click the sub-menu item (Actions class). Also write drag-and-drop and double-click scenarios.
+15. Take a screenshot automatically whenever a test fails (TestNG listener or JUnit extension).
+
+Framework design
+16. Write a Page Object Model for a login page and a test that uses it with PageFactory or plain By locators.
+17. Make a thread-safe DriverFactory using ThreadLocal<WebDriver> so tests can run in parallel.
+18. Read test data from Excel, JSON or CSV and run the same login test with 5 data sets (@DataProvider or @ParameterizedTest).
+19. Run the same test on Chrome, Firefox and Edge using a config property or Selenium Grid (RemoteWebDriver).
+20. Write a retry mechanism (IRetryAnalyzer) that re-runs failed tests up to 2 times.
+21. Write a stale-element-safe click: retry up to 3 times on StaleElementReferenceException.
+22. Validate a form: submit it empty, capture all the error messages, and assert each against expected text.
+
+
 Round 1 : ( Technical ) 
 
 👉 : Tell me about your roles and responsibilities in Project.
