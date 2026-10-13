@@ -546,18 +546,661 @@ List<Double> prices = priceElements.stream()
 
 I have used Java Streams in my Selenium automation framework mainly for collection processing. For example, while working with multiple web elements, I use stream(), map(), filter(), anyMatch(), findFirst() and collect() to extract product names, filter specific products, validate whether an element exists, and process prices. I also use method references like WebElement::getText and Double::parseDouble to make the code cleaner and readable.
 
+#===================================================================================================
+# Q :  How would you optimize your solution instead of using nested loops?
+===> I would first identify the purpose of the nested loops and then choose a more efficient data structure or Java 8 feature. Instead of using nested loops, I can use a HashSet, HashMap, or Java Streams to reduce time complexity and improve readability.
 
+For example, if I need to find duplicate values in a list, nested loops take O(n²) time. I can optimize the solution using a HashSet to achieve O(n) average time complexity.
 
+Example 1: Find duplicates without nested loops
+
+Using nested loops — O(n²)
+
+for (int i = 0; i < list.size(); i++) {
+    for (int j = i + 1; j < list.size(); j++) {
+        if (list.get(i).equals(list.get(j))) {
+            System.out.println(list.get(i));
+        }
+    }
+}
+
+Optimized solution using HashSet — O(n) average
+
+import java.util.*;
+
+public class FindDuplicates {
+    public static void main(String[] args) {
+
+        List<String> list = Arrays.asList("Java", "Selenium", "Java", "TestNG", "Selenium");
+
+        Set<String> seen = new HashSet<>();
+        Set<String> duplicates = new LinkedHashSet<>();
+
+        for (String item : list) {
+            if (!seen.add(item)) {
+                duplicates.add(item);
+            }
+        }
+
+        System.out.println("Duplicates: " + duplicates);
+    }
+}
+
+Output:
+
+Duplicates: [Java, Selenium]
+Example 2: In Selenium, verify alphabetical sorting
+
+If my goal is to verify a dynamically loaded list, I don't need nested loops. I can extract the text and compare the original list against a sorted copy.
+
+List<String> actual = driver.findElements(By.cssSelector(".product-name"))
+    			.stream()
+    			.map(e -> e.getText().trim())
+    			.toList();
+
+List<String> expected = new ArrayList<>(actual);
+expected.sort(String.CASE_INSENSITIVE_ORDER);
+
+Assert.assertEquals(actual, expected, "Products are not sorted alphabetically");
+
+This approach has approximately O(n log n) time complexity because sorting dominates the operation, rather than the O(n²) complexity of a pairwise comparison.
+
+How I would summarize it to the interviewer
+
+"I avoid nested loops when a more suitable data structure or built-in Java API can solve the problem. For duplicate detection, I use a HashSet; for key-based lookups, I use a HashMap; and for list transformations, I use Java Streams. I also consider readability, memory usage, and the actual input size before optimizing."
+
+One important point: If you're referring to the previous Excel/CSV/JSON data-driven login solution, I would avoid nested loops there too by reading each row once and mapping the columns directly into a TestNG Object[][] or a Java data object.
 
 #===================================================================================================
+# Q :  Can you explain a real scenario where inheritance caused an issue?
+===> Yes. In one of my automation framework scenarios, inheritance caused an issue because multiple test classes shared a common BaseTest class, which contained WebDriver initialization, browser configuration, and teardown logic.
+
+Real-time scenario
+
+Suppose I have a BaseTest class and two test classes, LoginTest and CheckoutTest.
+
+Initially, the framework was designed like this:
+
+public class BaseTest {
+
+    protected WebDriver driver;
+
+    @BeforeMethod
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        driver.quit();
+    }
+}
+
+Both test classes inherit the base class:
+
+public class LoginTest extends BaseTest {
+
+    @Test
+    public void verifyLogin() {
+        driver.get("https://example.com/login");
+    }
+}
+public class CheckoutTest extends BaseTest {
+
+    @Test
+    public void verifyCheckout() {
+        driver.get("https://example.com/checkout");
+    }
+}
+
+Initially, this worked correctly. However, as the framework grew, we added browser-specific setup, API setup, and different teardown requirements.
+
+What was the issue?
+
+One issue occurred when a child test class overrode the setUp() method but forgot to call the parent implementation.
+
+public class LoginTest extends BaseTest {
+
+    @BeforeMethod
+    @Override
+    public void setUp() {
+        // Browser initialization accidentally omitted
+    }
+}
+
+Now driver remains null, and the test fails with a NullPointerException.
+
+Another common issue is putting too much functionality into BaseTest. A change intended for one test suite can unexpectedly affect every child class.
+
+How did I resolve it?
+
+1. Keep the base class focused. I keep only genuinely shared WebDriver lifecycle logic in BaseTest, rather than putting all test-specific behavior there.
+
+2. Prefer composition for optional functionality. Instead of extending a large base class to obtain API clients, configuration, or test data utilities, I inject or create those dependencies separately.
+
+3. Avoid unnecessary method overriding. I use clearly named lifecycle methods or separate helper methods when browser initialization should not be customized by individual test classes.
+
+4. Manage driver lifecycle safely. In parallel execution, I use a ThreadLocal<WebDriver>-based driver manager when appropriate so that each test thread gets its own driver.
+
+Better design example
+public class BaseTest {
+
+    protected WebDriver driver;
+
+    @BeforeMethod
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
+    }
+}
+
+Here, alwaysRun = true helps ensure cleanup is attempted even when a test fails. The null check prevents teardown from failing if driver initialization did not complete.
+
+Interview conclusion
+
+"In my automation framework, inheritance initially helped us reuse common setup and teardown code. However, as the framework grew, overriding inherited lifecycle methods and adding too many responsibilities to the base class made it fragile. I addressed this by keeping the base class minimal, avoiding unnecessary overrides, and using composition for optional services. My principle is to use inheritance for a genuine is-a relationship and composition when I only need to reuse functionality."
+
+Follow-up question to prepare for: What is the difference between inheritance and composition, and when would you prefer composition in a Selenium framework?
+
+#===================================================================================================
+# Q : How does polymorphism help in framework design?
+===> Polymorphism helps me design a flexible and maintainable automation framework by allowing the same method or interface to behave differently depending on the object or implementation.
+
+In my automation framework, I mainly use polymorphism through method overriding and interface-based programming. This helps me support multiple browsers, different types of testing, and reusable test utilities without changing the core framework logic.
+
+1. Real-time scenario: Cross-browser testing
+
+Suppose my framework needs to support Chrome, Firefox, and Edge. Instead of writing separate test logic for every browser, I can use a common WebDriver interface.
+
+WebDriver driver;
+
+String browser = "chrome";
+
+switch (browser.toLowerCase()) {
+    case "chrome":
+        driver = new ChromeDriver();
+        break;
+
+    case "firefox":
+        driver = new FirefoxDriver();
+        break;
+
+    case "edge":
+        driver = new EdgeDriver();
+        break;
+
+    default:
+        throw new IllegalArgumentException(
+                "Unsupported browser: " + browser);
+}
+
+driver.get("https://www.saucedemo.com/");
+
+Here, WebDriver is the common interface, while ChromeDriver, FirefoxDriver, and EdgeDriver provide different implementations.
+
+How polymorphism helps:
+
+I can switch browsers through configuration without changing the test methods.
+
+The same methods, such as get(), findElement(), and quit(), work across browser implementations.
+
+The framework becomes easier to extend when another supported browser is required.
+
+2. Runtime polymorphism using method overriding
+
+Suppose I want different reporting implementations for UI and API tests.
+
+interface TestReporter {
+    void reportResult(String testName);
+}
+
+class UIReporter implements TestReporter {
+    @Override
+    public void reportResult(String testName) {
+        System.out.println("UI Test Report: " + testName);
+    }
+}
+
+class APIReporter implements TestReporter {
+    @Override
+    public void reportResult(String testName) {
+        System.out.println("API Test Report: " + testName);
+    }
+}
+
+The calling code can use the same interface:
+
+TestReporter reporter = new UIReporter();
+reporter.reportResult("LoginTest");
+
+reporter = new APIReporter();
+reporter.reportResult("CreateUserAPI");
+
+Output:
+
+UI Test Report: LoginTest
+API Test Report: CreateUserAPI
+
+The same method call produces different behavior depending on the actual object. This is runtime polymorphism.
+
+3. Compile-time polymorphism using method overloading
+
+I can also use method overloading to provide convenient reusable utility methods.
+
+public class WaitUtils {
+
+    public void waitForElement(
+            WebDriver driver, By locator) {
+        // Wait for element visibility
+    }
+
+    public void waitForElement(
+            WebDriver driver, By locator, int seconds) {
+        // Wait using the specified timeout
+    }
+}
+
+Both methods have the same name but different parameter lists. This is compile-time polymorphism.
+
+4. How I apply polymorphism in my framework
+
+Framework component : Application
+1. Browser management : Use the WebDriver interface with different browser drivers.
+2. Reporting : Use a common reporting interface with different implementations.
+3. API clients : Use common interfaces for different API service implementations where appropriate.
+4. Test utilities : Use method overloading for different input parameters.
+5. Maintainability : Add new implementations without unnecessarily modifying existing test logic.
+
+My interview conclusion
+
+"In my Selenium Java framework, polymorphism helps me achieve loose coupling and extensibility. For example, I use the WebDriver interface so the same test scripts can run on Chrome, Firefox, or Edge. I also use method overriding when different implementations need different behavior. This reduces code duplication and makes the framework easier to maintain. I combine polymorphism with abstraction and encapsulation to keep implementation details separate from test logic."
+
+Important distinction: Using a WebDriver reference for different browser drivers demonstrates interface-based polymorphism. Method overriding demonstrates runtime polymorphism, whereas method overloading demonstrates compile-time polymorphism.
+
+#==========================================================================================================
+# Q : 
+===> In automation testing, I use List when I need to maintain the order of elements or allow duplicates, and Set when I need unique values and want to identify or eliminate duplicates.
+
+1. Difference between List and Set
+
+Feature  			| List   							 | Set
+1. Duplicates   		| Allowed							 | Not allowed
+2. Order			| Maintains defined order for implementations such as ArrayList  | Depends on implementation
+3. Index-based access		| Supported							 | Not supported
+4. Common implementations	| ArrayList, LinkedList						 | HashSet, LinkedHashSet, TreeSet
+5. Typical automation use	| Web elements, dropdown options, search results		 | Unique links, duplicate detection, unique API values
+
+2. Real-time Selenium example: When to use List
+
+Suppose I need to retrieve all product names from a page and verify their alphabetical order.
+
+List<WebElement> products = driver.findElements(By.className("inventory_item_name"));
+
+List<String> productNames = new ArrayList<>();
+
+for (WebElement product : products) {
+    productNames.add(product.getText().trim());
+}
+
+System.out.println("Products: " + productNames);
+
+Why List?
+
+I need to preserve the displayed order.
+
+I need to access the third product using productNames.get(2).
+
+I may need to verify that the UI displays duplicate entries if the application allows them.
+
+3. Real-time Selenium example: When to use Set
+
+Suppose I need to verify that every link on a page has a unique URL.
+
+List<WebElement> links = driver.findElements(By.tagName("a"));
+
+Set<String> uniqueUrls = new HashSet<>();
+
+for (WebElement link : links) {
+    String url = link.getAttribute("href");
+
+    if (url != null && !url.isBlank()) {
+        uniqueUrls.add(url);
+    }
+}
+
+System.out.println("Unique URLs: " + uniqueUrls.size());
+System.out.println("Total valid URLs: " +
+        links.stream()
+             .map(e -> e.getAttribute("href"))
+             .filter(url -> url != null && !url.isBlank())
+             .count());
+
+Why Set?
+
+A HashSet stores each URL only once, making it useful for detecting duplicate URLs. To actually verify uniqueness, I would compare the number of unique URLs with the number of valid URLs and assert that they match.
+
+4. Bonus: Find duplicate values using List and Set
+
+This is a common Java coding question in automation interviews.
+
+List<String> actualValues = Arrays.asList("Login", "Home", "Login", "Profile", "Home");
+
+Set<String> uniqueValues = new HashSet<>(actualValues);
+
+if (actualValues.size() != uniqueValues.size()) {
+    System.out.println("Duplicate values found");
+}
+
+Output:
+
+Duplicate values found
+
+If I need to identify exactly which values are duplicated, I use two sets: one for previously seen values and another for duplicates.
+
+5. Which Set implementation would I choose?
+
+HashSet — when I need unique values and don't care about iteration order.
+
+LinkedHashSet — when I need unique values while preserving insertion order.
+
+TreeSet — when I need unique values sorted according to their natural ordering or a comparator.
+
+Interview conclusion
+
+"In my automation framework, I use List when collecting web elements with findElements(), validating dropdown options, checking search results, or accessing elements by index. I use Set when validating uniqueness, finding duplicate links, or comparing distinct API response values. I select the collection based on whether ordering, indexing, and uniqueness are required."
+
+#==========================================================================================================
+# Q :  How do you maintain insertion order while removing duplicates?
+===> I use LinkedHashSet to remove duplicate elements while preserving their insertion order.
+
+Unlike HashSet, which does not guarantee iteration order, LinkedHashSet maintains the order in which elements were inserted.
+
+Java example
+import java.util.*;
+
+public class RemoveDuplicates {
+
+    public static void main(String[] args) {
+
+        List<String> items = Arrays.asList("Login", "Home", "Login", "Profile", "Home", "Dashboard" );
+
+        Set<String> uniqueItems = new LinkedHashSet<>(items);
+
+        System.out.println(uniqueItems);
+    }
+}
+
+Output:
+
+[Login, Home, Profile, Dashboard]
+Real-time Selenium automation scenario
+
+Suppose I collect product names from a web page and want to remove duplicate names without changing their displayed order.
+
+List<WebElement> products = driver.findElements(By.className("inventory_item_name"));
+
+List<String> productNames = new ArrayList<>();
+
+for (WebElement product : products) {
+    productNames.add(product.getText().trim());
+}
+
+Set<String> uniqueProducts = new LinkedHashSet<>(productNames);
+
+System.out.println("Unique products in insertion order: "+ uniqueProducts);
+
+Why LinkedHashSet?
+
+Uniqueness: Removes duplicate values.
+
+Insertion order: Preserves the order of the first occurrence of each value.
+
+Efficiency: Insertion and lookup are typically O(1) on average.
+
+Interview tip: If I need the result as a List rather than a Set, I can convert it back:
+
+List<String> result = new ArrayList<>( new LinkedHashSet<>(items));
+
+My conclusion: I choose LinkedHashSet whenever I need both uniqueness and predictable insertion order, such as deduplicating UI values or API response data while retaining their original sequence.
+
+#==========================================================================================================
+# Q : What happens if you use HashMap in multithreading?
+===> If I use a HashMap in a multithreaded environment, it is not thread-safe by default. When multiple threads access and modify the same HashMap concurrently, it can cause race conditions, lost updates, and inconsistent results.
+
+1. Real-time automation framework scenario
+
+Suppose I execute 50 TestNG test cases in parallel and store API response data in a shared HashMap.
+
+static Map<String, String> testData = new HashMap<>();
+
+Each thread stores its response:
+
+testData.put("userId", response.jsonPath().getString("id"));
+
+What problems can occur?
+
+Race condition: Two tests overwrite the same "userId" key.
+
+Lost updates or inconsistent results: Concurrent writes can interfere with each other.
+
+Data leakage between tests: One test may read another test's response data.
+
+Concurrent modification issues: Iterating while another thread modifies the map can result in ConcurrentModificationException in certain circumstances.
+
+Modern Java implementations generally protect the internal structure better than older versions, but that does not make HashMap safe for concurrent modification.
+
+2. How would I solve this problem?
+
+Option 1: Use ConcurrentHashMap
+
+If multiple threads must share a map, I would consider ConcurrentHashMap.
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+public class TestDataManager {
+
+    private static final Map<String, String> testData =
+            new ConcurrentHashMap<>();
+
+    public static void main(String[] args) {
+
+        Runnable task = () -> {
+            String threadName =
+                    Thread.currentThread().getName();
+
+            testData.put(threadName, "API response data");
+
+            System.out.println(
+                    threadName + " : " + testData.get(threadName));
+        };
+
+        Thread t1 = new Thread(task);
+        Thread t2 = new Thread(task);
+
+        t1.start();
+        t2.start();
+    }
+}
+
+ConcurrentHashMap supports concurrent access and updates without requiring me to synchronize every individual operation manually.
+
+However, it does not solve logical conflicts when two tests use the same key. I would use unique keys or separate test contexts.
+
+Option 2: Use ThreadLocal for test-specific data
+
+For Selenium parallel execution, test-specific data should generally be isolated per test or thread.
+
+public class TestDataManager {
+
+    private static final ThreadLocal<Map<String, String>> testData =
+            ThreadLocal.withInitial(HashMap::new);
+
+    public static Map<String, String> getTestData() {
+        return testData.get();
+    }
+
+    public static void clear() {
+        testData.remove();
+    }
+}
+
+Usage:
+
+TestDataManager.getTestData().put("userId", "101");
+
+String userId =
+        TestDataManager.getTestData().get("userId");
+
+// Call in teardown after the test finishes
+TestDataManager.clear();
+
+Each thread receives its own map, so separate test threads do not overwrite one another's values.
+
+One important consideration: if an asynchronous task moves between threads, ThreadLocal data does not automatically follow that task. In that situation, I would pass an explicit test context instead.
+
+3. HashMap vs ConcurrentHashMap vs ThreadLocal
+
+Feature  		| HashMap 		 | ConcurrentHashMap 			| ThreadLocal map
+1.Thread-safe		| No			 | Yes, for concurrent map operations	| Each thread has its own map
+2. Shared data  	| Yes			 | Yes					| No, by default
+3. Best use		| Single-threaded data   | Shared concurrent cache		| Per-thread test data
+4. Handles same-key 	| No			 | No, not automatically		| Isolates threads
+test conflicts
+
+My interview conclusion
+
+"HashMap is suitable for single-threaded operations, but I avoid sharing a mutable HashMap across parallel TestNG tests. If shared concurrent storage is required, I use ConcurrentHashMap. For test-specific API response data or WebDriver-related context, I prefer isolated test contexts or ThreadLocal, with proper cleanup in teardown. Thread safety alone is not enough; I also need to prevent different tests from overwriting each other's logical data.
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
 # Q : 
 
 
 
-#===================================================================================================
+#==========================================================================================================
 # Q : 
 
 
 
-#===================================================================================================
+#==========================================================================================================
 # Q : 
+
+
+
+#==========================================================================================================
+# Q :
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q :
+
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q :

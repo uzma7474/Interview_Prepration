@@ -221,27 +221,19 @@ public class TestListener implements ITestListener {
 
         if (driver != null) {
 
-            TakesScreenshot screenshot =
-                    (TakesScreenshot) driver;
+            TakesScreenshot screenshot = (TakesScreenshot) driver;
 
-            File source = screenshot.getScreenshotAs(
-                    OutputType.FILE);
+            File source = screenshot.getScreenshotAs(OutputType.FILE);
 
             String testName = result.getName();
 
-            File destination = new File(
-                    "screenshots/" + testName + ".png");
+            File destination = new File(screenshots/" + testName + ".png");
 
             try {
-                Files.copy(
-                        source.toPath(),
-                        destination.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
+                Files.copy(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING  		
                 );
 
-                System.out.println(
-                        "Screenshot captured for failed test: "
-                        + testName);
+                System.out.println("Screenshot captured for failed test: " + testName);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -369,8 +361,7 @@ public void onTestFailure(ITestResult result) {
 
 After execution:
 
-System.out.println("Total Failed Tests: "
-        + failedTestNames.size());
+System.out.println("Total Failed Tests: " + failedTestNames.size());
 
 failedTestNames.forEach(System.out::println);
 
@@ -534,12 +525,12 @@ target/
 
 These reports contain information such as:
 
-Number of tests executed
-Passed tests
-Failed tests
-Skipped tests
-Failure/error details
-Execution time
+1. Number of tests executed
+2. Passed tests
+3. Failed tests
+4. Skipped tests
+5. Failure/error details
+6. Execution time
 
 Surefire vs Failsafe — common interview question
 Surefire :	
@@ -557,13 +548,14 @@ Failsafe :
 #----------------------------------------------#
 ⭐ Strong interview answer
 
-“Maven Surefire Plugin integrates the test framework with Maven. In my Selenium TestNG framework, when I execute mvn clean test, Surefire is responsible for launching the TestNG tests, and I can configure things like the TestNG suite XML, parallel execution, test inclusion/exclusion, system properties, and test reporting. The execution results are generally generated under target/surefire-reports.”
+Maven Surefire Plugin integrates the test framework with Maven. In my Selenium TestNG framework, when I execute mvn clean test, Surefire is responsible for launching the TestNG tests, and I can configure things like the TestNG suite XML, parallel execution, test inclusion/exclusion, system properties, and test reporting. The execution results are generally generated under target/surefire-reports.”
 
 One important distinction: Surefire is not the TestNG framework itself. TestNG provides the testing features such as @Test, assertions, listeners, and data providers; Surefire is the Maven plugin that launches and integrates those tests into the Maven build lifecycle.
 
 #=========================================================================================================================================
 # Q : Write code to find Broken Links in Selenium
 ==> 	To find broken links, I first collect all <a> elements, extract their href attributes, and then send HTTP requests to those URLs. If the response status code is 400 or greater, I consider the link broken.
+
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
@@ -5431,15 +5423,9 @@ I would investigate what is preventing the click.
 For example:
 
 ```java
-wait.until(
-    ExpectedConditions.invisibilityOfElementLocated(
-        By.cssSelector(".loading-overlay")
-    )
-);
+wait.until(  ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".loading-overlay")));
 
-WebElement button = wait.until(
-    ExpectedConditions.elementToBeClickable(By.id("loginBtn"))
-);
+WebElement button = wait.until(ExpectedConditions.elementToBeClickable(By.id("loginBtn"));
 
 button.click();
 ```
@@ -5452,17 +5438,11 @@ If a modal, cookie popup, tooltip, or animation is covering the button, I would 
 
 If the button is inside an iframe:
 
-```java
-wait.until(
-    ExpectedConditions.frameToBeAvailableAndSwitchToIt(
-        By.id("loginFrame")
-    )
-);
 
-wait.until(
-    ExpectedConditions.elementToBeClickable(By.id("loginBtn"))
-).click();
-```
+wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(By.id("loginFrame")));
+
+wait.until(ExpectedConditions.elementToBeClickable(By.id("loginBtn")).click();
+
 
 **4. Handle stale elements**
 
@@ -5519,17 +5499,11 @@ WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
 driver.findElement(By.id("addToCart")).click();
 
-wait.until(
-    ExpectedConditions.textToBePresentInElementLocated(
-        By.id("cartCount"),
-        "1"
-    )
-);
+wait.until( ExpectedConditions.textToBePresentInElementLocated( By.id("cartCount"), "1"  ));
 ```
 
 This is better than using:
 
-```java
 Thread.sleep(5000);
 ```
 
@@ -14221,6 +14195,2331 @@ PageFactory = How I initialize WebElements inside those classes.
 
 
 #====================================================================================================
+# Q : An element’s ID changes on every page load. Write a stable locator strategy (relative XPath, contains(), CSS) to click the “Submit” button.
+===>  If an element’s ID changes on every page load, I would avoid using a dynamic ID as a locator. Instead, I would identify stable attributes such as the button text, type, name, or a nearby parent element and use a relative XPath or CSS selector.
+
+1. Using XPath with normalize-space()
+
+If the button has the visible text Submit, I would use:
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[normalize-space()='Submit']")));
+
+submitButton.click();
+
+Why? It locates the button using its visible text rather than its changing ID and waits until it is clickable.
+
+2. Using XPath with contains()
+
+If the button has a stable class or partial attribute value:
+
+driver.findElement(By.xpath("//button[contains(@class,'submit-btn')]")).click();
+
+If the ID has a stable prefix despite changing suffixes:
+
+driver.findElement( By.xpath("//button[starts-with(@id,'submit_')]")).click();
+3. Using CSS Selector
+
+If the button has a stable class:
+
+driver.findElement(By.cssSelector("button.submit-btn")).click();
+
+If a stable attribute is available:
+
+driver.findElement( By.cssSelector("button[type='submit']").click();
+4. Using a relative XPath based on a parent element
+
+If the button is inside a form with a stable attribute:
+
+driver.findElement(By.xpath("//form[@name='loginForm']//button[normalize-space()='Submit']")).click();
+
+This is useful when multiple Submit buttons exist on the page.
+
+My approach in a real-time project
+
+I would first inspect the DOM and identify attributes that remain stable across page loads.
+
+I would prefer unique, stable attributes or accessible roles and names where available.
+
+I would use explicit waits instead of Thread.sleep().
+
+I would verify that the locator matches exactly one element to avoid clicking the wrong button.
+
+I would avoid absolute XPath and positional locators such as (//button)[3] unless there is no better option.
+
+Interviewer follow-up: If the button's ID, class, and text are all dynamic, I would locate it using a stable relationship with a parent element or a nearby label, or ask the development team to add a stable data-testid attribute.
+
+Key point: A stable locator should depend on the element's meaning or structure, not on a value that changes on every page load.
+
+#====================================================================================================
+# Q : Find the 3rd item in a dynamic list, and verify the list is sorted alphabetically.
+===>  In this scenario, I would locate all the items dynamically using findElements(), retrieve their text, identify the third item, and verify that the complete list is sorted alphabetically.
+
+Selenium Java code
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
+public class DynamicListSortingTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        try {
+            driver.get("https://example.com");
+
+            // Wait until the list items are visible
+            wait.until(d ->!d.findElements(By.cssSelector(".list-item")).isEmpty());
+
+            // Locate all items dynamically
+            List<WebElement> elements = driver.findElements(By.cssSelector(".list-item"));
+
+            // Extract the text of each item
+            List<String> actualList = new ArrayList<>();
+
+            for (WebElement element : elements) {
+                actualList.add(element.getText().trim());
+            }
+
+            // Find and print the third item
+            if (actualList.size() < 3) {
+                throw new AssertionError("The list contains fewer than 3 items");
+            }
+
+            String thirdItem = actualList.get(2);
+            System.out.println("Third item: " + thirdItem);
+
+            // Create a normalized copy for alphabetical comparison
+            List<String> expectedList = new ArrayList<>(actualList);
+
+            expectedList.sort( String.CASE_INSENSITIVE_ORDER);
+
+            // Verify alphabetical sorting
+            if (actualList.equals(expectedList)) {
+                System.out.println("PASS: List is sorted alphabetically");
+            } else {
+                throw new AssertionError("FAIL: List is not sorted alphabetically. " + "Actual: " + actualList);
+            }
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+How I would explain it in an interview
+
+Dynamic identification: I use findElements() instead of hardcoding item locators or list size.
+
+Third item: Java lists use zero-based indexing, so actualList.get(2) returns the third item.
+
+Sorting verification: I create a copy of the actual list, sort it alphabetically using String.CASE_INSENSITIVE_ORDER, and compare both lists.
+
+Synchronization: I use an explicit wait to ensure that list items have loaded before retrieving them.
+
+Assertion: If the lists differ, I fail the test and include the actual list in the error message.
+
+Important: Replace .list-item with the actual locator from the application. In a TestNG framework, I would use Assert.assertEquals(actualList, expectedList, "List is not sorted alphabetically") so the result appears clearly in the test report.
+
+This approach verifies case-insensitive alphabetical order. If the application has specific sorting rules for numbers, special characters, or locale-specific letters, I would adjust the comparator to match those requirements.
+
+
+#====================================================================================================
+# Q : A button becomes clickable only after a loader disappears. Write code that waits for the loader to vanish, then clicks
+==> In this scenario, I would use an explicit wait with ExpectedConditions.invisibilityOfElementLocated() to wait until the loader disappears. After that, I would wait for the button to become clickable and then click it.
+
+Selenium Java code
+import java.time.Duration;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+public class LoaderHandlingTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+        WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(10));
+
+        try {
+            driver.get("https://example.com");
+
+            // Wait until the loader disappears
+            wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("loader")));
+
+            // Wait until the button becomes clickable
+            WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.id("submitBtn")));
+
+            // Click the button
+            submitButton.click();
+
+            System.out.println("Submit button clicked successfully");
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+How I explain this in an interview
+
+invisibilityOfElementLocated() waits until the loader becomes invisible or is removed from the DOM.
+
+elementToBeClickable() waits until the button is visible and enabled.
+
+click() executes only after both conditions are satisfied.
+
+I use explicit waits instead of Thread.sleep() because they wait only as long as necessary, up to the configured timeout.
+
+Real-time consideration: If the loader appears again between the two waits, or an animation still blocks the button, Selenium may throw an ElementClickInterceptedException. I would investigate the overlay and synchronization behavior rather than immediately adding a hard-coded delay.
+
+Key point: Wait for the loader to disappear first, then independently wait for the target button to become clickable.
+
+#====================================================================================================
+# Q : Write a FluentWait that polls every 500ms for up to 20s, ignoring NoSuchElementException.
+===> I would use FluentWait when an element takes an unpredictable amount of time to appear. I can configure a maximum timeout of 20 seconds, poll every 500 milliseconds, and ignore NoSuchElementException until the element is found or the timeout expires
+
+import java.time.Duration;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.FluentWait;
+
+public class FluentWaitExample {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            driver.get("https://example.com");
+
+            FluentWait<WebDriver> wait = new FluentWait<>(driver)
+                    .withTimeout(Duration.ofSeconds(20))
+                    .pollingEvery(Duration.ofMillis(500))
+                    .ignoring(NoSuchElementException.class);
+
+            WebElement element = wait.until(
+                    d -> d.findElement(By.id("submitBtn"))
+            );
+
+            element.click();
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+How it works
+
+withTimeout(Duration.ofSeconds(20)) — sets the maximum wait duration to 20 seconds.
+
+pollingEvery(Duration.ofMillis(500)) — checks the condition approximately every 500 milliseconds.
+
+ignoring(NoSuchElementException.class) — retries when the element is not found instead of failing immediately.
+
+wait.until() — repeatedly executes the condition until it succeeds or the timeout is reached.
+
+Interview tip: FluentWait is the configurable waiting mechanism, and WebDriverWait is a specialized form of it for WebDriver conditions. If the element is never found, Selenium throws a TimeoutException after the wait times out
+
+#====================================================================================================
+# Q : A page loads content through infinite scroll. Scroll until a particular product appears or the list stops growing
+===> In an infinite-scroll scenario, I would use JavascriptExecutor to scroll down the page incrementally and findElements() to check whether the required product is available. I would stop scrolling when either the product appears or the number of products stops increasing for a defined number of attempts.
+
+Selenium Java code
+import java.time.Duration;
+import java.util.List;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+
+public class InfiniteScrollTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            driver.manage().window().maximize();
+            driver.get("https://example.com/products");
+
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+            JavascriptExecutor js =  (JavascriptExecutor) driver;
+
+            By productLocator = By.cssSelector(".product-name");
+            String targetProduct = "iPhone 17";
+
+            int previousCount = 0;
+            int unchangedAttempts = 0;
+            int maxUnchangedAttempts = 3;
+            boolean productFound = false;
+
+            while (unchangedAttempts < maxUnchangedAttempts) {
+
+                // Check whether the target product is present
+                List<WebElement> products = driver.findElements(productLocator);
+
+                for (WebElement product : products) {
+                    if (product.getText().trim().equalsIgnoreCase(targetProduct)) {
+                        productFound = true;
+                        System.out.println( "Product found: " + product.getText());
+                        break;
+                    }
+                }
+
+                if (productFound) {
+                    break;
+                }
+
+                // Scroll to the bottom of the page
+                js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
+
+                // Wait for the product count to increase
+                try {
+                    int countBeforeScroll = products.size();
+
+                    wait.until(d -> d.findElements(productLocator).size() > countBeforeScroll);
+
+                } catch (org.openqa.selenium.TimeoutException e) {
+                    // No new products appeared within 5 seconds
+                }
+
+                int currentCount =
+                        driver.findElements(productLocator).size();
+
+                if (currentCount > previousCount) {
+                    unchangedAttempts = 0;
+                } else {
+                    unchangedAttempts++;
+                }
+
+                previousCount = currentCount;
+            }
+
+            if (!productFound) {
+                System.out.println("Product not found, or list stopped growing.");
+            }
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+How I explain the approach in an interview
+
+Identify products dynamically: Use findElements() to retrieve all currently loaded products.
+
+Check the target product: Compare each product name with the required product name.
+
+Scroll incrementally: Use JavascriptExecutor to reach the bottom and trigger lazy loading.
+
+Wait for new content: Use an explicit wait to detect whether the product count increases.
+
+Prevent an infinite loop: Stop after three consecutive attempts without growth.
+
+Handle timeouts: If no new products load within five seconds, treat that attempt as no growth and continue toward the stopping condition.
+
+Important real-time considerations
+
+Replace .product-name and the URL with the application's actual values.
+
+The sample uses a five-second wait for newly loaded products and three consecutive unchanged attempts.
+
+If the application uses a scrollable container instead of the window, scroll that container rather than document.body.
+
+If the product list updates in place, checking the count alone may not detect changes; compare product IDs or names as well.
+
+Key point: Infinite-scroll automation needs both a condition for success (the target product appears) and a reliable stopping condition (the list stops growing), so the test does not run indefinitely.
+
+
+#====================================================================================================
+# Q : Upload a file where the input is hidden or a custom button. Then download a file and verify it exists in the download folder.
+===>  In a real-time automation framework, I handle file upload and download differently depending on how the application implements them.
+
+File upload: If the file input is hidden behind a custom button, I locate the underlying input[type='file'] and use Selenium's sendKeys() to provide the absolute file path. This avoids relying on the operating system's file chooser.
+
+File download: I configure the browser's download directory, trigger the download, wait until the file exists and is fully downloaded, and then verify its existence and size.
+
+1. File upload when the input is hidden
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+public class FileUploadTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            driver.get("https://example.com/upload");
+
+            String filePath = "C:\\TestData\\sample.pdf";
+
+            WebElement fileInput = driver.findElement(
+                    By.cssSelector("input[type='file']"));
+
+            // Make the hidden input visible if necessary
+            ((JavascriptExecutor) driver).executeScript(
+                    "arguments[0].style.display='block';" +
+                    "arguments[0].style.visibility='visible';",
+                    fileInput);
+
+            // Upload the file without opening the OS file chooser
+            fileInput.sendKeys(filePath);
+
+            // Verify the application accepted the file
+            WebDriverWait wait = new WebDriverWait(
+                    driver, Duration.ofSeconds(10));
+
+            wait.until(d -> d.findElement(
+                    By.id("uploadStatus")).getText()
+                    .contains("Uploaded"));
+
+            System.out.println("File uploaded successfully.");
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+
+Interview explanation: sendKeys() works with the underlying file input, so I don't need to automate the native file chooser. If the application prevents changing the input's visibility, I would use the application's supported upload mechanism or an appropriate OS-level automation tool. I would also verify the uploaded filename or server-side status rather than relying only on the click.
+
+2. Download a file and verify it exists
+
+For downloads, I configure Chrome's download directory through browser preferences. I then wait for the expected file to appear and ensure the temporary .crdownload file has disappeared.
+
+import java.nio.file.*;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+public class FileDownloadTest {
+
+    public static void main(String[] args) throws Exception {
+
+        Path downloadDir = Paths.get(System.getProperty("user.dir"), "downloads");
+
+        Files.createDirectories(downloadDir);
+
+        Map<String, Object> prefs = new HashMap<>();
+        prefs.put("download.default_directory", downloadDir.toAbsolutePath().toString());
+        prefs.put("download.prompt_for_download", false);
+        prefs.put("download.directory_upgrade", true);
+
+        ChromeOptions options = new ChromeOptions();
+        options.setExperimentalOption("prefs", prefs);
+
+        WebDriver driver = new ChromeDriver(options);
+
+        try {
+            driver.get("https://example.com/download");
+
+            // Trigger the download
+            driver.findElement(By.id("downloadBtn")).click();
+
+            Path expectedFile = downloadDir.resolve("sample.pdf");
+
+            WebDriverWait wait = new WebDriverWait(  driver, Duration.ofSeconds(30));
+
+            wait.until(d -> {
+                try (Stream<Path> files = Files.list(downloadDir)) {
+
+                    boolean fileExists = Files.exists(expectedFile) && Files.isRegularFile(expectedFile)&& Files.size(expectedFile) > 0;
+
+                    boolean downloadInProgress = files.anyMatch(p -> p.getFileName().toString() .endsWith(".crdownload"));
+
+                    return fileExists && !downloadInProgress;
+
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+
+            System.out.println("PASS: File downloaded successfully: " + expectedFile.toAbsolutePath());
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+3. How I would explain the verification
+
+Step : What I verify
+
+1. Browser setup : Chrome downloads to the configured folder without prompting.
+2. Trigger : Click the download button or link.
+3. Wait : Allow up to 30 seconds for the download to complete.
+4. File existence : Check that the expected file exists and is a regular file.
+5. File integrity : Check that the file size is greater than zero; for stronger validation, verify its contents or checksum.
+
+Important real-time considerations:
+
+Replace the example URL, locators, and filename with those from your application.
+
+If the server generates a dynamic filename, identify the downloaded file by a known prefix or extension instead of hardcoding the exact name.
+
+For parallel TestNG execution, create a separate download directory for each test to prevent file collisions.
+
+For stronger testing, validate the downloaded file's content, such as parsing a PDF, CSV, or Excel file, rather than checking existence alone.
+
+My interview summary: I use sendKeys() on the underlying file input for uploads, configure browser preferences for downloads, and use explicit waits plus Java NIO file checks to verify the download completes successfully.
+
+#====================================================================================================
+# Q : Read test data from Excel, JSON or CSV and run the same login test with 5 data sets (@DataProvider or @ParameterizedTest).
+===> In my automation framework, I use data-driven testing to execute the same login test with multiple sets of credentials without duplicating test methods.
+
+I can read test data from Excel, JSON, or CSV and pass it to a TestNG @DataProvider or JUnit 5 @ParameterizedTest. Since my framework uses Selenium Java and TestNG, I would commonly implement this using @DataProvider.
+
+1. Example test data — CSV
+
+Create src/test/resources/loginData.csv:
+
+username,password,expectedResult
+standard_user,secret_sauce,success
+locked_out_user,secret_sauce,failure
+invalid_user,wrong123,failure
+problem_user,secret_sauce,success
+performance_glitch_user,secret_sauce,success
+
+This gives us five data sets, all executed against the same login test.
+
+2. Read CSV data using TestNG @DataProvider
+
+Create LoginDataProvider.java:
+
+import org.testng.annotations.DataProvider;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+public class LoginDataProvider {
+
+    @DataProvider(name = "loginData")
+    public static Object[][] getLoginData() throws Exception {
+
+        Path file = Paths.get(
+                "src/test/resources/loginData.csv");
+
+        List<String> lines = Files.readAllLines(file);
+        Object[][] data = new Object[lines.size() - 1][3];
+
+        for (int i = 1; i < lines.size(); i++) {
+            String[] values = lines.get(i).split(",", -1);
+
+            data[i - 1][0] = values[0].trim();
+            data[i - 1][1] = values[1].trim();
+            data[i - 1][2] = values[2].trim();
+        }
+
+        return data;
+    }
+}
+
+This reads the CSV file, skips the header, and returns five rows of test data.
+
+3. Execute the same login test five times
+
+Create LoginTest.java:
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+
+public class LoginTest {
+
+    private WebDriver driver;
+
+    @BeforeMethod
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        driver.get("https://www.saucedemo.com/");
+    }
+
+    @Test(dataProvider = "loginData", dataProviderClass = LoginDataProvider.class)
+    public void verifyLogin(String username, String password, String expectedResult) {
+
+        driver.findElement(By.id("user-name")).sendKeys(username);
+
+        driver.findElement(By.id("password")).sendKeys(password);
+
+        driver.findElement(By.id("login-button")).click();
+
+        if (expectedResult.equalsIgnoreCase("success")) {
+            Assert.assertTrue(driver.getCurrentUrl().contains("inventory"), "Expected successful login for " + username);
+        } else {
+            Assert.assertTrue(driver.findElement(By.cssSelector("[data-test='error']")).isDisplayed(), "Expected login error for " + username);
+        }
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
+Expected execution : 
+Test data : Expected result
+1. standard_user : Pass — login successful
+2. locked_out_user : Pass — error displayed
+3. invalid_user : Pass — error displayed
+4. problem_user : Pass — login successful
+5. performance_glitch_user : Pass — login successful : The test passes when the actual behavior matches the expected result. An expected login failure is still a passing test.
+
+4. How would I read Excel or JSON instead?
+
+Excel — Apache POI : Use XSSFWorkbook and DataFormatter to read rows and cells, then convert the rows into Object[][] for TestNG.
+
+JSON — Jackson : Use ObjectMapper to deserialize a JSON array into Java objects, then provide their fields to the test.
+
+CSV — Java NIO : Use Files.readAllLines() for simple CSV files. For quoted values or embedded commas, use a CSV library such as Apache Commons CSV.
+
+5. What about JUnit 5 @ParameterizedTest?
+
+In JUnit 5, I would use @CsvFileSource to load the same five data sets directly from a CSV file:
+
+@ParameterizedTest
+@CsvFileSource(resources = "/loginData.csv", numLinesToSkip = 1 )
+void verifyLogin(String username, String password, String expectedResult) {
+
+    // Reuse the same login steps and assertions
+}
+
+This requires the JUnit Jupiter parameterized-test dependency. If the project uses TestNG, I would stay with @DataProvider rather than mixing test frameworks unnecessarily.
+
+My interview conclusion: I prefer data-driven testing because it improves reusability, reduces duplicate code, and makes adding new scenarios easy. In a real framework, I would keep test data separate from test logic, use explicit waits, avoid storing real credentials in source control, and generate an independent result for each data set.
+
+
+
+#====================================================================================================
+# Q : How do you achieve encapsulation in Page Object Model?
+===> In the Page Object Model (POM), I achieve encapsulation by keeping the web elements and their locators private inside the page classes and exposing only the public methods required to interact with the application.
+
+This means the test classes do not need to know how elements are located or how actions are performed internally. They only call methods such as loginPage.login(username, password).
+
+1. Real-time example: Login Page
+LoginPage.java
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+
+public class LoginPage {
+
+    private WebDriver driver;
+
+    // Private locators
+    private By usernameField = By.id("user-name");
+    private By passwordField = By.id("password");
+    private By loginButton = By.id("login-button");
+
+    // Constructor
+    public LoginPage(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    // Public methods exposing page functionality
+    public void enterUsername(String username) {
+        driver.findElement(usernameField).sendKeys(username);
+    }
+
+    public void enterPassword(String password) {
+        driver.findElement(passwordField).sendKeys(password);
+    }
+
+    public void clickLogin() {
+        driver.findElement(loginButton).click();
+    }
+
+    // High-level business action
+    public void login(String username, String password) {
+        enterUsername(username);
+        enterPassword(password);
+        clickLogin();
+    }
+}
+LoginTest.java
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.testng.annotations.Test;
+
+public class LoginTest {
+
+    @Test
+    public void verifyLogin() {
+
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            driver.get("https://www.saucedemo.com/");
+
+            LoginPage loginPage = new LoginPage(driver);
+            loginPage.login("standard_user", "secret_sauce");
+
+            // Add assertions to verify successful login
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+2. How does this achieve encapsulation?
+
+Data hiding : Locators such as usernameField and passwordField are declared private, so test classes cannot access them directly.
+
+Controlled access : Public methods such as login() provide controlled access to the page functionality.
+
+Maintainability : If the username locator changes from an ID to a CSS selector, I update only LoginPage.java. The test classes remain unchanged.
+
+3. What if the interviewer asks why locators should be private?
+
+I would answer:
+
+"If locators are public, test classes become tightly coupled to the page implementation. By making them private and exposing business-level methods, I hide implementation details, reduce duplication, and make the framework easier to maintain. I also avoid exposing mutable internal objects unnecessarily."
+
+My conclusion: Encapsulation in POM means hiding page implementation details and exposing only the required actions through public methods. It improves reusability, reduces coupling, and makes changes to the UI easier to manage.
+
+
+#====================================================================================================
+# Q : Element is not clickable due to overlay – how will you handle it?
+===> If an element is not clickable because an overlay is covering it, Selenium may throw an ElementClickInterceptedException. In this situation, I would identify the overlay, wait for it to disappear, and then wait until the target element becomes clickable before performing the action.
+
+I would not immediately use JavaScript click or Thread.sleep(), because I first need to understand why the click is being intercepted.
+
+1. Real-time Selenium Java solution
+
+Suppose a loading spinner or modal overlay blocks the Submit button.
+
+import java.time.Duration;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+public class OverlayHandlingTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+
+        WebDriverWait wait = new WebDriverWait(
+                driver, Duration.ofSeconds(15));
+
+        try {
+            driver.get("https://example.com");
+
+            // Wait until the overlay disappears
+            By overlay = By.cssSelector(".loading-overlay");
+
+            wait.until(
+                    ExpectedConditions.invisibilityOfElementLocated(
+                            overlay));
+
+            // Wait until the button is clickable
+            By submitButton = By.id("submitBtn");
+
+            WebElement button = wait.until( ExpectedConditions.elementToBeClickable(submitButton));
+
+            // Click the button
+            button.click();
+
+            System.out.println("Submit button clicked successfully");
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+
+Key methods:
+
+invisibilityOfElementLocated() waits until the overlay is invisible or removed from the DOM.
+
+elementToBeClickable() waits until the target element is visible and enabled.
+
+click() performs the normal WebDriver interaction.
+
+Replace .loading-overlay and submitBtn with the actual application locators.
+
+2. What if the overlay is a modal or cookie banner?
+
+If the overlay requires user action, I would handle it explicitly instead of waiting for it to disappear.
+
+By acceptCookies = By.id("acceptCookies");
+
+if (!driver.findElements(acceptCookies).isEmpty()) {
+    wait.until(ExpectedConditions.elementToBeClickable(acceptCookies)).click();
+}
+
+wait.until(ExpectedConditions.elementToBeClickable(By.id("submitBtn"))).click();
+
+For a modal dialog, I would click its Close, Cancel, or Confirm button according to the expected business flow.
+
+3. What if Selenium still throws ElementClickInterceptedException?
+
+I would investigate the root cause:
+
+Check which element is intercepting the click using the exception message.
+
+Inspect whether an animation, sticky header, tooltip, or transparent overlay is covering the target.
+
+Wait for the relevant overlay or animation to finish.
+
+Re-locate the target element if the page re-rendered and made the previous reference stale.
+
+Retry only when there is a known, transient condition and the action is safe to repeat.
+
+I would avoid blindly retrying a click that might submit a payment or create duplicate records.
+
+4. Would you use JavaScript click?
+
+Only as a last resort when the test intentionally needs to bypass normal pointer interaction and the behavior is justified.
+
+WebElement button = driver.findElement(By.id("submitBtn"));
+
+((org.openqa.selenium.JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
+
+JavaScript click bypasses normal browser pointer-interaction behavior. It can hide genuine UI defects, so I would not use it as the default solution for an overlay problem.
+
+Interview conclusion
+
+"In my automation framework, when an element is not clickable due to an overlay, I first identify the intercepting element and synchronize with its disappearance using explicit waits. Then I wait for the target element to become clickable and perform the action. If the issue persists, I investigate animations, modal dialogs, and DOM re-rendering. I use JavaScript click only when there is a specific justification, because normal WebDriver interaction should validate the actual user experience
+
+#====================================================================================================
+# Q :  Dynamic XPath is failing – what is your approach?
+===> If a dynamic XPath is failing, I first investigate why it is failing instead of immediately changing the locator. The issue could be a changing attribute, incorrect XPath syntax, asynchronous page loading, multiple matching elements, or a DOM structure that has changed.
+
+My approach is to inspect the DOM, identify stable attributes, build a robust locator, and validate it before executing the action.
+
+1. Scenario: Dynamic ID changes on every page load
+
+Suppose the Submit button has a different ID each time:
+
+<button id="submit_82731">Submit</button>
+
+On the next load, the ID becomes submit_93562.
+
+I would avoid locating the element using its complete ID.
+
+Incorrect approach:
+
+driver.findElement(By.id("submit_82731")).click();
+
+Approach 1: Use stable button text
+
+By submitButton = By.xpath("//button[normalize-space()='Submit']");
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+Approach 2: Use contains() if the ID has a stable prefix
+
+By submitButton = By.xpath("//button[contains(@id,'submit_')]");
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+Approach 3: Use a stable CSS attribute
+
+By submitButton = By.cssSelector("button[type='submit']");
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+I choose the locator that uniquely identifies the correct element in the actual DOM.
+
+2. My systematic debugging approach
+
+Step 1: Inspect the DOM
+
+Use browser DevTools to inspect the element and identify stable attributes such as name, type, data-testid, accessible name, or nearby labels.
+
+Step 2: Simplify the XPath
+
+Avoid long absolute XPath expressions. Prefer short, relative XPath expressions based on meaningful attributes and relationships.
+
+Step 3: Verify uniqueness
+
+Check how many elements match the locator before clicking.
+
+List<WebElement> elements =  driver.findElements(submitButton);
+
+System.out.println("Matches: " + elements.size());
+
+Ideally, the locator should identify exactly one intended element.
+
+Step 4: Check synchronization
+
+If the locator is correct but the element is not present yet, use an explicit wait. If the element is present but obstructed, investigate overlays or animations.
+
+Step 5: Handle dynamic DOM changes
+
+If the page re-renders, locate the element again rather than reusing a stale WebElement. If necessary, use a stable parent-child relationship or request a dedicated test attribute from developers.
+
+3. Example: Locate a button relative to a label
+
+Suppose multiple buttons contain the text Edit, but each belongs to a different user row.
+
+Instead of using an index such as (//button[text()='Edit'])[2], I would use the associated row:
+
+String username = "Priya";
+
+By editButton = By.xpath(
+    "//tr[.//td[normalize-space()='" + username + "']]"
+    + "//button[normalize-space()='Edit']"
+);
+
+wait.until(ExpectedConditions.elementToBeClickable(editButton)).click();
+
+This identifies the Edit button within the row containing the specified username, assuming the table structure matches the XPath.
+
+4. What if the XPath still fails?
+
+Exception : My approach
+1. NoSuchElementException : Verify locator syntax, DOM state, iframe context, and whether the element exists.
+2. TimeoutException : Check whether the expected condition can ever become true and whether the correct locator is used.
+3. StaleElementReferenceException : Re-locate the element after the DOM refreshes.
+4. ElementClickInterceptedException : Identify the overlay or element blocking the click.
+5. Multiple matching elements : Refine the locator using a unique parent, attribute, or relationship.
+
+Interview conclusion
+
+"When a dynamic XPath fails, I first identify the root cause using DevTools and Selenium exceptions. I prefer stable attributes over changing IDs, use contains() or starts-with() only when the attribute pattern is reliable, and use relative XPath for parent-child relationships. Finally, I validate uniqueness and apply explicit waits where synchronization is the issue. If no reliable attribute exists, I collaborate with developers to introduce a stable data-testid rather than maintaining fragile locators.
+
+#====================================================================================================
+# Q : Page is loading slowly – how will you handle synchronization?
+===> If a page is loading slowly, I handle synchronization using explicit waits and condition-based synchronization rather than using Thread.sleep(). I wait for the specific page element or application state required by the test before performing the next action.
+
+1. Using WebDriverWait (Preferred approach)
+
+For example, after clicking the Login button, I wait until the Dashboard heading becomes visible.
+
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(20)
+);
+
+driver.findElement(By.id("loginButton")).click();
+
+WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("dashboard") ));
+
+Assert.assertTrue(dashboard.isDisplayed());
+2. Handle different loading scenarios
+
+Scenario : Synchronization strategy
+1. Page takes time to load : pageLoadTimeout()
+2. Element appears slowly : visibilityOfElementLocated()
+3. Element is not clickable : elementToBeClickable()
+4. Loading spinner is displayed : invisibilityOfElementLocated()
+5. AJAX request updates content : Wait for the expected updated element or application state
+6. Element is replaced in the DOM : Re-locate the element and handle StaleElementReferenceException if appropriate
+
+For example, to wait for a loading spinner to disappear:
+
+By loader = By.cssSelector(".loading-spinner");
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated(loader));
+
+wait.until(ExpectedConditions.elementToBeClickable(By.id("submitButton"))).click();
+
+3. Configure page-load timeout
+driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+
+This limits how long Selenium waits for the page-load event. It does not guarantee that JavaScript-rendered content or AJAX requests have finished, so I use explicit waits for those conditions.
+
+4. Why not use Thread.sleep()?
+
+It pauses execution for a fixed duration, even if the page loads earlier.
+
+It can still fail if the page takes longer than expected.
+
+It increases overall suite execution time.
+
+My interview conclusion:
+
+“In my automation framework, I use explicit waits with meaningful conditions, such as element visibility, clickability, or loader disappearance. I configure page-load timeouts separately and avoid mixing implicit and explicit waits because that can cause unpredictable wait durations. This approach makes my Selenium tests more reliable and reduces flaky failures.”
+
+
+#====================================================================================================
+# Q : StaleElementReferenceException – how do you fix it?
+
+====> StaleElementReferenceException occurs when Selenium has located a WebElement, but that element is no longer attached to the current DOM. This usually happens when the page refreshes, an AJAX request updates the DOM, or a framework re-renders an element.
+
+1. How do I fix it?
+
+I first identify why the DOM is changing. Then I re-locate the element using its locator instead of reusing the old WebElement reference. I also use an explicit wait when the application needs time to update.
+
+2. Example: Re-locate the element
+
+Incorrect approach:
+
+WebElement button = driver.findElement(By.id("submit"));
+
+driver.navigate().refresh();
+
+// Old reference may now be stale
+button.click();
+
+Correct approach:
+
+By submitButton = By.id("submit");
+
+driver.navigate().refresh();
+
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(20));
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+Here, Selenium locates the element again after the refresh instead of using the old reference.
+
+3. Handle a dynamic DOM update
+
+Suppose a product list refreshes after selecting a category. I wait for the old element to become stale, then locate the updated element.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20)
+);
+
+By productLocator = By.id("product-name");
+
+WebElement oldProduct =  driver.findElement(productLocator);
+
+// Trigger an action that refreshes the product list
+driver.findElement(By.id("category-dropdown")).click();
+
+wait.until(ExpectedConditions.stalenessOf(oldProduct));
+
+// Find the element again from the updated DOM
+WebElement updatedProduct = wait.until(ExpectedConditions.visibilityOfElementLocated(productLocator ));
+
+System.out.println(updatedProduct.getText());
+
+Note: This example assumes the category action replaces the product element. If the DOM updates without replacing it, I wait for the actual expected state instead.
+
+4. Can I use retry logic?
+
+Yes. If a known, transient DOM re-render causes the exception, I can retry the operation a limited number of times. However, I avoid blindly retrying every failure because it can hide genuine application defects.
+
+5. Common causes and solutions
+
+Cause : Solution
+1. Page refresh or navigation : Locate the element again
+2. AJAX updates the DOM : Wait for the updated state
+3. React/Angular re-renders a component : Re-find the element after rendering
+4. Cached WebElement stored in a Page Object : Store a By locator and locate the element when needed
+5. Element becomes stale during a loop : Re-fetch the element or list on each iteration
+
+My interview conclusion:
+
+“In my framework, I handle StaleElementReferenceException by identifying the DOM change, using explicit waits, and re-locating elements through stable locators. I avoid caching WebElement references for dynamic components and use limited retries only for known transient conditions. I do not treat Thread.sleep() as the primary solution because it does not guarantee that the element reference is valid.”
+
+
+#====================================================================================================
+# Q :  Dropdown is not a select tag – how will you handle it?
+===> If a dropdown is not implemented using the HTML <select> tag, I handle it using Selenium WebElement interactions, explicit waits, and appropriate locators. The Select class works only with a native HTML <select> element, so I cannot use it for custom dropdowns built with div, ul, li, or other elements.
+
+1. Example: Handle a custom dropdown
+
+Suppose the application has a custom dropdown for selecting a country.
+
+<div id="countryDropdown">Select Country</div>
+<ul class="dropdown-options">
+    <li>India</li>
+    <li>USA</li>
+    <li>UK</li>
+</ul>
+
+Selenium Java code:
+
+WebDriverWait wait = new WebDriverWait(
+    driver, Duration.ofSeconds(10)
+);
+
+// Click the custom dropdown
+By dropdown = By.id("countryDropdown");
+
+wait.until(ExpectedConditions.elementToBeClickable(dropdown)).click();
+
+// Select the required option
+By indiaOption = By.xpath("//li[normalize-space()='India']");
+
+wait.until(ExpectedConditions.elementToBeClickable(indiaOption)).click();
+2. Handle a dropdown with dynamically loaded options
+
+If the options appear only after clicking the dropdown, I first click the dropdown and then wait for the required option to become visible or clickable.
+
+By dropdown = By.cssSelector(".custom-dropdown");
+By option = By.xpath("//div[@role='option' and normalize-space()='India']");
+
+wait.until(ExpectedConditions.elementToBeClickable(dropdown)).click();
+
+wait.until(ExpectedConditions.elementToBeClickable(option)).click();
+
+The locator must match the application's actual HTML structure.
+
+3. Select an option from an autocomplete dropdown
+
+For example, when entering a city name and selecting a suggestion:
+
+WebElement cityInput = driver.findElement(By.id("city"));
+
+cityInput.sendKeys("Pun");
+
+By suggestion = By.xpath("//li[contains(normalize-space(), 'Pune')]");
+
+wait.until(ExpectedConditions.elementToBeClickable(suggestion)).click();
+
+This works when the application displays a clickable suggestion containing “Pune.”
+
+4. What if the dropdown options are not clickable?
+
+I would check the following:
+
+Whether the dropdown is expanded and the option is visible.
+
+Whether a loader or overlay is blocking the option.
+
+Whether the options are inside an iframe or shadow DOM.
+
+Whether the DOM changes after opening the dropdown.
+
+Whether the locator uniquely identifies the intended option.
+
+I prefer a normal user interaction over JavaScript clicking because it verifies that the option is actually interactable.
+
+My interview conclusion:
+
+“I first inspect the HTML to determine whether the dropdown is a native <select> or a custom component. For a custom dropdown, I click the dropdown using an explicit wait, locate the required option, and click it. For autocomplete dropdowns, I enter the text and select the matching suggestion. This approach works with common React, Angular, and other JavaScript-based dropdown components.”
+
+#====================================================================================================
+# Q : Explain how to connect your test cases with Azure.
+==> In my automation framework, I can integrate test cases with Azure DevOps to manage test plans, link automated tests to requirements and work items, execute tests through Azure Pipelines, and publish test results.
+
+I explain the integration in four parts.
+
+1. Connect automation test cases with Azure Test Plans
+
+Azure Test Plans is used to manage manual and automated test cases, test suites, and test execution.
+
+My approach is:
+
+1. Create a project in Azure DevOps.
+2. Create test cases under Test Plans → Test Suites.
+3. Organize test cases according to features, such as Login, Checkout, or API Testing.
+4. Link test cases to requirements or user stories using work items.
+5. Associate supported automated tests with the corresponding Azure Test Plans test cases.
+
+For example:
+
+Azure test case : Automation test
+1. TC101 – Valid Login : testValidLogin()
+2. TC102 – Invalid Login : testInvalidLogin()
+3. TC103 – Add Product to Cart : testAddProductToCart()
+
+This helps the team trace requirements to test cases and automation results.
+
+2. Integrate Selenium Java tests with Azure Pipelines
+
+I store the Selenium framework in an Azure Repos Git repository or another supported Git repository. Then I configure an Azure Pipeline to build and execute the tests.
+
+Example azure-pipelines.yml for a Maven and TestNG project:
+
+
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: '17'
+      jdkArchitectureOption: 'x64'
+      jdkSourceOption: 'PreInstalled'
+
+  - script: mvn clean test
+    displayName: 'Run Selenium TestNG Tests'
+
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      failTaskOnFailedTests: true
+      testRunTitle: 'Selenium Automation Results'
+
+How it works:
+
+1. Azure Pipeline checks out the repository.
+2. Maven compiles the Java code and executes the TestNG tests.
+3. Surefire generates XML test reports.
+4. PublishTestResults@2 publishes the results in Azure Pipelines, including passed and failed tests.
+
+The agent must have the necessary Java, Maven, browser, and driver support. For browser-based tests, I configure Chrome or use an appropriate browser-enabled agent.
+
+3. Connect automated tests with Azure Test Plans
+
+Publishing test results to Azure Pipelines is not the same as associating automated tests with test cases in Azure Test Plans.
+
+For Test Plans integration, I would:
+1. Create the test cases in Azure Test Plans.
+2. Configure the automation project and supported test adapter/integration.
+3. Associate each automated test with its Azure Test Case work item ID using the supported Azure DevOps mechanism.
+4. Run the tests through the supported pipeline or test task.
+5. Verify that the execution results are linked to the corresponding test cases in Azure Test Plans.
+The exact configuration depends on the test framework, Azure DevOps setup, and whether the project uses a supported test adapter or the Azure Test Plans automated-test integration.
+
+4. Connect failed tests with Azure Boards defects
+
+When an automated test fails, I analyze whether it is an application defect, a test-script issue, or an environment issue.
+
+If it is an application defect, I create a bug in Azure Boards with:
+
+1. Test case or test run details.
+2. Steps to reproduce.
+3. Expected and actual results.
+4. Screenshots, logs, and API request/response details where applicable.
+5. Build number and environment.
+
+I then link the bug to the relevant user story or test case for traceability.
+
+Overall workflow
+
+1. Azure Repos / Git
+2. Store automation framework
+3. Azure Pipelines
+4. Build and execute Maven tests
+5. Publish Test Results
+6. View pass/fail results and logs
+7. Azure Test Plans and Boards
+8. Trace test cases, requirements, and defects
+
+My interview conclusion:
+
+“I integrate my automation framework with Azure DevOps by storing the code in a repository, configuring Azure Pipelines to execute Selenium Java and TestNG tests, and publishing the results. For complete traceability, I associate automated tests with Azure Test Plans test cases and link application defects to Azure Boards. This gives the team visibility into execution status, failures, and requirement coverage.”
+
+#====================================================================================================
+# Q : You are asked to migrate Selenium framework to Playwright – what steps will you follow?
+==> If I am asked to migrate an existing Selenium framework to Playwright, I would not directly convert every Selenium script into Playwright code. I would first analyze the existing framework, identify reusable components, and then migrate incrementally while ensuring that the existing test coverage is maintained.
+
+I would follow these eight steps.
+
+1. Analyze the existing Selenium framework
+
+First, I review the current framework architecture, including:
+
+	1. Page Object Model (POM) and page classes.
+	2. TestNG, Cucumber, and Maven configuration.
+	3. Test data management and configuration files.
+	4. Explicit waits, synchronization, and exception handling.
+	5. Screenshots, logs, reports, and CI/CD integration.
+	6. Test coverage, flaky tests, and execution time.
+
+I identify which components can be reused conceptually and which need to be redesigned for Playwright.
+
+2. Set up the Playwright framework
+
+If the team chooses Playwright with TypeScript, I initialize the project and configure browsers, test environments, and dependencies.
+
+npm init playwright@latest
+npx playwright install
+npx playwright test
+
+I configure playwright.config.ts with the required browsers, base URL, timeouts, retries, reporting, and environment settings.
+
+Example:
+
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  timeout: 30_000,
+  retries: 1,
+  use: {
+    baseURL: 'https://www.saucedemo.com',
+    browserName: 'chromium',
+    headless: true,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure'
+  },
+  reporter: [['html'], ['junit', { outputFile: 'results.xml' }]]
+});
+3. Redesign the framework architecture
+
+I recreate the framework using Playwright's recommended patterns.
+
+Test Specs — Login, Cart, Checkout
+Page Objects — Locators and UI actions
+Playwright Fixtures — Browser, context, page, test setup
+Application Under Test
+
+I separate test logic, page objects, test data, configuration, utilities, and reporting. I use fixtures for setup and teardown rather than simply copying Selenium's BaseTest and WebDriver lifecycle.
+
+4. Migrate locators and synchronization
+
+This is one of the most important steps because Selenium and Playwright handle synchronization differently.
+
+Selenium Java : Playwright TypeScript
+1. findElement() : page.getByRole(), page.locator()
+2. WebDriverWait : Auto-waiting and web-first assertions
+3. ExpectedConditions : Locator actions and assertions
+4. Thread.sleep() : Wait for a meaningful condition
+5. Select class : locator.selectOption() for native select elements
+6. Actions class : Locator interactions or page.mouse
+7. WebDriverWait for clickability : locator.click() with actionability checks
+
+Example in Selenium:
+
+WebDriverWait wait =  new WebDriverWait(driver, Duration.ofSeconds(10));
+
+wait.until( ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
+
+Equivalent Playwright TypeScript:
+
+await page.getByRole('button', { name: 'Login'}).click();
+
+Playwright automatically waits for relevant actionability conditions before clicking. I still use explicit assertions to validate the application's expected state.
+
+await expect(page).toHaveURL(/inventory/);
+await expect(page.getByText('Products')).toBeVisible();
+5. Migrate Page Objects and test cases
+
+I preserve the existing test scenarios but rewrite the implementation using Playwright locators and asynchronous operations.
+
+Example Page Object:
+
+import { Page, Locator } from '@playwright/test';
+
+export class LoginPage {
+  readonly username: Locator;
+  readonly password: Locator;
+  readonly loginButton: Locator;
+
+  constructor(private page: Page) {
+    this.username = page.getByPlaceholder('Username');
+    this.password = page.getByPlaceholder('Password');
+    this.loginButton = page.getByRole('button', {
+      name: 'Login'
+    });
+  }
+
+  async login(user: string, pass: string) {
+    await this.username.fill(user);
+    await this.password.fill(pass);
+    await this.loginButton.click();
+  }
+}
+
+I update tests to use async/await, Playwright fixtures, and assertions from @playwright/test.
+
+If the existing project uses Cucumber, I can retain Gherkin feature files and migrate the step definitions to Playwright. If the team allows a framework change, I would evaluate whether Playwright Test can simplify the architecture.
+
+6. Migrate API testing and mocking
+
+If the Selenium framework also uses Rest Assured, I assess whether API tests should remain in Java or move to Playwright's API testing capabilities.
+
+For example, Playwright supports API requests through APIRequestContext and browser network interception through page.route().
+
+await page.route('**/api/products', async route => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([
+      { id: 1, name: 'Test Product' }
+    ])
+  });
+});
+
+This allows me to simulate API responses and test UI behavior without depending on a live backend for every scenario.
+
+7. Validate reports and CI/CD integration
+
+I configure the new framework to publish reports and artifacts, including:
+
+1. HTML and JUnit test reports.
+2. Screenshots and traces for failed tests.
+3. Browser console or network diagnostics where useful.
+4. Environment-specific configuration.
+5. Parallel execution and retry policies.
+
+I then integrate the framework with the existing Jenkins or Azure Pipelines workflow and validate it on the intended CI agents.
+
+8. Run both frameworks in parallel and decommission gradually
+
+I would not immediately remove Selenium. I would:
+
+1. Select a representative pilot suite, such as login and checkout.
+2. Execute the same scenarios in Selenium and Playwright.
+3. Compare functional coverage, reliability, execution time, and maintenance effort.
+4. Fix gaps and migrate remaining suites in priority order.
+5. Run regression tests and get stakeholder approval.
+6. Retire Selenium only when the migrated framework is stable and coverage is confirmed.
+
+How would I measure migration success?
+
+1. Existing business scenarios remain covered.
+2. Pass/fail results are consistent and explainable.
+3. Flaky test rates and execution times improve.
+4. CI reports and debugging artifacts work correctly.
+5. The new framework is maintainable and accepted by the team.
+
+My interview conclusion:
+
+“I would migrate incrementally rather than perform a direct code-to-code conversion. I would first analyze the Selenium framework, establish the Playwright TypeScript architecture, migrate locators and synchronization, rewrite Page Objects and tests, and validate API mocking, reporting, and CI integration. Finally, I would run both frameworks in parallel and decommission Selenium only after confirming functional coverage and stability.”
+
+#====================================================================================================
+# Q : An element is present in the DOM, but Selenium says it is not clickable. How would you debug and fix it?
+==> If an element is present in the DOM but Selenium says it is not clickable, I first investigate why it cannot be interacted with rather than immediately using JavaScript to click it.
+
+The element may be present but hidden, disabled, covered by an overlay, outside the viewport, or still being updated by JavaScript.
+
+1. Debug the root cause
+
+I follow these steps:
+
+	1. Check visibility: Verify that the element is displayed and not hidden by CSS.
+	2. Check enabled state: Confirm that the element is enabled.
+	3. Check overlays and loaders: A modal, spinner, cookie banner, or sticky header may block the click.
+	4. Check the locator: Ensure the locator identifies the intended element and not a hidden duplicate.
+	5. Check DOM updates: The element may be re-rendered, causing a stale reference.
+	6. Inspect the browser: Use DevTools to examine CSS properties, element position, and the element that receives the click.
+
+2. Solution: Use explicit waits
+
+Suppose a button becomes clickable only after the page finishes loading.
+
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(15));
+
+By submitButton = By.id("submit");
+
+WebElement button = wait.until(ExpectedConditions.elementToBeClickable(submitButton));
+
+button.click();
+
+elementToBeClickable() waits until the element is visible and enabled. However, it does not guarantee that no overlay will intercept the click.
+
+3. Solution: Wait for the overlay to disappear
+
+If a loading spinner blocks the button, I wait for the spinner to disappear first.
+
+By loader = By.cssSelector(".loading-spinner");
+By submitButton = By.id("submit");
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated(loader));
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+This is preferable to using Thread.sleep() because Selenium proceeds as soon as the required conditions are satisfied.
+
+4. Solution: Scroll the element into view
+
+If the element is outside the viewport, I scroll it into view and then wait for it to become clickable.
+
+By submitButton = By.id("submit");
+
+WebElement button = driver.findElement(submitButton);
+
+((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", button);
+
+wait.until(ExpectedConditions.elementToBeClickable(submitButton)).click();
+
+Scrolling with JavaScript is useful, but I still use Selenium's normal click to verify that the user interaction can succeed.
+
+5. How do I investigate an intercepted click?
+
+If Selenium throws ElementClickInterceptedException, I inspect the exception message and browser DOM to identify the element covering the target. I then wait for that overlay to disappear, close the blocking popup if appropriate, or correct the locator.
+
+I also check for:
+
+	1. Disabled buttons.
+	2. Animation or transition effects.
+	3. Sticky headers covering the target.
+	4. Hidden duplicate elements.
+	5. Incorrect iframe context.
+
+I avoid using JavaScript arguments[0].click() as the first solution, because it can bypass normal browser interaction checks and hide a genuine UI issue.
+
+6. Interview conclusion
+
+“I first distinguish between an element that is present, visible, enabled, and actually interactable. I use explicit waits for visibility and clickability, wait for overlays to disappear, scroll when necessary, and inspect the DOM if the click is intercepted. I use JavaScript clicking only when there is a justified technical reason, not as a workaround for synchronization problems.”
+
+#====================================================================================================
+# Q : The XPath of an element changes every time you refresh the page. How would you create a stable locator?
+==> If an element's XPath changes every time I refresh the page, I first inspect the DOM to understand why it changes. Usually, the application generates dynamic IDs or class names at runtime.
+
+I avoid depending on changing attributes and create a stable locator based on predictable attributes, visible text, or the element's relationship with other elements.
+
+1. Identify and avoid dynamic attributes
+
+Suppose the element has a different ID after each refresh:
+
+<button id="btn_83921">Login</button>
+
+After refresh, the ID changes to btn_57284.
+
+Unstable XPath:
+
+By.xpath("//*[@id='btn_83921']");
+
+Better locator using stable visible text:
+
+By loginButton = By.xpath("//button[normalize-space()='Login']");
+
+This works as long as the button text and element type remain stable.
+
+2. Use stable attributes
+
+If the application provides a reliable attribute such as name, aria-label, or data-testid, I prefer that over a generated ID.
+
+By loginButton = By.cssSelector("button[data-testid='login-button']");
+
+A data-testid attribute is especially useful when developers can maintain it specifically for automated tests.
+
+3. Use relative XPath based on relationships
+
+If the element has no unique attributes, I locate it using a stable parent or nearby label.
+
+Example HTML:
+
+<div class="user-row">
+    <span>Uzma</span>
+    <button>Edit</button>
+</div>
+
+XPath:
+
+By editButton = By.xpath(
+    "//div[contains(@class,'user-row')]"
+    + "[.//span[normalize-space()='Uzma']]"
+    + "//button[normalize-space()='Edit']"
+);
+
+This locates the Edit button belonging to the row containing the user name Uzma, instead of relying on a dynamic ID.
+
+4. Validate the locator and synchronize
+
+Before using the locator, I check whether it identifies exactly one element and wait until it becomes clickable.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+By loginButton = By.xpath( "//button[normalize-space()='Login']");
+
+if (driver.findElements(loginButton).size() != 1) {
+    throw new IllegalStateException( "Login locator is not unique" );
+}
+
+wait.until( ExpectedConditions.elementToBeClickable(loginButton)).click();
+
+I use findElements() to verify uniqueness rather than assuming the locator is correct.
+
+5. What if every attribute is dynamic?
+
+I inspect the surrounding DOM and look for a stable label, parent container, accessible role, or business-specific text. If no reliable locator exists, I discuss adding a stable automation attribute with the developer.
+
+I also avoid absolute XPath, unnecessary index-based locators, and Thread.sleep() as a solution to changing IDs.
+
+My interview conclusion:
+
+“I first identify which attributes are dynamic and then build locators using stable attributes, accessible names, visible text, or relative DOM relationships. I validate that the locator is unique and use explicit waits for synchronization. If the application exposes no reliable identifying attribute, I collaborate with developers to introduce a stable test ID. This makes the automation framework more maintainable and less flaky.”
+
+
+
+#====================================================================================================
+# Q : An element takes 5–10 seconds to appear randomly. How would you handle this without using `Thread.sleep()`?
+==> If an element takes 5–10 seconds to appear randomly, I use explicit waits with WebDriverWait and an appropriate ExpectedCondition instead of Thread.sleep().
+
+Explicit waits poll for a specific condition and continue as soon as it is satisfied, making the test more efficient and reliable.
+
+1. Use WebDriverWait with visibility condition
+
+Suppose a dashboard element appears after an unpredictable API response.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+WebElement dashboard = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("dashboard")));
+
+Assert.assertTrue(dashboard.isDisplayed());
+
+How it works:
+
+	1. Selenium checks whether the element is visible.
+	2. It keeps polling until the element appears.
+	3. If it appears after 5 seconds, execution continues immediately.
+	4. If it does not appear within 15 seconds, Selenium throws a TimeoutException.
+
+2. Choose the correct wait condition
+
+Scenario : Expected condition
+1. Element exists in the DOM : presenceOfElementLocated()
+2. Element is visible : visibilityOfElementLocated()
+3. Button is ready to click : elementToBeClickable()
+4. Loader disappears : invisibilityOfElementLocated()
+5. Text updates dynamically : textToBePresentInElementLocated()
+
+For example, if the element is initially hidden and becomes visible after an AJAX call, I use visibilityOfElementLocated() rather than checking only its presence in the DOM.
+
+3. Handle a loading spinner
+
+If a spinner appears before the target element, I wait for the spinner to disappear and then wait for the target to become clickable.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".loading-spinner")));
+
+wait.until(ExpectedConditions.elementToBeClickable( By.id("submitButton"))).click();
+
+I use this approach when the application actually displays a loader. If the loader is not reliable, I wait directly for the expected application state.
+
+4. What if the element still times out?
+
+I investigate the root cause instead of increasing the timeout blindly:
+
+	1. Check whether the locator is correct and unique.
+	2. Inspect browser console errors and network requests.
+	3. Verify whether the element is inside an iframe or shadow DOM.
+	4. Check whether an overlay blocks interaction.
+	5. Confirm whether the application or test environment is responding slowly.
+
+My interview conclusion:
+
+“I use explicit waits with condition-based synchronization. For randomly appearing elements, I choose the correct condition, such as visibility or clickability, and set a reasonable timeout based on application behavior. This avoids unnecessary delays from Thread.sleep() and makes my tests more stable. If timeouts persist, I investigate the application or environment rather than simply increasing the wait duration.”
+
+#====================================================================================================
+# Q : You have multiple elements with the same XPath. How would you identify and click the correct one?
+==> If multiple elements match the same XPath, I first understand the DOM structure and identify a unique way to distinguish the correct element. I avoid clicking the first matching element blindly because it may interact with the wrong item.
+
+I use these approaches depending on the scenario.
+
+1. Use findElements() to identify all matching elements
+
+Suppose a page has multiple buttons with the same text, Add to Cart.
+
+List<WebElement> buttons =  driver.findElements(By.xpath("//button[text()='Add to Cart']"));
+
+System.out.println("Matching elements: " + buttons.size());
+
+This helps me confirm that the locator is not unique.
+
+2. Use a parent-child relationship (preferred approach)
+
+Suppose each product has an Add to Cart button, and I need to add only the Sauce Labs Backpack.
+
+By addBackpack = By.xpath(
+    "//div[contains(@class,'inventory_item')]"
+    + "[.//div[normalize-space()='Sauce Labs Backpack']]"
+    + "//button[normalize-space()='Add to cart']"
+);
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10)
+);
+
+wait.until(ExpectedConditions.elementToBeClickable(addBackpack)).click();
+
+Why this works: The XPath first identifies the product container by its name, then locates the button inside that specific container. It does not depend on the button's position in the list.
+
+3. Use an index only when position is meaningful
+
+If the requirement explicitly says to click the third matching element, I can use an index after checking the element count.
+
+List<WebElement> buttons =  driver.findElements(By.xpath("//button[@class='action']"));
+
+if (buttons.size() >= 3) {
+    buttons.get(2).click(); // Index starts at 0
+} else {
+    throw new NoSuchElementException("Third matching button was not found" );
+}
+
+I use index-based selection only when the order is part of the requirement and is reliable.
+
+4. Filter by visible text or another attribute
+
+If buttons have the same XPath but different labels or attributes, I can filter them using a stable property.
+
+By editUzma = By.xpath("//tr[.//td[normalize-space()='Uzma']]"+ "//button[normalize-space()='Edit']");
+
+wait.until( ExpectedConditions.elementToBeClickable(editUzma)).click();
+
+This clicks the Edit button in the row belonging to the specified user.
+
+5. What if all matching elements look identical?
+
+I inspect their parent containers, accessible labels, nearby text, and business context. If no reliable difference exists, I work with the developer to add a stable attribute such as data-testid.
+
+My interview conclusion:
+
+“When multiple elements match the same XPath, I use findElements() to inspect the matches and refine the locator using stable attributes or parent-child relationships. I use indexing only when the position is explicitly required. My preference is always a unique, meaningful locator because it makes the automation reliable and maintainable.”
+
+#====================================================================================================
+# Q : The application has dynamically generated IDs such as `user_12345`, `user_67891`. How would you locate the element?
+==> If an application generates dynamic IDs such as user_12345 or user_67891, I would avoid using the complete ID because it changes every time the page loads. Instead, I would identify a stable part of the ID or use other reliable attributes such as name, class, data-testid, or accessible labels.
+
+I would use the following approaches depending on the application’s DOM structure.”
+
+1. Using starts-with() in XPath
+
+If the ID always starts with user_, I can use:
+
+WebElement user = driver.findElement(By.xpath("//*[starts-with(@id,'user_')]"));
+2. Using contains() in XPath
+
+If the ID contains a consistent substring:
+
+WebElement user = driver.findElement(By.xpath("//*[contains(@id,'user_')]"));
+3. Using CSS Selector
+
+If the ID has a stable prefix, I prefer a CSS selector because it is concise:
+
+WebElement user = driver.findElement(By.cssSelector("[id^='user_']"));
+
+Here, ^= means the attribute value starts with the specified text.
+
+4. Using a stable attribute
+
+If the element has a reliable data-testid attribute, I would prefer that:
+
+WebElement user = driver.findElement(By.cssSelector("[data-testid='user-field']"));
+5. Handling multiple matching elements
+
+If multiple elements match the same pattern, I would narrow the locator using a parent element or another unique attribute instead of blindly selecting the first match.
+
+WebElement user = driver.findElement(By.xpath("//div[@class='user-form']//input[starts-with(@id,'user_')]"));
+Best practice
+
+“I would first inspect the DOM to identify a stable, unique locator. My preference would be a dedicated test attribute or a stable business attribute, followed by a CSS selector or XPath using a predictable ID pattern. I would also verify that the locator identifies exactly one element to avoid flaky tests.”
+
+Follow-up interview question: What would you do if the entire ID changes randomly and there are no stable attributes available?
+
+#====================================================================================================
+# Q : Selenium finds the element, but `sendKeys()` doesn't enter the text. What could be the reason?
+==> If Selenium identifies the element successfully, but sendKeys() doesn't enter the text, I would investigate whether the element is visible, enabled, editable, and ready to receive input. Finding an element in the DOM does not guarantee that it is interactable.
+
+I would debug the issue using the following steps.”
+
+1. Check whether the element is visible and enabled
+
+The element may exist in the DOM but be hidden or disabled.
+
+WebElement username = driver.findElement(By.id("username"));
+
+System.out.println("Displayed: " + username.isDisplayed());
+System.out.println("Enabled: " + username.isEnabled());
+
+if (username.isDisplayed() && username.isEnabled()) {
+    username.sendKeys("testuser");
+}
+2. Wait until the element is clickable
+
+The page may not have finished rendering, or JavaScript may still be updating the field.
+
+WebDriverWait wait = new WebDriverWait(
+    driver, Duration.ofSeconds(10)
+);
+
+WebElement username = wait.until(
+    ExpectedConditions.elementToBeClickable(By.id("username"))
+);
+
+username.sendKeys("testuser");
+
+I would use an explicit wait instead of Thread.sleep().
+
+3. Check for overlays or loading spinners
+
+A modal, loader, or transparent overlay may interfere with interaction. I would inspect the DOM and wait for the overlay to disappear before entering text.
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated(
+    By.cssSelector(".loading-overlay")
+));
+
+WebElement username = wait.until(
+    ExpectedConditions.visibilityOfElementLocated(By.id("username"))
+);
+
+username.sendKeys("testuser");
+
+The overlay locator must match the application's actual DOM.
+
+4. Check whether the field is read-only or replaced dynamically
+
+Sometimes JavaScript re-renders the input, making the previously located element stale. The field may also have a readonly attribute.
+
+WebElement username = driver.findElement(By.id("username"));
+
+System.out.println(username.getAttribute("readonly"));
+System.out.println(username.getAttribute("value"));
+
+If the element is replaced during rendering, I would locate it again after the update.
+
+5. Check whether the field is inside an iframe or Shadow DOM
+
+If the input is inside an iframe, I would switch to the correct frame first.
+
+driver.switchTo().frame("loginFrame");
+
+driver.findElement(By.id("username")).sendKeys("testuser");
+
+driver.switchTo().defaultContent();
+
+For Shadow DOM, I would access the element through its shadow root.
+
+6. Verify whether the text was entered
+
+After sendKeys(), I would validate the field value rather than assuming the operation succeeded.
+
+username.sendKeys("testuser");
+
+String actualValue = username.getAttribute("value");
+
+Assert.assertEquals(actualValue, "testuser");
+My approach in a real project
+
+“I would first check the element's visibility, enabled state, and current value. Then I would investigate synchronization issues, overlays, read-only attributes, iframes, and dynamic DOM updates. I would use screenshots and browser logs where necessary to identify the root cause.
+
+I would avoid JavaScript-based value assignment as the first solution because it can bypass normal user interaction and application event handling. My goal is to identify the actual cause and make the automation reliable rather than simply force the text into the field.”
+
+
+#====================================================================================================
+# Q : An element is inside a shadow DOM. How would you automate it?
+==> If an element is inside a Shadow DOM, normal Selenium locators such as driver.findElement() cannot directly locate an element inside a shadow root from the main document. I would first locate the shadow host, access its shadow root using Selenium 4's getShadowRoot() method, and then locate the required element inside that shadow root.”
+
+1. Example HTML
+<user-login>
+    #shadow-root (open)
+        <input id="username" type="text">
+        <button id="login">Login</button>
+</user-login>
+
+Here, user-login is the shadow host, and the username field is inside its shadow root.
+
+2. Selenium Java code using Selenium 4
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class ShadowDomTest {
+
+    public static void main(String[] args) {
+
+        WebDriver driver = new ChromeDriver();
+
+        driver.get("https://example.com");
+
+        // Locate the shadow host
+        WebElement shadowHost =  driver.findElement(By.cssSelector("user-login"));
+
+        // Access the shadow root
+        SearchContext shadowRoot =  shadowHost.getShadowRoot();
+
+        // Locate the input inside the shadow DOM
+        WebElement username = shadowRoot.findElement(By.id("username"));
+
+        username.sendKeys("testuser");
+
+        driver.quit();
+    }
+}
+3. What if there are nested Shadow DOMs?
+
+If one shadow root contains another shadow host, I would access each shadow root step by step.
+
+WebElement outerHost = driver.findElement(By.cssSelector("outer-component"));
+
+SearchContext outerRoot = outerHost.getShadowRoot();
+
+WebElement innerHost =  outerRoot.findElement(By.cssSelector("inner-component"));
+
+SearchContext innerRoot = innerHost.getShadowRoot();
+
+WebElement input = innerRoot.findElement(By.cssSelector("input#username"));
+
+input.sendKeys("testuser");
+4. Important interview points
+
+Selenium 4: Supports Shadow DOM automation through WebElement.getShadowRoot().
+
+Open Shadow DOM: Selenium can access it using getShadowRoot().
+
+Closed Shadow DOM: Standard Selenium APIs generally cannot access its internal elements directly. I would look for a supported application interface or test hook rather than trying to bypass the encapsulation.
+
+Synchronization: If the shadow host or inner element loads dynamically, I would implement explicit waits and reacquire elements if the DOM is re-rendered.
+
+Nested Shadow DOM: Access each shadow host and root sequentially.
+
+My interview conclusion:
+
+“In my automation framework, I would encapsulate Shadow DOM interactions in reusable utility methods so that test scripts remain readable and maintainable. I would use Selenium 4's getShadowRoot() API instead of relying on JavaScript workarounds.”
+
+
+
+#====================================================================================================
+# Q : How would you handle an element whose position changes dynamically on every execution?
+==> If an element's position changes dynamically on every execution, I would avoid locating it based on its position, such as using absolute XPath or indexes like (//button)[3]. Instead, I would identify the element using stable attributes, its text, or its relationship with a parent element.
+
+I would follow these approaches depending on the application structure.”
+
+1. Use a stable attribute
+
+If the element has a stable ID, name, or data-testid, I would use it instead of its changing position.
+
+WebElement submitButton = driver.findElement( By.cssSelector("[data-testid='submit-button']"));
+submitButton.click();
+
+2. Use dynamic XPath with visible text
+	If the button's position changes but its text remains constant, I would locate it using text.
+
+WebElement submitButton = driver.findElement( By.xpath("//button[normalize-space()='Submit']"));
+submitButton.click();
+
+3. Locate the element relative to a stable parent
+	Suppose multiple users are displayed in a table, and I need to click the Edit button for a particular user. I would locate the row using the user's name and then find the button inside that row.
+
+WebElement userRow = driver.findElement(By.xpath("//tr[.//td[normalize-space()='John']]"));
+
+WebElement editButton = userRow.findElement(By.xpath(".//button[normalize-space()='Edit']"));
+
+editButton.click();
+
+This approach remains reliable even when the row moves to a different position.
+
+4. Handle dynamic loading with explicit waits
+
+If the element also appears at unpredictable times, I would use an explicit wait.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10)
+);
+
+WebElement submitButton = wait.until( ExpectedConditions.elementToBeClickable( By.xpath("//button[normalize-space()='Submit']") ));
+
+submitButton.click();
+5. What if the element has no stable attributes?
+
+“I would inspect the DOM and identify another reliable relationship, such as a label, nearby text, a parent container, or an accessible attribute. If necessary, I would discuss adding a dedicated test attribute with the development team.”
+
+My conclusion: I focus on the element's identity rather than its position. Stable locators, relative XPath, and explicit waits help make Selenium tests reliable even when the UI layout changes on every execution.
+
+#====================================================================================================
+# Q : Your XPath works in Chrome but fails in another environment. How would you investigate it?
+===>   “If my XPath works in Chrome but fails in another environment, I would investigate whether the issue is caused by differences in the browser, application version, DOM structure, timing, or test data. I would not immediately assume that the XPath itself is incorrect.
+
+I would follow a systematic debugging approach.”
+
+1. Compare the DOM structure
+
+	1. First, I would inspect the element in Chrome DevTools in both environments and compare the DOM structure.
+	2. Check whether the element's ID, class, attributes, or parent-child relationships have changed.
+	3. Verify whether the element is inside an iframe or Shadow DOM.
+	4. Check whether the application renders different HTML depending on the environment.
+
+For example, if the XPath relies on a generated ID, I would replace it with a stable attribute or relative XPath.
+
+// Fragile XPath
+By submitButton = By.xpath("//*[@id='submit_12345']");
+
+// More stable XPath, if the test attribute is available
+By stableButton = By.xpath("//button[@data-testid='submit-button']");
+2. Check browser and driver compatibility
+
+I would verify the Chrome, Firefox, or Edge version and the corresponding WebDriver configuration. I would also check whether the Selenium version differs between environments.
+
+Browser differences can affect rendering and timing, even though standard XPath support is broadly consistent across browsers.
+
+3. Investigate synchronization issues
+
+The element may not be present when Selenium searches for it because the application loads asynchronously.
+
+I would use an explicit wait instead of Thread.sleep().
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated( By.xpath("//button[@data-testid='submit-button']")));
+
+element.click();
+4. Check for frames, overlays, and dynamic content
+
+I would verify whether:
+	1. The element is inside an iframe and requires switching frames.
+	2. A loading spinner or overlay is blocking interaction.
+	3. The application has not finished rendering the element.
+	4. Different test data or environment configurations produce different page content.
+
+5. Collect debugging evidence
+
+I would capture a screenshot, page source, browser console logs, and the complete Selenium exception from the failing environment. I would also log the browser version, environment URL, and locator being used.
+
+For example:
+
+try {
+    driver.findElement(By.xpath("//button[@data-testid='submit-button']")).click();
+
+} catch (NoSuchElementException e) {
+    System.out.println("URL: " + driver.getCurrentUrl());
+    System.out.println("Page title: " + driver.getTitle());
+
+    File screenshot = ((TakesScreenshot) driver)
+        .getScreenshotAs(OutputType.FILE);
+
+    // Save the screenshot using the framework's
+    // screenshot utility.
+
+    throw e;
+}
+
+I would save the screenshot and page source through the framework's reporting utility for later analysis.
+
+6. Reproduce the issue and identify the root cause
+
+Finally, I would run the same test with the same data and configuration in both environments. Once I identify the root cause, I would fix the locator, synchronization, or environment configuration as appropriate and rerun the regression suite.
+
+My interview conclusion:
+
+“My approach is to compare the DOM first, then investigate synchronization, browser compatibility, and environment-specific data. I use logs, screenshots, and page source to identify the root cause rather than randomly modifying the XPath. This helps me fix the actual problem and prevent flaky automation tests.”
+
+#====================================================================================================
+# Q : Your test passes locally but fails in Jenkins because the page loads slower. How would you fix it?
+==> “If my test passes locally but fails in Jenkins because the page loads more slowly, I would first investigate whether the failure is caused by synchronization issues, environment differences, or application performance. I would avoid increasing timeouts blindly or using Thread.sleep() throughout the framework.
+
+I would follow these steps to fix the issue.”
+
+1. Replace hard-coded waits with explicit waits
+
+Sometimes Selenium tries to interact with an element before the application finishes rendering. I would use WebDriverWait with the appropriate expected condition.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+WebElement loginButton = wait.until( ExpectedConditions.elementToBeClickable( By.id("login-button")));
+
+loginButton.click();
+
+This waits up to 20 seconds for the button to become clickable and proceeds as soon as the condition is satisfied.
+
+2. Wait for application-specific conditions
+
+A page-load strategy or document.readyState alone may not guarantee that a JavaScript-heavy application is ready. I would wait for the relevant application state, such as a loading spinner disappearing or search results becoming visible.
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated( By.cssSelector(".loading-spinner")));
+
+WebElement result = wait.until( ExpectedConditions.visibilityOfElementLocated( By.id("search-result")));
+
+I would use the actual spinner and result locators from the application.
+
+3. Investigate Jenkins-specific differences
+
+I would compare the local and Jenkins environments, including:
+
+	1. Browser and Selenium versions.
+	2. Headless versus headed execution.
+	3. CPU and memory availability on the Jenkins agent.
+	4. Network latency and application response time.
+	5. Test data, environment URLs, and parallel execution settings.
+	6. I would also review Jenkins console logs, screenshots, and browser logs to determine where the failure occurs.
+
+4. Configure timeouts appropriately
+
+If the application genuinely needs more time under CI conditions, I would configure a reasonable explicit timeout through framework configuration rather than hard-coding it in every test.
+
+int timeoutSeconds = Integer.parseInt( System.getProperty("explicitTimeout", "20"));
+
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(timeoutSeconds));
+
+I could then configure it through Maven in Jenkins:
+
+mvn clean test -DexplicitTimeout=30
+
+I would keep the timeout evidence-based and investigate unusually slow application responses instead of masking performance problems.
+
+5. Avoid mixing implicit and explicit waits
+
+I would generally use explicit waits for predictable synchronization and keep the implicit wait at zero to avoid unexpected interactions between wait mechanisms.
+
+6. Verify the fix
+
+After implementing the changes, I would rerun the failed test in Jenkins multiple times and execute the relevant regression suite. If the page remains unusually slow, I would share the performance evidence with the development team.
+
+My interview conclusion:
+
+“My first preference is to fix synchronization using explicit waits and application-specific conditions. Then I investigate Jenkins environment differences and configure reasonable timeouts where necessary. This makes the automation more stable without hiding actual application performance issues or relying on Thread.sleep().”
+
+#====================================================================================================
+# Q :  An element is present but not visible. Which wait would you use and why?
+==> If an element is present in the DOM but not visible on the page, I would use ExpectedConditions.visibilityOfElementLocated() with WebDriverWait if my goal is to wait until the element becomes visible.
+
+However, if I only need to verify that the element exists in the DOM, I would use presenceOfElementLocated(). The important difference is that presence does not guarantee visibility.”
+
+Example 1: Wait until the element becomes visible
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("username")));
+
+element.sendKeys("testuser");
+
+Why? The element might initially be hidden while the page is loading or JavaScript is updating the UI. This wait polls until the element is visible or the timeout expires.
+
+Example 2: Wait only until the element exists in the DOM
+WebElement element = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("username")));
+
+Why? This is useful when I need to confirm that the element has been added to the DOM, even if it is not yet displayed.
+
+What if the element never becomes visible?
+
+I would investigate the root cause:
+
+	1. Is the element hidden using CSS such as display: none?
+	2. Is it inside a collapsed section, modal, iframe, or Shadow DOM?
+	3. Does it become visible only after clicking another element?
+	4. Is an animation or application state preventing it from appearing?
+	5. I would address the underlying condition rather than increasing the timeout unnecessarily.
+
+Interview takeaway: Use presenceOfElementLocated() to wait for DOM presence and visibilityOfElementLocated() to wait for visibility. If I need to interact with the element, I choose the wait that matches the required action.
+
+#====================================================================================================
+# Q : An element is visible but not clickable. What wait strategy would you implement?
+==> If an element is visible but not clickable, I would use WebDriverWait with ExpectedConditions.elementToBeClickable(). This condition waits until the element is visible and enabled.
+
+However, visibility and enabled state do not guarantee that the click will succeed. An overlay, loading spinner, or another element might still be intercepting the click, so I would investigate those possibilities as well.”
+
+1. Implement an explicit wait
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(15));
+
+WebElement loginButton = wait.until( ExpectedConditions.elementToBeClickable( By.id("loginButton")));
+
+loginButton.click();
+
+Why? The explicit wait polls until the button is visible and enabled or the timeout expires, avoiding unnecessary fixed delays such as Thread.sleep().
+
+2. If an overlay is blocking the click
+
+I would first wait for the overlay to disappear, then wait for the button to become clickable.
+
+wait.until(ExpectedConditions.invisibilityOfElementLocated( By.cssSelector(".loading-overlay")));
+
+WebElement button = wait.until( ExpectedConditions.elementToBeClickable(By.id("loginButton")));
+
+button.click();
+
+I would replace .loading-overlay with the actual locator from the application.
+
+3. If the issue still occurs
+
+I would check:
+
+	1. Whether another element intercepts the click.
+	2. Whether an animation is still running.
+	3. Whether the element is inside an iframe.
+	4. Whether the DOM changed and the element became stale.
+	5. Whether the element is outside the viewport and needs scrolling.
+	6. If necessary, I would capture a screenshot and inspect the browser logs to identify the root cause.
+
+Interview takeaway
+
+“I use elementToBeClickable() as my first wait strategy, but I understand that it checks visibility and enabled state, not whether another element physically blocks the click. If the click still fails, I investigate overlays, animations, and DOM changes rather than immediately using JavaScript clicks or increasing the timeout.”
+
+#====================================================================================================
+# Q : 
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
 # Q :
 
 
@@ -14244,34 +16543,8 @@ PageFactory = How I initialize WebElements inside those classes.
 
 
 
-
-
 #====================================================================================================
 # Q :
-
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-#====================================================================================================
-# Q :
-
 
 
 
@@ -14285,12 +16558,6 @@ PageFactory = How I initialize WebElements inside those classes.
 #====================================================================================================
 # Q :
 
-
-
-
-
-#====================================================================================================
-# Q :
 
 
 
@@ -14325,6 +16592,231 @@ PageFactory = How I initialize WebElements inside those classes.
 
 #====================================================================================================
 # Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
 
 
 

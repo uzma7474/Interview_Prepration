@@ -275,17 +275,84 @@ Short Interview Answer
 
 
 #===================================================================================================
-#  Q  : 
+#  Q  :  What are 5 points you consider when writing a good test case?
+==> When writing a good test case, I consider these five important points:
 
+1. Clear objective and title: Every test case should have a meaningful title and clearly define what functionality or requirement I am validating.
+
+2. Preconditions and test data: I specify the required setup, user permissions, environment, and test data before execution.
+
+3. Clear, reproducible steps: I write simple, sequential steps that another tester can follow without confusion.
+
+4. Expected results: Every important step should have a clearly defined, measurable expected result so that the actual behavior can be compared against it.
+
+5. Requirement coverage and maintainability: I link test cases to requirements, cover positive and negative scenarios, and avoid unnecessary duplication. I also consider whether the test case is suitable for automation.
+
+Example: Login test case
+
+Field : Example
+1. Test Case ID : TC_LOGIN_001
+2. Objective : Verify login with valid credentials
+3. Preconditions : User account exists and is active
+4. Test data : Valid username and password
+5. Steps : Open login page, enter credentials, click Login
+6. Expected result : User is authenticated and redirected to the dashboard
+
+My interview conclusion:
+
+“When I write a test case, I focus on clarity, valid preconditions and test data, reproducible steps, measurable expected results, and requirement coverage. A good test case should be easy to understand, repeatable, maintainable, and capable of detecting defects.”
 
 
 #===================================================================================================
-#  Q  : 
+#  Q  : Suppose a developer is not fixing a bug; how would you approach the situation?
+==> If a developer is not fixing a bug, I would handle the situation professionally and collaboratively rather than arguing or escalating immediately.
+
+I follow these five steps:
+
+1. Reproduce the issue: I reproduce the bug consistently and collect supporting evidence, such as screenshots, logs, API responses, and test execution reports.
+
+2. Provide clear evidence: I explain the expected versus actual behavior and link the defect to the requirement or acceptance criteria. This helps the developer understand the impact.
+
+3. Discuss with the developer: I arrange a quick discussion to understand why the bug has not been fixed. Sometimes the issue is related to unclear requirements, environment differences, or a misunderstanding of the expected behavior.
+
+4. Explain the business impact and priority: I highlight the impact on functionality, customers, security, or release readiness. I work with the developer and product owner to agree on severity and priority.
+
+5. Escalate when necessary: If we cannot reach an agreement and the defect remains unresolved, I raise it with the QA lead, Scrum Master, or product owner according to the team's process. I document the risk and ensure the release decision is made by the appropriate stakeholders.
+
+Real-time example
+
+Suppose I find a defect in the login functionality where an inactive user can successfully log in. The developer says it is not a bug.
+
+I would reproduce the issue, share the execution evidence, and refer to the acceptance criteria stating that inactive users must not be allowed to log in. I would discuss the security and business impact with the developer. If the requirement is ambiguous, I would ask the product owner to clarify it. If the defect is confirmed but remains unresolved, I would escalate it through the team's defect management process.
+
+My interview conclusion:
+
+“My goal is not to prove the developer wrong; it is to ensure the product meets its requirements and quality standards. I use evidence, clear communication, and collaboration to resolve disagreements. If the issue remains unresolved, I follow the escalation process and make sure the risk is documented before release.”
 
 
 #===================================================================================================
-#  Q  : 
+#  Q  : - Describe a challenging situation with developers or deadlines and how you handled it.
+==> “One challenging situation I faced was during a sprint when we had a tight deadline for a release, and several new features and bug fixes were delivered by the developers at the same time. Some UI changes caused existing Selenium automation scripts to fail, and a few API responses also changed, affecting our Rest Assured test cases.
 
+Initially, the developers felt that some failures were due to automation issues, while my initial analysis indicated that a few failures were caused by actual application defects.
+
+To handle this situation, I followed a systematic approach:
+
+1. Prioritization: I discussed the release-critical features with the QA lead and prioritized smoke tests, critical business flows, and high-risk regression scenarios.
+
+2. Root Cause Analysis: I analyzed Selenium execution logs, screenshots, and API response status codes and payloads using Rest Assured and Postman to distinguish automation issues from genuine application defects.
+
+3. Collaboration with Developers: I shared clear reproduction steps, request and response details, and supporting evidence with developers. We discussed the issues together and quickly identified the root causes.
+
+4. Automation Updates: I updated the affected locators and test scripts where the UI changes were intentional, and modified API validations where the response contract had legitimately changed.
+
+5. Continuous Communication: I provided regular status updates to the team, highlighted critical blockers early, and reran smoke and regression tests after fixes were deployed.
+
+As a result, we were able to focus on the most critical defects, stabilize the automation suite, and complete the required testing within the release timeline.
+
+My key takeaway was that under tight deadlines, prioritization, clear communication, and evidence-based root cause analysis are essential. I also learned that QA and development should work together as one team rather than treating defects as individual responsibilities.”
+
+Interview tip: Deliver this answer in about 1–2 minutes. If the interviewer asks for a real example, explain one specific Selenium failure or REST API response change and how you proved its root cause
 
 #===================================================================================================
 #  Q  : 

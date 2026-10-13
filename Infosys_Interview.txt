@@ -203,6 +203,7 @@ Tools & Utilities
 17. What happens if you use implicit wait and explicit wait together? Would you use both in your framework?
 18. A test fails because Selenium searches for an element before the application finishes rendering. How would you solve it?
 
+
 ### 3. Browser & Window Scenarios
 
 19. Clicking a link opens a new browser tab. How would you switch to the new tab?
@@ -319,6 +320,7 @@ Tools & Utilities
 16. Explain a real-time Selenium automation scenario you handled from start to finish. What was the problem, how did you automate it, what challenges did you face, and what was the final result?
 
 
+13/10/2026
 
 #===================================================================================================
 based, Java concepts, and coding questions.

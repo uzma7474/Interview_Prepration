@@ -1041,11 +1041,7 @@ Response response =
 
 ObjectMapper mapper = new ObjectMapper();
 
-UserResponse userResponse =
-    mapper.readValue(
-        response.asString(),
-        UserResponse.class
-    );
+UserResponse userResponse = mapper.readValue( response.asString(), UserResponse.class  );
 
 Assert.assertEquals(userResponse.getId(), 101);
 Assert.assertEquals(userResponse.getUsername(), "john");
@@ -1077,6 +1073,759 @@ Easy way to remember:
 writeValueAsString() → Java Object → JSON
 readValue()          → JSON → Java Object
 
+#===================================================================================
+# Q :  How would you store API response data dynamically?
+===> In my automation framework, I store API response data dynamically using Rest Assured with JsonPath, Java collections, or POJO classes, depending on how I need to use the response data in subsequent test steps.
+
+For example, if I create a user through a POST API and receive a dynamically generated user ID, I store that ID and use it in subsequent GET, PUT, or DELETE requests rather than hardcoding it.
+
+1. Store API response data using Rest Assured
+
+Suppose a POST request creates a student and returns this response:
+
+{
+  "id": 101,
+  "name": "Uzma",
+  "email": "uzma@example.com"
+}
+
+The ID might change each time the test runs, so I extract it dynamically.
+
+import io.restassured.response.Response;
+import static io.restassured.RestAssured.given;
+
+public class StudentApiTest {
+
+    public static void main(String[] args) {
+
+        Response response =
+            given()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"Uzma\","
+                    + "\"email\":\"uzma@example.com\"}")
+            .when()
+                .post("http://localhost:3000/students")
+            .then()
+                .statusCode(201)
+                .extract()
+                .response();
+
+        // Extract dynamically generated response data
+        int studentId = response.jsonPath().getInt("id");
+        String studentName =
+                response.jsonPath().getString("name");
+        String email =
+                response.jsonPath().getString("email");
+
+        System.out.println("Student ID: " + studentId);
+        System.out.println("Student Name: " + studentName);
+        System.out.println("Email: " + email);
+
+        // Reuse studentId in a subsequent GET request
+        given()
+            .pathParam("id", studentId)
+        .when()
+            .get("http://localhost:3000/students/{id}")
+        .then()
+            .statusCode(200);
+    }
+}
+
+Why this approach?
+
+JsonPath extracts individual fields from the JSON response.
+
+The generated ID is stored in a Java variable.
+
+The same ID is reused in the next API request.
+
+This eliminates hardcoded IDs and makes the test repeatable.
+
+The example assumes the API returns HTTP 201 Created and the response contains an integer id.
+
+2. Store response data in a Map
+
+When I need to reuse multiple response values across test steps, I can store them in a Map<String, Object>.
+
+Map<String, Object> testData = new HashMap<>();
+
+testData.put("studentId",  response.jsonPath().getInt("id"));
+
+testData.put("studentName", response.jsonPath().getString("name"));
+
+testData.put("email",  response.jsonPath().getString("email"));
+
+// Retrieve data later
+int id = (int) testData.get("studentId");
+String name = (String) testData.get("studentName");
+
+This is useful when the response contains several fields that subsequent requests or assertions need.
+
+3. Store response data using a POJO
+
+For larger responses or strongly typed data, I prefer a POJO (Plain Old Java Object).
+
+public class Student {
+
+    private int id;
+    private String name;
+    private String email;
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+}
+
+Deserialize the response into the POJO:
+
+Student student = response.as(Student.class);
+
+int id = student.getId();
+String name = student.getName();
+
+This approach is easier to maintain when working with complex JSON responses and multiple API endpoints.
+
+4. Where would I store this data in a framework?
+
+Requirement : Approach
+1. Extract a single response field : JsonPath
+2. Reuse multiple fields in test steps : Map<String, Object>
+3. Handle complex, structured JSON : POJO classes
+4. Share data across Cucumber steps : Scenario-scoped context object
+5. Share data between TestNG methods : Explicitly managed test context or dependency
+6. Persist data across separate executions : Database or external test-data store, if needed
+
+For parallel execution, I avoid using shared mutable static variables because one test could overwrite another test's data. I use scenario-scoped or test-scoped storage instead.
+
+Interview conclusion
+
+"In my Rest Assured framework, I extract dynamically generated values from API responses using JsonPath and store them in variables, maps, or POJOs. For example, after creating a student, I capture its ID and use it in subsequent GET or DELETE requests. This makes the automation data-driven, reusable, and independent of hardcoded test data. I also ensure that stored data has the correct scope when tests execute in parallel."
+
+
+#===================================================================================
+# Q : API is returning 200 but response is incorrect – what will you validate?
+====> If an API returns HTTP 200 OK but the response data is incorrect, I don't consider the test passed just because the status code is 200. A 200 response indicates that the request was successfully processed at the HTTP level, but the response body may still contain incorrect business data.
+
+I validate the following areas.
+
+1. What will I validate?
+
+HTTP status code: Verify the expected status code.
+
+Response body: Check whether the returned values match the expected values.
+
+Schema and data types: Validate required fields, null values, and correct data types.
+
+Business logic: Verify calculations, status values, and business rules.
+
+Database consistency: If access is available, compare the API response with the corresponding database records.
+
+Request parameters and payload: Ensure the correct query parameters, path variables, headers, and request body are sent.
+
+Environment and test data: Confirm that I am calling the correct environment and using valid, up-to-date test data.
+
+Response headers: Verify content type and any relevant caching headers.
+
+2. Example using Rest Assured
+
+Suppose a GET API returns HTTP 200, but the expected product price is ₹1,000 and the API returns ₹500.
+
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
+
+import io.restassured.http.ContentType;
+import org.testng.annotations.Test;
+
+public class ProductApiTest {
+
+    @Test
+    public void validateProductResponse() {
+
+        given()
+            .contentType(ContentType.JSON)
+        .when()
+            .get("https://api.example.com/products/101")
+        .then()
+            .statusCode(200)
+            .body("id", equalTo(101))
+            .body("name", equalTo("Laptop"))
+            .body("price", equalTo(1000));
+    }
+}
+
+If the API returns price: 500, the test fails at the price assertion even though the status code is 200.
+
+Note: The URL and expected values are illustrative; they should be replaced with the actual API endpoint and test data.
+
+3. Validate the response using JsonPath
+
+When I need to investigate the response further, I extract individual fields and compare them with expected values.
+
+import io.restassured.response.Response;
+import io.restassured.path.json.JsonPath;
+import org.testng.Assert;
+
+Response response =
+    given()
+    .when()
+        .get("https://api.example.com/products/101");
+
+JsonPath jsonPath = response.jsonPath();
+
+int actualId = jsonPath.getInt("id");
+double actualPrice = jsonPath.getDouble("price");
+
+Assert.assertEquals(actualId, 101);
+Assert.assertEquals(actualPrice, 1000.0,
+                    "Product price is incorrect");
+4. How would I perform root cause analysis?
+
+If the assertion fails, I would:
+
+Log the request details and response body.
+
+Reproduce the issue using Postman or another API client.
+
+Compare the actual response with the API contract and expected test data.
+
+Check whether the backend query, business logic, or test data is responsible.
+
+Compare database values when authorized and applicable.
+
+Report a defect with the endpoint, request payload, expected result, actual result, and correlation/request ID if available.
+
+My interview conclusion:
+
+“In my API automation framework, I validate not only the status code but also the response body, schema, business rules, and data consistency. A 200 response with incorrect data is a functional defect if the request and expected result are valid. I use Rest Assured assertions to detect the mismatch and perform root cause analysis to determine whether the issue is in the test data, API implementation, or downstream service.”
+
+#===================================================================================
+# Q : How do you validate JSON response dynamically?
+==> I validate JSON responses dynamically by extracting response values using JsonPath, comparing them with expected test data, and validating fields using reusable assertions instead of hardcoding every response value.
+
+In my API automation framework, I use different approaches depending on the scenario.
+
+1. Validate dynamic JSON fields using JsonPath
+
+Suppose the API returns a dynamically generated user ID, name, and status.
+
+Sample response:
+
+{
+  "id": 101,
+  "name": "Uzma",
+  "status": "ACTIVE",
+  "email": "uzma@example.com"
+}
+
+Rest Assured code:
+
+import io.restassured.response.Response;
+import org.testng.Assert;
+import static io.restassured.RestAssured.*;
+
+@Test
+public void validateUserResponse() {
+
+    Response response =
+        given()
+        .when()
+            .get("/users/101");
+
+    Assert.assertEquals(response.statusCode(), 200);
+
+    int userId = response.jsonPath().getInt("id");
+    String name = response.jsonPath().getString("name");
+    String status = response.jsonPath().getString("status");
+
+    Assert.assertTrue(userId > 0);
+    Assert.assertFalse(name.isEmpty());
+    Assert.assertEquals(status, "ACTIVE");
+}
+
+Here, I validate the ID dynamically rather than expecting a fixed ID, while checking the business status against the expected value.
+
+2. Validate against dynamic test data
+
+If the expected name or email comes from a JSON file, Excel, or a DataProvider, I pass the expected values into the test.
+
+@Test
+public void validateUserData() {
+
+    String expectedName = "Uzma";
+    String expectedEmail = "uzma@example.com";
+
+    Response response =
+        given()
+        .when()
+            .get("/users/101");
+
+    response.then()
+        .statusCode(200)
+        .body("name", equalTo(expectedName))
+        .body("email", equalTo(expectedEmail));
+}
+
+This makes the test reusable for multiple users when the expected data is supplied dynamically.
+
+3. Validate every object in a JSON array
+
+Suppose an API returns a list of products. I want to validate that every product has a positive price.
+
+Response response =
+    given()
+    .when()
+        .get("/products");
+
+List<Integer> prices =
+    response.jsonPath().getList("price", Integer.class);
+
+Assert.assertFalse(prices.isEmpty());
+
+for (Integer price : prices) {
+    Assert.assertNotNull(price);
+    Assert.assertTrue(price > 0,
+            "Product price must be positive");
+}
+
+This validates all returned products without knowing in advance how many products the API will return.
+
+4. Validate JSON structure and data types
+
+I also verify required fields, null values, and data types. For example:
+
+response.then()
+    .statusCode(200)
+    .body("id", notNullValue())
+    .body("name", notNullValue())
+    .body("status", equalTo("ACTIVE"));
+
+For complex APIs, I use JSON Schema validation to verify the response structure, required properties, and data types.
+
+5. How do you handle dynamically generated IDs?
+
+If a POST request creates a new user, I extract the generated ID from the response and use it in the next GET request.
+
+Response createResponse =
+    given()
+        .contentType("application/json")
+        .body("{\"name\":\"Uzma\"}")
+    .when()
+        .post("/users");
+
+createResponse.then().statusCode(201);
+
+int generatedId =
+    createResponse.jsonPath().getInt("id");
+
+given()
+.when()
+    .get("/users/" + generatedId)
+.then()
+    .statusCode(200)
+    .body("name", equalTo("Uzma"));
+
+This avoids hardcoding IDs and supports end-to-end API testing.
+
+My interview conclusion:
+
+“I use Rest Assured JsonPath to extract values dynamically, TestNG assertions to validate business rules, and JSON Schema validation for structural checks. I also capture generated IDs from one API response and reuse them in subsequent requests. This makes my API automation framework data-driven, reusable, and maintainable.”
+
+
+#===================================================================================
+# Q : How do you handle authentication (token-based API)?
+==> In my API automation framework, I handle token-based authentication by first calling the authentication endpoint with valid credentials, extracting the access token from the response, and passing it in the Authorization header of subsequent API requests.
+
+Depending on the application, I may use Bearer tokens, OAuth 2.0 access tokens, JWTs, or API keys.
+
+1. Step 1: Generate an access token
+
+Suppose the authentication API returns this response:
+
+{
+  "accessToken": "eyJhbGciOi...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
+}
+
+Using Rest Assured:
+
+Response authResponse =
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"username\":\"testuser\","
+            + "\"password\":\"test123\"}")
+    .when()
+        .post("/auth/login");
+
+authResponse.then().statusCode(200);
+
+String token =
+    authResponse.jsonPath().getString("accessToken");
+
+Assert.assertNotNull(token);
+Assert.assertFalse(token.isBlank());
+
+The endpoint, request fields, and response property must match the actual API contract.
+
+2. Step 2: Pass the token to another API
+
+I use the extracted token dynamically instead of hardcoding it.
+
+Response response =
+    given()
+        .header("Authorization", "Bearer " + token)
+        .contentType(ContentType.JSON)
+    .when()
+        .get("/api/users");
+
+response.then()
+    .statusCode(200)
+    .contentType(ContentType.JSON);
+
+For a larger framework, I can create a reusable method:
+
+public static RequestSpecification authorizedRequest(
+        String token) {
+
+    return given()
+        .header("Authorization", "Bearer " + token)
+        .contentType(ContentType.JSON);
+}
+
+Usage:
+
+authorizedRequest(token)
+    .when()
+        .get("/api/users")
+    .then()
+        .statusCode(200);
+
+This avoids duplicating authentication headers across test classes.
+
+3. How do you handle token expiration?
+
+Check the token's expiry policy or the authentication service's documented response.
+
+Generate a new token when needed.
+
+Avoid generating a token before every request unless required.
+
+For parallel tests, ensure token handling is thread-safe and avoid sharing mutable authentication state unsafely.
+
+Store credentials and secrets in environment variables or a secrets manager, not in source code.
+
+4. How do you test authentication scenarios?
+
+Scenario : Expected result
+1. Valid token : 200 OK, if the request succeeds
+2. Missing token : Usually 401 Unauthorized
+3. Invalid or malformed token : Usually 401 Unauthorized
+4. Expired token : Usually 401 Unauthorized
+5. Valid token with insufficient permissions : Usually 403 Forbidden
+6. Token refreshed successfully : Subsequent request succeeds
+
+The exact status codes depend on the API contract and authentication implementation.
+
+5. How would you handle this in Postman?
+
+Call the login or token-generation endpoint.
+
+Extract the token from the response into a collection or environment variable.
+
+In the next request, select Authorization → Bearer Token.
+
+Set the token field to {{accessToken}}.
+
+Verify that the variable contains a value, rather than null or an empty string.
+
+My interview conclusion:
+
+“In my Rest Assured framework, I authenticate through the token endpoint, extract the access token using JsonPath, and pass it through a reusable request specification. I also validate unauthorized and forbidden scenarios, manage token expiration, and keep credentials secure. This makes authentication handling reusable and consistent across API test cases.”
+
+
+#===================================================================================
+# Q : How will you test negative scenarios in API?
+==> In my API automation framework, I test negative scenarios by sending invalid, missing, malformed, or unauthorized requests and verifying that the API rejects them with the correct status code and meaningful error response.
+
+My goal is to ensure that the API handles invalid inputs gracefully, follows the API contract, and does not expose sensitive information.
+
+1. What negative scenarios do I validate?
+
+Scenario   : Example	: Expected result
+1. Missing mandatory field : POST request without username : 400 Bad Request
+2. Invalid input : Email has an incorrect format : 400 or 422, depending on the contract
+3. Invalid credentials : Wrong username or password : Typically 401 Unauthorized
+4. Missing authentication : No access token : Typically 401 Unauthorized
+5. Insufficient permissions : User accesses a restricted resource : Typically 403 Forbidden
+6. Resource not found : GET with a nonexistent ID : 404 Not Found
+7. Duplicate data : Create an existing account : 409 Conflict, if specified
+8. Invalid data type : Send a string instead of a numeric ID : Usually 400 Bad Request
+9. Boundary violations : Negative quantity or amount exceeding the allowed limit : Rejected according to business rules
+10. Malformed JSON : Missing quotes or braces : Usually 400 Bad Request
+
+I always verify the actual expected behavior against the API specification because status codes can vary by implementation.
+
+2. Example: Validate a missing mandatory field using Rest Assured
+
+Suppose the user creation API requires both name and email.
+
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
+
+import org.testng.annotations.Test;
+import io.restassured.http.ContentType;
+
+public class NegativeApiTest {
+
+    @Test
+    public void createUserWithoutName() {
+
+        String requestBody = """
+            {
+                "email": "uzma@example.com"
+            }
+            """;
+
+        given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+        .when()
+            .post("/api/users")
+        .then()
+            .statusCode(400)
+            .body("message", not(emptyOrNullString()));
+    }
+}
+
+Explanation:
+
+I intentionally omit the required name field.
+
+I verify the expected status code.
+
+I check that the API returns an error message instead of silently accepting invalid data.
+
+The endpoint, status code, and message field are illustrative and should match the actual API contract.
+
+3. Example: Test invalid authentication
+@Test
+public void accessApiWithoutToken() {
+
+    given()
+    .when()
+        .get("/api/users")
+    .then()
+        .statusCode(401);
+}
+
+I also test invalid tokens, expired tokens, and users with insufficient permissions.
+
+4. How do I validate error responses?
+
+I don't validate only the status code. I also check:
+
+Error code and message.
+
+Required fields in the error response.
+
+Whether sensitive information, such as passwords, tokens, or stack traces, is exposed.
+
+Whether invalid requests leave the database or application state unchanged.
+
+Whether the response matches the documented schema.
+
+For example:
+
+given()
+    .contentType(ContentType.JSON)
+    .body("{\"quantity\": -1}")
+.when()
+    .post("/api/orders")
+.then()
+    .statusCode(400)
+    .body("errorCode", equalTo("INVALID_QUANTITY"));
+
+The expected error code must be defined by the API contract.
+
+5. How do I make negative testing data-driven?
+
+In my framework, I use TestNG DataProvider to execute multiple invalid inputs without duplicating test methods.
+
+@DataProvider(name = "invalidEmails")
+public Object[][] invalidEmails() {
+    return new Object[][] {
+        {""},
+        {"invalid-email"},
+        {"user@"},
+        {"@example.com"}
+    };
+}
+
+@Test(dataProvider = "invalidEmails")
+public void validateInvalidEmail(String email) {
+
+    String body = """
+        {"name":"Uzma","email":"%s"}
+        """.formatted(email);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+    .when()
+        .post("/api/users")
+    .then()
+        .statusCode(400);
+}
+
+This example assumes the API rejects these inputs with HTTP 400. In a real framework, I would define the expected status and error code for each test case because different invalid inputs may produce different responses.
+
+6. How do I report a negative test failure?
+
+If the API accepts an invalid request or returns an unexpected response, I capture:
+
+Request method, endpoint, headers, and payload.
+
+Actual and expected status codes.
+
+Response body and relevant headers.
+
+Test data and environment.
+
+Correlation ID or request ID, when available.
+
+I then investigate whether the issue is in validation logic, authentication, business rules, or test data, and log a defect with reproducible evidence.
+
+My interview conclusion:
+
+“I cover negative API scenarios such as missing fields, invalid payloads, authentication failures, unauthorized access, nonexistent resources, duplicate requests, and boundary values. Using Rest Assured and TestNG, I validate status codes, error messages, response schemas, and application state. I also use DataProviders to execute multiple negative test cases efficiently and ensure that the API fails safely and consistently.”
+
+#===================================================================================
+# Q : How do you chain multiple API requests?
+==> In my API automation framework, I chain multiple API requests when the output of one API is required as input for another API. I extract the required values from the first response using JsonPath and pass them dynamically to subsequent requests.
+
+For example, in an e-commerce application, I might:
+
+1. Authenticate and generate an access token.
+2. Create a new user.
+3. Extract the generated user ID.
+4. Fetch the user details using that ID.
+5. Update the user details.
+6. Verify that the updated details are correct.
+
+Step 1: Create a user and extract the ID
+
+import io.restassured.response.Response;
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
+
+String requestBody = """
+    {
+        "name": "Uzma",
+        "email": "uzma@example.com"
+    }
+    """;
+
+Response createResponse =
+    given()
+        .contentType("application/json")
+        .body(requestBody)
+    .when()
+        .post("/api/users");
+
+createResponse.then().statusCode(201);
+
+int userId = createResponse.jsonPath().getInt("id");
+The ID is generated by the server, so I do not hardcode it.
+
+Step 2: Fetch the user using the generated ID
+Response getResponse =
+    given()
+    .when()
+        .get("/api/users/" + userId);
+
+getResponse.then()
+    .statusCode(200)
+    .body("name", equalTo("Uzma"));
+
+Here, the ID extracted from the POST response is dynamically passed into the GET request.
+
+Step 3: Update the user
+String updateBody = """
+    {
+        "name": "Uzma Khan",
+        "email": "uzma@example.com"
+    }
+    """;
+
+given()
+    .contentType("application/json")
+    .body(updateBody)
+.when()
+    .put("/api/users/" + userId)
+.then()
+    .statusCode(200);
+Step 4: Verify the updated details
+given()
+.when()
+    .get("/api/users/" + userId)
+.then()
+    .statusCode(200)
+    .body("name", equalTo("Uzma Khan"))
+    .body("email", equalTo("uzma@example.com"));
+
+Note: The endpoints, response fields, and status codes are illustrative. I would adapt them to the actual API contract.
+
+2. How do you chain authenticated API requests?
+
+If the APIs require authentication, I first extract the access token from the login response and pass it in the Authorization header for each subsequent request.
+
+String token = authResponse.jsonPath().getString("accessToken");
+
+Response response =
+    given()
+        .header("Authorization", "Bearer " + token)
+    .when()
+        .get("/api/users/" + userId);
+
+response.then().statusCode(200);
+
+In a framework, I keep common authentication headers and request configuration in reusable methods or a RequestSpecification.
+
+3. What best practices do you follow?
+
+	1. Extract IDs, tokens, and other dynamic values from responses instead of hardcoding them.
+	2. Validate each request before continuing the chain.
+	3. Reuse common specifications for base URLs, headers, and authentication.
+	4. Keep test data isolated so parallel executions do not interfere with each other.
+	5. Clean up test data when appropriate.
+	6. Avoid depending on execution order between independent tests; use a single workflow test or explicit setup when requests genuinely depend on each other.
+
+My interview conclusion:
+
+“I chain API requests using Rest Assured by extracting dynamic values from one response with JsonPath and passing them into subsequent requests. For example, I create a user, capture the generated ID, fetch and update the user, and finally verify the updated data. I validate every step and use reusable authentication and request specifications to keep the framework maintainable.”
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+#===================================================================================
+# Q : 
+
 
 
 #===================================================================================
@@ -1091,6 +1840,21 @@ readValue()          → JSON → Java Object
 
 
 
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
 
 #===================================================================================
 # Q : 
@@ -1122,6 +1886,140 @@ readValue()          → JSON → Java Object
 
 #===================================================================================
 # Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+#===================================================================================
+# Q : 
+
+
+
+
+#===================================================================================
+# Q : 
+
+
 
 
 
