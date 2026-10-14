@@ -1,0 +1,2438 @@
+#====================================================================================================
+# Q : Explain your Playwright framework architecture. Why did you choose it?
+===> In my current project, I have designed and worked with a modular Playwright automation framework using TypeScript, the Page Object Model (POM), and Playwright Test Runner. The main objective was to make the framework scalable, maintainable, reusable, and easy to integrate with CI/CD pipelines.
+
+1. Framework Architecture
+My framework follows a layered architecture, where each component has a specific responsibility.
+Test Layer
+Test Specs · Test Scenarios · Assertions
+
+Page Object Layer
+Locators · Page Actions · Reusable Methods
+
+Core / Utility Layer
+Fixtures · API Helpers · Test Data · Custom Utilities
+
+Playwright Engine
+Browser · Context · Page · Network Interception
+
+Execution & Reporting
+CI/CD · Parallel Execution · HTML Reports · Traces
+
+
+2. Folder Structure
+A typical structure I use is:
+playwright-framework/
+├── tests/
+│   ├── login.spec.ts
+│   ├── checkout.spec.ts
+│   └── api.spec.ts
+├── pages/
+│   ├── LoginPage.ts
+│   ├── HomePage.ts
+│   └── CheckoutPage.ts
+├── fixtures/
+│   └── test-fixtures.ts
+├── utils/
+│   ├── api-helper.ts
+│   └── test-data.ts
+├── test-data/
+│   └── users.json
+├── api/
+│   └── api-client.ts
+├── playwright.config.ts
+├── package.json
+└── tsconfig.json
+
+
+3. Responsibilities of Each Layer
+- Test layer: Contains test scenarios, test steps, and assertions. I keep business validation in the test cases rather than putting it inside page classes.
+- Page Object Model: Each page has a separate class containing locators and reusable actions, such as login, search, or checkout.
+- Fixtures: I use custom fixtures to initialize page objects, share common setup, and manage test-specific dependencies.
+- Utilities: Contains reusable functions for API calls, test data generation, date handling, and common operations.
+- API layer: I use Playwright's APIRequestContext for API validation, test-data setup, and cleanup.
+- Configuration: playwright.config.ts manages browsers, base URL, timeouts, retries, parallel execution, screenshots, traces, and reporting.
+- Reporting and CI/CD: I generate HTML reports, capture traces and screenshots for failures, and execute tests through Jenkins or another CI/CD pipeline.
+
+4. Why Did I Choose This Architecture?
+I chose this architecture for the following reasons:
+  1. Maintainability: If a locator changes, I generally update it in one page object instead of multiple test cases.
+  2. Reusability: Common actions, fixtures, API helpers, and utilities can be reused across tests.
+  3. Parallel execution: Playwright supports parallel testing with isolated browser contexts, helping reduce execution time.
+  4. TypeScript support: Static typing, interfaces, and IDE autocomplete help catch mistakes early and improve code readability.
+  5. Reliable execution: Auto-waiting, web-first assertions, and locator strategies help reduce flaky tests.
+  6. API and UI integration: I can create test data through APIs and validate the same data through the UI without performing every setup step manually.
+  7. Debugging: Playwright traces, screenshots, videos when configured, and HTML reports make failures easier to investigate.
+  8. CI/CD integration: The framework can run automatically on every build or deployment and provide feedback to the development team.
+
+5. Example: How the Components Work Together
+For example, consider a login test.
+LoginPage.ts
+import { Page, Locator, expect } from '@playwright/test';
+
+export class LoginPage {
+  readonly page: Page;
+  readonly username: Locator;
+  readonly password: Locator;
+  readonly loginButton: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.username = page.getByLabel('Username');
+    this.password = page.getByLabel('Password');
+    this.loginButton = page.getByRole('button', {
+      name: 'Login'
+    });
+  }
+
+  async login(user: string, pass: string): Promise<void> {
+    await this.username.fill(user);
+    await this.password.fill(pass);
+    await this.loginButton.click();
+  }
+}
+
+
+login.spec.ts
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+
+test('User should log in successfully', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+
+  await page.goto('/login');
+  await loginPage.login('testuser', 'Password123');
+
+  await expect(page).toHaveURL(/dashboard/);
+});
+
+
+Here, the test class handles the scenario and assertion, while LoginPage handles the page interactions. This separation makes the framework easier to maintain and extend.
+6. How I Execute the Framework
+Requirement :	Command
+1. Run all tests :	npx playwright test
+2. Run a specific test file :	npx playwright test tests/login.spec.ts
+3. Run in headed mode :	npx playwright test --headed
+4. Run tests in parallel :	npx playwright test --workers=4
+5. Open HTML report :	npx playwright show-report
+6. Debug a test	: npx playwright test --debug
+
+7. Real-Project Challenges I Handle
+At my experience level, I also focus on practical challenges such as:
+- Handling dynamic elements using role-based locators and stable test IDs.
+- Mocking API responses using page.route() when testing error scenarios or edge cases.
+- Managing authentication using saved storage state where appropriate.
+- Using environment variables for QA, staging, and other environments.
+- Configuring retries and collecting traces for failed tests without hiding genuine defects.
+- Running smoke and regression suites separately in CI/CD.
+
+Final interview summary
+“To summarize, I use a modular Playwright framework with TypeScript, Page Object Model, custom fixtures, reusable utilities, and Playwright Test Runner. I chose this architecture because it provides maintainability, reusability, type safety, parallel execution, and efficient debugging. I also integrate API testing, network mocking, reporting, and CI/CD execution. This allows me to build a scalable automation solution that supports both functional UI testing and API validation while reducing maintenance effort.”
+Interview tip: At 3.6 years of experience, be ready for follow-up questions about why you chose POM over a simple test structure, how fixtures differ from hooks, how you isolate parallel tests, and how you handle flaky tests and API mocking.
+
+
+#====================================================================================================
+# Q : Tests pass locally but fail intermittently in CI/CD. How would you debug?
+===> In my experience, if tests pass locally but fail intermittently in CI/CD, I treat it as a potential flaky test issue. I don't immediately increase retries or add hard waits. First, I investigate the failure using logs, screenshots, traces, and the CI environment details to identify the root cause.
+I follow a systematic approach.
+
+1. Analyze the CI/CD failure
+First, I check the CI/CD execution logs and identify:
+- Which test cases are failing?
+- Is the failure consistent or intermittent?
+- Is it a timeout, locator issue, assertion failure, API error, or environment issue?
+- Does it happen only in headless mode or during parallel execution?
+- Did the failure start after a recent code or application change?
+For example, if a login test fails because the dashboard does not load within the expected time, I investigate whether the application is slow, the login API failed, or the test navigated incorrectly.
+
+2. Use Playwright debugging artifacts
+I configure screenshots, traces, and HTML reports to investigate failures in CI.
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  timeout: 30_000,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+
+  use: {
+    headless: true,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+  ],
+});
+
+
+How I use these artifacts:
+- Trace: Inspect the sequence of actions, locator resolution, network requests, and timing.
+- Screenshot: Check the actual UI state at failure time.
+- Video: Observe the sequence of interactions leading to the failure.
+- HTML report: Identify failed tests, errors, and retry results.
+I download the CI artifacts and open the trace using:
+npx playwright show-trace trace.zip
+
+This helps me determine whether the failure comes from the test script, application behavior, or execution environment.
+
+3. Check synchronization and auto-waiting
+A common cause is that the test interacts with an element before the application is ready.
+Unreliable approach:
+await page.waitForTimeout(5000);
+await page.locator('#submit').click();
+
+This adds a fixed delay and may still fail when the application takes longer than five seconds.
+Better approach:
+const submitButton = page.getByRole('button', {
+  name: 'Submit',
+});
+
+await expect(submitButton).toBeVisible();
+await expect(submitButton).toBeEnabled();
+await submitButton.click();
+
+await expect(
+  page.getByText('Order submitted successfully')
+).toBeVisible();
+
+Playwright automatically waits for actionability conditions when performing actions such as click(). Web-first assertions also retry until their conditions are satisfied or time out.
+I use explicit waits for meaningful application states rather than arbitrary sleep statements.
+
+4. Investigate parallel execution and test data
+Tests may pass individually but fail when executed together because of shared state or test data.
+For example:
+- Two tests update the same user account.
+- Multiple workers create records with the same email address.
+- One test deletes data required by another.
+- Tests depend on execution order or share mutable global variables.
+
+My approach:
+1. Run the failing test individually.
+2. Run it repeatedly to check whether it is intermittent.
+3. Run the suite with one worker.
+4. Check for shared test data and dependencies.
+5. Use unique test data and isolated browser contexts.
+# Run the specific test
+npx playwright test tests/checkout.spec.ts
+
+# Repeat the test to reproduce intermittent failures
+npx playwright test tests/checkout.spec.ts --repeat-each=10
+
+# Check whether parallel execution causes the issue
+npx playwright test --workers=1
+If the test passes with one worker but fails with multiple workers, I investigate race conditions, shared resources, and test isolation.
+
+5. Compare local and CI environments
+I compare the following settings between local and CI environments:
+Area	:	What I investigate
+1. Browser :	Browser version and headless behavior
+2. Environment :	Base URL, credentials, environment variables
+3. Performance : 	CPU, memory, network latency, and timeouts
+4. Dependencies	: Node.js version, lockfile, installed packages
+5. Test data :	Availability, permissions, and shared state
+6. Infrastructure :	Service health, API responses, and network restrictions
+I also try to reproduce the CI conditions locally by running tests in headless mode and, when applicable, inside the same Docker image used by the pipeline.
+
+6. Investigate API and network failures
+If the UI depends on backend services, I inspect failed API requests, response status codes, and request timing.
+For example:
+const responsePromise = page.waitForResponse(response =>
+  response.url().includes('/api/orders') &&
+  response.request().method() === 'POST'
+);
+
+await page.getByRole('button', {
+  name: 'Place order',
+}).click();
+
+const response = await responsePromise;
+
+expect(response.status()).toBe(201);
+This helps distinguish a backend failure from a UI synchronization issue. I also verify that the application has completed the relevant operation before asserting the final UI state.
+
+7. Use retries carefully
+I may enable a limited number of retries in CI to collect additional diagnostic information. However, a retry is not the permanent fix.
+For example, Playwright can classify tests as passed, flaky, or failed based on the initial result and retry outcomes. I monitor flaky results and investigate recurring failures rather than treating retry success as proof that the test is reliable.
+
+My debugging workflow
+Step 1: Identify the failure
+CI logs, error message, failed assertion
+
+Step 2: Inspect artifacts
+Trace, screenshot, video, network activity
+
+Step 3: Reproduce the failure
+Run individually, repeat, compare workers
+
+Step 4: Fix the root cause
+Synchronization, isolation, data, environment, or application bug
+
+Step 5: Validate the fix
+Repeat the test and run the full regression suite in CI
+
+
+Real-world example you can explain in an interview
+“Suppose my checkout test passes locally but intermittently fails in Jenkins. I first inspect the HTML report and trace. I find that the checkout button is clicked, but the confirmation message is not displayed. I check the network requests and discover that the order API sometimes takes longer to respond in CI. I replace any fixed sleep with an appropriate response or UI-state wait, verify the API result, and ensure the test data is isolated for parallel execution. Then I rerun the test repeatedly and execute the regression suite in CI to confirm the fix. If the API itself returns an error, I report it as a possible application or environment defect instead of hiding it with retries.”
+Only use this example as your own project experience if it reflects a scenario you have actually encountered.
+Strong closing statement
+“My approach is to identify the root cause rather than simply make the test pass. In Playwright, I rely on traces, screenshots, HTML reports, web-first assertions, proper test isolation, and environment comparison. I use retries for diagnosis, but I fix the underlying issue to make the automation suite stable and reliable in CI/CD.”
+
+#====================================================================================================
+# Q : A button becomes enabled after multiple API calls. How would you handle it without `waitForTimeout()`?
+==> If a button becomes enabled only after multiple API calls are completed, I would avoid waitForTimeout() because the response time can vary between local and CI/CD environments.
+Instead, I would use Playwright's web-first assertions to wait for the button to become enabled, or wait for specific API responses if I need to verify that the required API calls have completed.
+
+Approach 1: Wait until the button is enabled (my preferred approach)
+import { test, expect } from '@playwright/test';
+
+test('Button should become enabled after loading', async ({ page }) => {
+  await page.goto('/checkout');
+
+  const submitButton = page.getByRole('button', {
+    name: 'Submit Order',
+  });
+
+  // Automatically retries until the button is enabled or times out
+  await expect(submitButton).toBeEnabled();
+
+  await submitButton.click();
+});
+
+Why do I use this approach?
+- toBeEnabled() automatically retries until the button becomes enabled or the assertion times out.
+- It does not depend on a hardcoded delay.
+- It is simple and reliable when I only care about the final UI state.
+
+Approach 2: Wait for multiple API responses
+If the requirement specifically says that three API calls must complete before the button is enabled, I can wait for those responses explicitly.
+import { test, expect } from '@playwright/test';
+
+test('Enable button after required API calls', async ({ page }) => {
+  const requiredApis = [
+    '/api/user',
+    '/api/products',
+    '/api/permissions',
+  ];
+
+  const responsePromises = requiredApis.map((endpoint) =>
+    page.waitForResponse((response) =>
+      response.url().includes(endpoint) &&
+      response.ok()
+    )
+  );
+
+  await page.goto('/checkout');
+
+  // Wait for all three successful API responses
+  await Promise.all(responsePromises);
+
+  const submitButton = page.getByRole('button', {
+    name: 'Submit Order',
+  });
+
+  await expect(submitButton).toBeEnabled();
+  await submitButton.click();
+});
+Important: I register the response listeners before navigation so I don't miss requests triggered during page loading. This example assumes all three endpoints are requested during navigation and each returns a successful response. If they are triggered by a user action, I register the listeners before that action instead.
+
+Approach 3: Wait for a specific API response and then verify the UI
+When a particular API determines whether the button can be enabled, I wait for that response and assert the UI state.
+const permissionsResponse = page.waitForResponse(response =>
+  response.url().includes('/api/permissions') &&
+  response.request().method() === 'GET'
+);
+
+await page.getByRole('button', { name: 'Load Data' }).click();
+
+const response = await permissionsResponse;
+expect(response.ok()).toBeTruthy();
+
+const submitButton = page.getByRole('button', {
+  name: 'Submit Order',
+});
+
+await expect(submitButton).toBeEnabled();
+
+
+This approach is useful when a user action triggers the API call.
+Which approach would I choose?
+Scenario : 	Approach
+1. Only the final button state matters : 	await expect(button).toBeEnabled()
+2. All required API calls must complete : 	Promise.all() with waitForResponse()
+3. A user action triggers an API call :	Register waitForResponse() before the action
+4. API calls are dynamic or repeated : 	Track the relevant requests or wait for a meaningful application state
+
+My interview conclusion:
+“I prefer waiting for the expected UI state using Playwright's web-first assertions. If the requirement depends on multiple backend calls, I explicitly wait for the relevant responses using Promise.all() and then verify that the button is enabled. This avoids hard waits and makes the test more reliable in CI/CD.”
+
+#====================================================================================================
+# Q : How do you handle multiple browser tabs and validate data between them?
+==>  In Playwright, I handle multiple browser tabs using context.waitForEvent('page') or page.waitForEvent('popup'), depending on how the new tab is opened.
+I register the event listener before clicking the link or button to avoid missing the new tab event. Once the new tab opens, I can interact with both pages and validate that the data is consistent between them.
+1. Scenario: Open a new tab and validate data between tabs
+For example, suppose I have an application where clicking View Order Details opens a new tab. I need to validate that the order ID displayed in the first tab matches the order ID in the second tab.
+import { test, expect, Page } from '@playwright/test';
+
+test('Validate order data between multiple tabs', async ({ page }) => {
+  await page.goto('https://example.com/orders');
+
+  // Get the order ID from the first tab
+  const orderId = await page.locator('#orderId').innerText();
+
+  // Register the listener before clicking
+  const newTabPromise = page.waitForEvent('popup');
+
+  await page.getByRole('link', { name: 'View Order Details', }).click();
+
+  // Capture the newly opened tab
+  const newTab = await newTabPromise;
+
+  await newTab.waitForLoadState();
+
+  // Validate the order ID in the second tab
+  await expect(newTab.locator('#orderDetailsId')).toHaveText(orderId);
+
+  // Validate the second tab's page
+  await expect(newTab).toHaveURL(/order-details/);
+});
+
+Why use page.waitForEvent('popup')?
+- It captures a new tab opened by the current page.
+- Registering the listener before the click prevents race conditions.
+- It gives me a separate Page object to interact with the new tab.
+The selectors and URL in this example are placeholders; I would replace them with the application's actual locators.
+
+2. Scenario: Handle multiple tabs opened from the browser context
+If the application opens a new tab through a mechanism where I want to listen at the browser-context level, I use context.waitForEvent('page').
+import { test, expect } from '@playwright/test';
+
+test('Handle multiple pages', async ({ context, page }) => {
+  await page.goto('https://example.com');
+
+  const newPagePromise = context.waitForEvent('page');
+
+  await page.getByRole('link', { name: 'Open Report', }).click();
+
+  const reportPage = await newPagePromise;
+
+  await reportPage.waitForLoadState();
+
+  await expect(reportPage).toHaveTitle(/Report/);
+
+  // Both pages can be used independently
+  await expect(page).toHaveURL(/example\.com/);
+  await expect(reportPage).toHaveURL(/report/);
+});
+
+
+The difference is:
+- page.waitForEvent('popup') is appropriate when the new tab is opened by a specific page.
+- context.waitForEvent('page') listens for a new page created anywhere within that browser context.
+
+3. How do I validate data between tabs?
+Suppose a user selects a product in the first tab and opens its details in the second tab. I compare the values from both pages.
+const productName = await page.locator('[data-testid="product-name"]').innerText();
+const productPrice = await page.locator('[data-testid="product-price"]').innerText();
+await expect(newTab.locator('[data-testid="detail-name"]')).toHaveText(productName);
+await expect(newTab.locator('[data-testid="detail-price"]')).toHaveText(productPrice);
+
+This approach is useful for validating:
+- Order IDs between order and invoice tabs.
+- Product names and prices between listing and detail tabs.
+- User information between profile and account tabs.
+- Transaction details between payment and confirmation tabs.
+For values that load asynchronously, I prefer Playwright's retrying assertions rather than extracting text too early and comparing immediately.
+
+4. Important interview points
+Question :	Answer
+1. How do you capture a new tab? :	page.waitForEvent('popup')
+2. How do you capture a page at context level? :	context.waitForEvent('page')
+3. Can you interact with both tabs? :	Yes, using their separate Page objects.
+4. How do you validate data between tabs? :	Read the source value and compare it with a web-first assertion in the target tab.
+5. How do you avoid race conditions? :	Register the event listener before triggering the action.
+
+My interview conclusion:
+“In my Playwright framework, I handle multiple tabs using page.waitForEvent('popup') for page-triggered popups and context.waitForEvent('page') when I need to capture a new page at the browser-context level. I maintain separate page references and validate business data between tabs using Playwright assertions. This helps me automate workflows such as order details, invoices, payment confirmations, and product comparisons reliably.”
+
+#====================================================================================================
+# Q : How would you implement reusable authentication to avoid repeated login?
+==> In my Playwright framework, I use Playwright's storageState feature to avoid logging in before every test case. After a successful login, I save the authentication state, including cookies and local storage, into a JSON file. Then, I reuse that state to authenticate other tests without repeating the login steps.
+This reduces execution time and makes the automation framework more efficient.
+1. How does the authentication flow work?
+1. Authentication setup
+Log in once using a dedicated setup test
+
+2. Save authentication state
+playwright/.auth/user.json
+
+3. Reuse in test cases
+Configure storageState in Playwright
+
+4. Execute authenticated tests
+Open protected pages without repeating UI login
+
+
+2. Step 1: Create the authentication setup
+Create tests/auth.setup.ts.
+import { test as setup, expect } from '@playwright/test';
+
+const authFile = 'playwright/.auth/user.json';
+
+setup('authenticate user', async ({ page }) => {
+  await page.goto('/login');
+
+  await page.getByLabel('Username').fill( process.env.TEST_USERNAME!);
+
+  await page.getByLabel('Password').fill(process.env.TEST_PASSWORD!);
+
+  await page.getByRole('button', {name: 'Login', }).click();
+
+  await expect(page).toHaveURL(/dashboard/);
+
+  // Save authentication state
+  await page.context().storageState({ path: authFile, });
+});
+
+
+Here, I use environment variables for credentials instead of hardcoding usernames and passwords in the test scripts.
+3. Step 2: Configure authentication in playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+
+  projects: [
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+      testIgnore: /auth\.setup\.ts/,
+    },
+  ],
+});
+
+
+How it works:
+- The setup project performs the login.
+- The authentication state is saved in user.json.
+- The Chromium project depends on the setup project.
+- Playwright loads the saved state for each test, avoiding repeated UI login.
+For a real project, I add .auth/ to .gitignore because authentication state files may contain sensitive cookies or tokens.
+4. Step 3: Use authentication in test cases
+Now, I can directly test authenticated functionality without logging in again.
+import { test, expect } from '@playwright/test';
+
+test('User can access dashboard', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  await expect( page.getByRole('heading', { name: 'Dashboard' }) ).toBeVisible();
+});
+
+test('User can access profile', async ({ page }) => {
+  await page.goto('/profile');
+
+  await expect(
+    page.getByRole('heading', { name: 'My Profile' })).toBeVisible();
+});
+
+
+Both tests use the configured authentication state.
+5. Important considerations
+At my experience level, I also consider these points:
+- Token expiration: If the session expires, I refresh or regenerate the authentication state.
+- Test isolation: Each test gets its own browser context by default, so changes to cookies or local storage in one test generally do not affect another test's context.
+- Multiple user roles: I maintain separate authentication states for admin, standard user, and other roles when required.
+- Security: I never commit credentials or generated authentication files to Git.
+- Session storage: Playwright's standard storageState supports cookies and local storage, but not session storage by default. If the application relies on session storage, I handle it separately.
+- Independent tests: Tests should not depend on another test's changes to shared backend data, even when they reuse authentication.
+6. What if I have admin and user roles?
+I can create separate state files:
+playwright/.auth/
+├── admin.json
+└── user.json
+
+
+Then configure separate projects or fixtures with the appropriate storageState for each role.
+Interview-ready conclusion:
+“In my Playwright framework, I implement reusable authentication using storageState. I log in once through a setup project, save the browser authentication state, and reuse it across authenticated test cases. This reduces execution time, avoids repetitive login steps, and improves CI/CD efficiency. I also manage token expiration, role-based authentication, test isolation, and secure storage of authentication files.”
+
+#====================================================================================================
+# Q : How do you handle shadow DOM inputs in Playwright vs Selenium?
+==> In my automation projects, I handle Shadow DOM elements differently in Playwright and Selenium.
+A Shadow DOM is used in web components to encapsulate HTML, CSS, and JavaScript. Sometimes, normal DOM inspection or traditional locators cannot directly access elements inside a shadow root.
+The main difference is that Playwright supports locating elements inside open Shadow DOMs by default, whereas Selenium generally requires locating the shadow root first and then finding the elements inside it.
+1. Playwright with TypeScript
+Suppose the application contains this structure:
+<login-component>
+  #shadow-root (open)
+    <input id="username">
+    <input id="password">
+    <button id="login">Login</button>
+</login-component>
+
+
+In Playwright, I can directly locate the input fields using CSS selectors or other supported locators without explicitly accessing the shadow root.
+import { test, expect } from '@playwright/test';
+
+test('Handle Shadow DOM inputs', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const username = page.locator(
+    'login-component #username'
+  );
+
+  const password = page.locator(
+    'login-component #password'
+  );
+
+  await username.fill('testuser');
+  await password.fill('password123');
+
+  await page.locator(
+    'login-component #login'
+  ).click();
+
+  await expect(page).toHaveURL(/dashboard/);
+});
+
+
+Why does this work?
+Playwright's CSS locators and most other locators, such as role and label locators, pierce open Shadow DOM boundaries automatically.
+There are exceptions: XPath does not pierce Shadow DOM boundaries, and closed Shadow DOM roots are not accessible through Playwright's normal locators.
+2. Selenium with Java
+In Selenium, I explicitly retrieve the shadow root using getShadowRoot() and then locate the input fields inside it.
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.SearchContext;
+
+public class ShadowDOMExample {
+    public static void main(String[] args) {
+        WebDriver driver = new ChromeDriver();
+
+        try {
+            driver.get("https://example.com");
+
+            // Locate the web component host
+            WebElement host = driver.findElement(By.cssSelector("login-component") );
+
+            // Access its open shadow root
+            SearchContext shadowRoot = host.getShadowRoot();
+
+            // Locate elements inside the shadow root
+            WebElement username = shadowRoot.findElement(By.cssSelector("#username"));
+
+            WebElement password = shadowRoot.findElement(By.cssSelector("#password") );
+
+            WebElement loginButton = shadowRoot.findElement(By.cssSelector("#login"));
+
+            username.sendKeys("testuser");
+            password.sendKeys("password123");
+            loginButton.click();
+
+        } finally {
+            driver.quit();
+        }
+    }
+}
+
+
+Here, SearchContext represents the shadow root context in which Selenium searches for elements.
+This approach requires a Selenium version that supports getShadowRoot().
+
+3. Key differences: Playwright vs Selenium
+Feature			|	Playwright	|	Selenium
+1. Open Shadow DOM	| Supported by default	| Explicitly access shadow root
+2. Access shadow root	| Usually not required	| getShadowRoot()
+3. Locate nested shadow elements |	Direct locators can pierce open roots |	Access each nested root step by step
+4. XPath across shadow boundary	| Does not pierce the boundary	| Cannot cross it directly either
+5. Closed Shadow DOM	| Not accessible through normal locators  |	Not directly accessible through standard shadow-root APIs
+6. Waiting for elements	| Auto-waiting and retrying assertions |	Usually explicit or implicit waits as needed
+
+4. What if Shadow DOM is nested?
+For example:
+<outer-component>
+  #shadow-root (open)
+    <inner-component>
+      #shadow-root (open)
+        <input id="email">
+
+
+In Playwright:
+const email = page.locator('outer-component inner-component #email');
+await email.fill('user@example.com');
+
+In Selenium Java:
+WebElement outerHost = driver.findElement( By.cssSelector("outer-component"));
+
+SearchContext outerRoot = outerHost.getShadowRoot();
+
+WebElement innerHost = outerRoot.findElement(By.cssSelector("inner-component"));
+
+SearchContext innerRoot = innerHost.getShadowRoot();
+
+WebElement email = innerRoot.findElement(By.cssSelector("#email"));
+
+email.sendKeys("user@example.com");
+
+
+In Selenium, I access each shadow root individually because each shadow root creates a separate search context.
+5. What if the Shadow DOM input is dynamic?
+In Playwright, I use a locator and a web-first assertion rather than a fixed wait:
+const email = page.locator('login-component #username');
+
+await expect(email).toBeVisible();
+await expect(email).toBeEnabled();
+await email.fill('testuser');
+
+
+In Selenium, I use WebDriverWait to wait for the element to become available or clickable. For dynamic shadow components, I may need to reacquire the host and shadow root if the component is re-rendered.
+Final interview answer
+“In Playwright, I can interact with inputs inside open Shadow DOMs directly using normal supported locators, without manually retrieving the shadow root. In Selenium Java, I first locate the shadow host, call getShadowRoot(), and then locate the input within that shadow root. For nested Shadow DOMs, I repeat this process for each level in Selenium. I also account for dynamic components using Playwright's auto-waiting or Selenium's explicit waits. This is one reason I find Playwright simpler for modern web applications that use web components.”
+
+#====================================================================================================
+# Q : Fix dynamic element wait issue on fast-loading React forms
+==> In React applications, elements may render dynamically, re-render after state updates, or become enabled only after API calls finish. Sometimes, an element appears briefly and gets replaced during a React re-render.
+In these situations, I avoid waitForTimeout() and use Playwright locators, web-first assertions, and waits for meaningful application states.
+1. Problem: Element gets detached during React re-render
+A common mistake is storing an ElementHandle and reusing it after the DOM changes.
+Unreliable approach:
+const submitButton = await page.locator('#submit').elementHandle();
+
+await page.locator('#name').fill('John');
+
+await submitButton?.click();
+React might replace the button after the input changes, leaving the stored handle detached from the DOM.
+
+Better approach:
+import { test, expect } from '@playwright/test';
+
+test('Submit dynamic React form', async ({ page }) => {
+  await page.goto('/register');
+
+  await page.getByLabel('Name').fill('John');
+  await page.getByLabel('Email').fill('john@example.com');
+
+  const submitButton = page.getByRole('button', {name: 'Submit',});
+
+  await expect(submitButton).toBeEnabled();
+  await submitButton.click();
+
+  await expect(page.getByText('Registration successful')).toBeVisible();
+});
+
+
+Why? A Playwright Locator resolves the element when it is used, so it can handle DOM replacement better than a previously captured ElementHandle.
+2. Problem: Button becomes enabled after API validation
+Suppose a React form validates an email address through an API before enabling the Submit button.
+const emailInput = page.getByLabel('Email');
+
+await emailInput.fill('john@example.com');
+
+const submitButton = page.getByRole('button', {name: 'Submit',});
+
+// Wait until React enables the button
+await expect(submitButton).toBeEnabled();
+
+await submitButton.click();
+
+
+Here, toBeEnabled() retries until the button becomes enabled or the assertion times out.
+If I also need to verify the backend validation request, I wait for its response explicitly:
+const validationResponse = page.waitForResponse(response =>
+  response.url().includes('/api/validate-email') &&
+  response.request().method() === 'POST'
+);
+
+await page.getByLabel('Email').fill('john@example.com');
+
+const response = await validationResponse;
+expect(response.ok()).toBeTruthy();
+
+await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled();
+
+This assumes the email input triggers that request. I register the response listener before filling the field so the request is not missed.
+3. Problem: Form appears before React finishes rendering
+Sometimes, the page loads but the form is still being initialized.
+Instead of waiting an arbitrary number of seconds, I wait for a meaningful UI condition.
+await page.goto('/register');
+
+const form = page.getByTestId('registration-form');
+
+await expect(form).toBeVisible();
+await expect(page.getByLabel('Name')).toBeEditable();
+
+await page.getByLabel('Name').fill('John');
+
+
+If the application displays a loading indicator, I can also wait for it to disappear:
+await expect( page.getByTestId('loading-spinner')).toBeHidden();
+await expect(page.getByLabel('Name')).toBeEditable();
+This assumes the spinner is present or the application has a reliable loading-state indicator. If it is never rendered, toBeHidden() can pass immediately, so I also verify the actual form state.
+
+4. Problem: Locator matches multiple dynamic elements
+React forms may render duplicate controls during transitions or contain hidden template elements.
+Instead of blindly using .first(), I identify the correct element using a stable locator.
+const submitButton = page.getByTestId('registration-submit');
+
+await expect(submitButton).toHaveCount(1);
+await expect(submitButton).toBeVisible();
+await expect(submitButton).toBeEnabled();
+await submitButton.click();
+
+I prefer accessible roles and labels when they uniquely identify the element; otherwise, I use stable test IDs.
+5. My debugging checklist
+Issue	:	How I handle it
+1. Element detached from DOM	: Use a Locator instead of a stored ElementHandle
+2. Button enabled asynchronously :	await expect(button).toBeEnabled()
+3. API validation is pending :	Register waitForResponse() before the triggering action
+4. React form is still rendering :	Wait for visible, editable, or ready UI state
+5. Duplicate elements :	Use specific locators and verify uniqueness
+6. CI-only failures :	Inspect traces, screenshots, and network activity
+
+Final interview answer
+“When handling fast-loading React forms, I use Playwright's locator-based approach instead of storing element handles or adding fixed waits. Locators resolve elements when actions are performed, and web-first assertions automatically retry until the expected condition is met. For API-driven validations, I wait for the relevant response and then verify the UI state. I also use stable test IDs, accessible locators, and traces to investigate intermittent failures. This makes my automation more reliable across local and CI/CD environments.”
+Key point: Playwright's auto-waiting does not guarantee that every asynchronous React operation has finished. I wait for the specific business condition I need, such as a button becoming enabled, validation feedback appearing, or a successful submission message being displayed.
+
+#====================================================================================================
+# Q : Find a row by text in a dynamic table and click its Edit button.
+==>  In Playwright, I use getByRole('row') to locate the table row containing the required text, then find and click the Edit button within that specific row. This is more reliable than using a hardcoded row index because the table may change dynamically due to sorting, filtering, or new records.
+1. Example using Playwright and TypeScript
+Suppose I have a user management table and need to find the row for John Smith and click its Edit button.
+import { test, expect } from '@playwright/test';
+
+test('Find user row and click Edit', async ({ page }) => {
+  await page.goto('/users');
+
+  // Locate the row containing the target user
+  const userRow = page.getByRole('row', {name: /John Smith/,  });
+
+  // Verify the row exists
+  await expect(userRow).toBeVisible();
+
+  // Locate Edit only within the matching row
+  const editButton = userRow.getByRole('button', {name: 'Edit',});
+
+  await editButton.click();
+
+  // Verify the edit form or dialog opens
+  await expect(page.getByRole('heading', { name: 'Edit User' })).toBeVisible();
+});
+2. What if multiple rows contain similar text?
+If the table contains users such as John Smith and John Smithson, I use an exact match on a specific cell or a stable unique identifier.
+const userRow = page.getByRole('row').filter({
+  has: page.getByRole('cell', {
+    name: 'John Smith',
+    exact: true,
+  }),
+});
+
+await expect(userRow).toHaveCount(1);
+
+await userRow.getByRole('button', {name: 'Edit',}).click();
+This approach ensures that I select the intended row and avoid clicking the Edit button for another user.
+
+3. What if the table loads dynamically through an API?
+I wait for the relevant row to appear instead of using waitForTimeout().
+const userRow = page.getByRole('row').filter({
+  has: page.getByRole('cell', {
+    name: 'John Smith',
+    exact: true,
+  }),
+});
+
+await expect(userRow).toBeVisible();
+await userRow.getByRole('button', {name: 'Edit',}).click();
+Playwright's web-first assertion retries until the row becomes visible or the assertion times out.
+
+4. Why do I prefer this approach?
+- Dynamic: Works even when row positions change.
+- Reliable: Uses accessible roles and names.
+- Scoped: Clicks the Edit button belonging to the correct row.
+- Maintainable: Avoids brittle XPath expressions and hardcoded indexes.
+- Stable: Uses Playwright's auto-waiting and retrying assertions.
+Interview closing statement:
+“In my framework, I locate a row using its business data, scope the Edit button to that row, and verify that the row is unique before interacting with it. This approach is reliable for dynamic tables and avoids accidentally editing the wrong record.”
+
+#====================================================================================================
+# Q : How would you execute 500 tests in parallel? What challenges would you expect?
+==> In my Playwright framework, I would execute 500 tests using Playwright's parallel execution, worker configuration, test isolation, and CI/CD sharding.
+I would not start all 500 tests simultaneously on a single machine because that could consume excessive CPU and memory, overload the application or database, and increase flaky failures. Instead, I would distribute the tests across multiple workers and CI agents based on available resources.
+
+1. Configure parallel execution in Playwright
+In playwright.config.ts, I configure workers, retries, timeouts, and reporting.
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+
+  fullyParallel: true,
+
+  workers: process.env.CI ? 4 : undefined,
+
+  retries: process.env.CI ? 2 : 0,
+
+  timeout: 30_000,
+
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+  ],
+
+  use: {
+    ...devices['Desktop Chrome'],
+    headless: true,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+});
+I would start with four workers on a CI agent, measure CPU, memory, and application response times, and increase the worker count gradually if the infrastructure can handle it.
+
+2. Execute the 500 tests
+500 automated tests
+Playwright Test Runner
+
+CI Agent 1
+125 tests
+4 workers
+
+CI Agent 2
+125 tests
+4 workers
+
+CI Agent 3
+125 tests
+4 workers
+
+CI Agent 4
+125 tests
+4 workers
+
+Illustrative distribution: 4 shards with 4 workers each. Actual test counts may differ because test durations vary.
+
+For a larger suite, I use sharding to distribute tests across multiple CI agents.
+For example, these commands run four shards:
+npx playwright test --shard=1/4
+npx playwright test --shard=2/4
+npx playwright test --shard=3/4
+npx playwright test --shard=4/4
+
+Each command runs on a separate CI agent. I configure each agent with an appropriate worker limit and merge reports afterward if needed.
+Important: Sharding and worker configuration solve different problems. Workers run tests concurrently within an agent, while shards divide the suite across agents.
+
+3. What challenges would I expect?
+Challenge :	How I would handle it
+1. CPU and memory exhaustion :	Tune worker count based on agent resources and monitor performance.
+2. Shared test data :	Generate unique records and avoid tests modifying the same account or entity.
+3. Race conditions :	Remove test-order dependencies and isolate shared resources.
+4. Backend overload :	Coordinate with the development team and control concurrency where needed.
+5. Flaky tests :	Inspect traces, screenshots, API failures, and timing; fix root causes instead of relying on retries.
+6. Uneven execution time :	Use sharding and balance shards based on historical test durations.
+7. Authentication conflicts :	Use appropriate authentication states and separate accounts for tests that modify shared user data.
+8. Report aggregation :	Collect artifacts from all agents and merge compatible Playwright reports.
+
+4. How do you prevent data conflicts?
+For example, if 50 tests update the same user account, parallel execution can cause inconsistent results.
+I would generate unique test data:
+import { randomUUID } from 'node:crypto';
+
+const testEmail = `user-${randomUUID()}@example.com`;
+
+
+Each test creates its own user, performs its validations, and cleans up its data where appropriate.
+I also use Playwright's isolated browser contexts, but I remember that browser isolation does not automatically isolate backend data.
+5. How would you optimize execution time?
+I would follow these steps:
+1. Measure the current suite execution time.
+2. Separate smoke, regression, and API test suites where appropriate.
+3. Run independent tests in parallel.
+4. Configure workers based on available CPU and memory.
+5. Use sharding across multiple CI agents for larger suites.
+6. Capture traces and screenshots for failures.
+7. Review flaky-test rates and backend performance.
+8. Compare execution time and reliability after each optimization.
+
+If tests take an average of 20 seconds, 500 tests would take approximately 2 hours 47 minutes sequentially, ignoring setup overhead. Parallel execution can reduce this substantially, but actual runtime depends on resource capacity, test dependencies, and uneven test durations.
+Final interview answer
+“In my Playwright framework, I would execute 500 tests using parallel workers and CI/CD sharding. I would initially configure a controlled worker count, monitor resource utilization, and distribute the suite across multiple CI agents if needed. My main concerns would be resource exhaustion, shared test data, race conditions, backend overload, and flaky tests. I would address these through isolated test data, independent test cases, appropriate worker limits, traces, and report aggregation. My goal is not just to execute 500 tests faster, but to maintain reliable and repeatable results.”
+Follow-up question to prepare: What is the difference between workers, fullyParallel, and --shard in Playwright?
+
+#====================================================================================================
+# Q : How would you retry a flaky action only for a specific exception?
+===> In Playwright, I would implement a custom retry mechanism using try...catch when I want to retry an action only for a specific, known transient exception. I would not retry every failure because errors such as an assertion failure or invalid locator may indicate a genuine defect.
+For normal UI interactions, I first rely on Playwright's built-in auto-waiting. I implement custom retries only when there is a clear reason to retry a particular transient failure.
+1. Example: Retry only for a specific exception
+Suppose clicking a button intermittently fails because the element becomes detached during a React re-render.
+import { test, expect, Page } from '@playwright/test';
+
+async function clickWithRetry( page: Page, selector: string, maxRetries = 3): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await page.locator(selector).click();
+      return; // Success: stop retrying
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      const isDetachedError =  /element was detached from the DOM/i.test(message);
+
+      // Do not retry unrelated failures
+      if (!isDetachedError || attempt === maxRetries) {
+        throw error;
+      }
+
+      console.log(`Detached element. Retry ${attempt + 1}/${maxRetries}`);
+    }
+  }
+}
+
+test('Retry click for detached element', async ({ page }) => {
+  await page.goto('/checkout');
+
+  await clickWithRetry(page, '[data-testid="submit-order"]');
+
+  await expect(page.getByText('Order submitted successfully')).toBeVisible();
+});
+How it works:
+- It attempts the click up to three times.
+- It retries only when the error message matches the known detached-element condition.
+- It immediately throws unrelated errors.
+- It throws the final error when all attempts fail.
+This is an illustrative pattern. Playwright's error messages can vary by version and failure type, so I would verify the actual error produced in my environment before relying on message matching.
+
+2. Better approach for most React applications
+Instead of retrying a detached-element error manually, I usually use a fresh locator for each attempt and let Playwright handle normal waiting.
+const submitButton = page.getByTestId('submit-order');
+
+await expect(submitButton).toBeVisible();
+await expect(submitButton).toBeEnabled();
+
+await submitButton.click();
+
+await expect(page.getByText('Order submitted successfully')).toBeVisible();
+
+A locator can resolve the current DOM element when used, and click() already waits for actionability conditions. Therefore, a custom retry loop is not normally needed for standard DOM updates.
+
+3. Important consideration: Avoid duplicate actions
+I would be especially careful when retrying operations such as:
+- Submitting a payment
+- Creating an order
+- Deleting a record
+- Sending a form that triggers a backend transaction
+If the action succeeds on the server but the browser reports an error afterward, retrying may execute the operation twice. I would verify the resulting application state before attempting the action again.
+
+4. What if I want to retry only a timeout?
+I can classify the error and rethrow anything that is not the expected transient timeout. However, I would distinguish a timeout while waiting for an element from a timeout after a potentially successful business operation.
+The exception classification should be based on the actual failure condition, not merely the fact that an error occurred.
+
+Final interview answer
+“In my Playwright framework, I use a custom try...catch retry wrapper when a particular action fails due to a known transient exception. I check the exception, retry only the expected failure, and immediately rethrow unrelated errors. I also limit the number of attempts and avoid blindly retrying non-idempotent operations such as payments or order creation. For normal locator and synchronization issues, I prefer Playwright's built-in auto-waiting and web-first assertions because they are simpler and more reliable.”
+
+#====================================================================================================
+# Q : How do you handle dynamic locators when attributes change?
+==> As an Automation Engineer with 3.6 years of experience in Playwright with TypeScript/JavaScript, I handle dynamic locators by prioritizing stable attributes, user-facing locators, and locator chaining instead of depending on attributes that change frequently.
+1. How I handle dynamic locators
+1. Prefer stable attributes
+I prefer data-testid, accessible roles, labels, or stable IDs over dynamically generated classes and IDs.
+// Preferred: stable test attribute
+await page.getByTestId('login-button').click();
+
+// Preferred: role and accessible name
+await page.getByRole('button', { name: 'Login' }).click();
+
+// Preferred: label
+await page.getByLabel('Email').fill('test@example.com');
+
+2. Use regular expressions for dynamic text
+When the text contains a changing value, I use a regular expression or a partial match.
+// Dynamic text: Order #12345, Order #67890, etc.
+const order = page.getByText(/Order #\d+/);
+
+await expect(order).toBeVisible();
+
+3. Use locator chaining for dynamic tables
+If a table contains multiple Edit buttons, I locate the row using unique business data and then find the button within that row.
+const row = page.getByRole('row').filter({  hasText: 'john@example.com'});
+
+await row.getByRole('button', { name: 'Edit' }).click();
+
+This avoids clicking the wrong Edit button when multiple rows contain the same action.
+4. Handle dynamic IDs or classes
+If an ID changes on every execution, I avoid hardcoding it and identify the element using stable attributes or a meaningful relationship.
+// Avoid: #input-83921
+// Prefer a stable label
+await page.getByLabel('Username').fill('testuser');
+
+// Or use a stable test ID
+await page.getByTestId('username-input').fill('testuser');
+
+5. Wait for the expected state, not a fixed timeout
+Playwright locators automatically wait for actionability conditions. For dynamic elements, I also use web-first assertions.
+const submitButton = page.getByRole('button', {
+  name: 'Submit'
+});
+
+await expect(submitButton).toBeVisible();
+await expect(submitButton).toBeEnabled();
+await submitButton.click();
+I avoid waitForTimeout() unless there is a specific debugging need.
+
+6. What if all attributes change dynamically?
+If the ID, class, and text all change, I inspect the DOM and look for a stable relationship, accessible name, parent container, or business identifier. If no reliable selector exists, I collaborate with developers to add a dedicated attribute such as data-testid.
+I also verify that the locator identifies exactly one element when uniqueness matters:
+const saveButton = page.getByTestId('save-button');
+
+await expect(saveButton).toHaveCount(1);
+await saveButton.click();
+
+
+Interview-ready answer
+“With 3.6 years of experience, I handle dynamic locators by prioritizing stable attributes such as data-testid, accessible roles, and labels. For dynamic text, I use regular expressions or partial matches, and for tables, I use locator chaining to identify the correct row before interacting with its buttons. I avoid brittle XPath expressions and dynamically generated IDs wherever possible. I use Playwright's auto-waiting and web-first assertions instead of hardcoded sleeps. If the application doesn't expose a reliable locator, I work with developers to introduce stable test attributes. My goal is to make locators reliable, readable, and maintainable.”
+
+#====================================================================================================
+# Q : Explain Browser, BrowserContext and Page with a real project example.
+==> In Playwright with TypeScript, Browser, BrowserContext, and Page are three important concepts used to manage browser automation. In my automation framework, I use them to control browser execution, isolate test sessions, and interact with web pages.
+1. Understanding the architecture
+Browser
+Chromium, Firefox, or WebKit instance
+
+BrowserContext
+An isolated browser session: cookies, storage, permissions
+
+Page
+A tab or popup where we interact with the application
+
+
+Think of it like this:
+- Browser: The browser application running the tests.
+- BrowserContext: A separate user session inside that browser.
+- Page: A tab within that user session.
+2. Real project example: E-commerce application
+Suppose I am automating an e-commerce application with two scenarios:
+1. A customer logs in and places an order.
+2. An administrator logs in and verifies the order.
+I can create separate browser contexts for the customer and administrator, so their cookies and session storage do not mix.
+
+
+
+
+
+
+
+softwareadvice.ie
+
+
+3. Playwright TypeScript code
+import { test, expect, chromium } from '@playwright/test';
+
+test('Customer and admin have isolated sessions', async () => {
+  // 1. Launch the browser
+  const browser = await chromium.launch({
+    headless: true
+  });
+
+  // 2. Create a context for the customer
+  const customerContext = await browser.newContext();
+  const customerPage = await customerContext.newPage();
+
+  await customerPage.goto('https://example.com/login');
+  await customerPage.getByLabel('Email').fill('customer@example.com');
+  await customerPage.getByLabel('Password').fill('customerPass');
+  await customerPage.getByRole('button', { name: 'Login' }).click();
+
+  // 3. Create a separate context for the admin
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+
+  await adminPage.goto('https://example.com/admin/login');
+  await adminPage.getByLabel('Email').fill('admin@example.com');
+  await adminPage.getByLabel('Password').fill('adminPass');
+  await adminPage.getByRole('button', { name: 'Login' }).click();
+
+  // Validate each session independently
+  await expect(customerPage.getByText('My Orders')).toBeVisible();
+
+  await expect(adminPage.getByText('Order Management')).toBeVisible();
+
+  // 4. Clean up resources
+  await browser.close();
+});
+
+
+Note: This is illustrative code; the URLs, credentials, labels, and assertions must match the actual application. In a real project, I would store credentials securely and use fixtures for resource management.
+4. Browser vs BrowserContext vs Page
+Feature	      |	Browser	                      |	BrowserContext	      |	Page
+1. Purpose    |	Launch and manage browser     |	Isolate a session     |	Interact with a tab
+2. Example    |	Chromium		      |	Customer session      |	Customer dashboard tab
+3. Cookies    | Shared through its contexts,  |	Separate from other   |	Uses its context's storage
+/storage      | not directly a single session |    contexts           |
+
+4. Can create |	Contexts		      |	    Pages	      |	Popups or additional tabs via browser events
+5. Typical use|	Test execution setup	      | User/session isolation|	Locators, clicks, assertions
+
+Important interview points
+- One Browser can have multiple BrowserContexts.
+- One BrowserContext can have multiple Pages, such as tabs and popups.
+- Pages in the same context share that context's session state, while separate contexts provide isolation.
+- A new context is lightweight compared with launching a separate browser process.
+- Playwright Test normally manages the browser and creates an isolated context and page for each test, so you often use the built-in page fixture rather than manually launching a browser.
+5. Example from a framework
+In a real Playwright framework, I typically use the built-in fixtures:
+import { test, expect } from '@playwright/test';
+
+test('Verify product page', async ({ page }) => {
+  await page.goto('https://example.com/products');
+
+  await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
+});
+
+Playwright Test provides the page fixture, backed by a browser context and browser managed by the test runner. This keeps the test concise and helps with isolation and cleanup.
+Interview summary: “Browser represents the browser instance, BrowserContext represents an isolated user session, and Page represents an individual tab. In my e-commerce automation project, I can use separate contexts for customer and admin sessions and separate pages for tabs or popups. This helps me manage sessions independently, prevent cookie conflicts, and build reliable parallel tests.”
+
+
+#====================================================================================================
+# Q : How do you validate an API response and use its data in UI automation?
+==> In Playwright with TypeScript, I validate an API response using status codes, response headers, response body, and business rules. Then I reuse the API response data in UI automation to verify that the frontend displays the correct information.
+In a real project, I prefer this approach because it reduces hardcoded test data and helps validate both backend and frontend behavior in one scenario.
+1. Real project example: E-commerce application
+Suppose an API returns product details, and I need to verify that the same product name, price, and ID appear on the UI.
+
+Step 1: API request
+GET /api/products/101
+
+Step 2: Validate response
+Status 200, content type, product ID, name, and price
+
+Step 3: Validate UI
+Compare product details displayed on the page with the API data
+
+2. Complete Playwright TypeScript example
+import { test, expect } from '@playwright/test';
+
+test('Validate product API data against UI', async ({request, page }) => {
+  // 1. Call the API
+  const response = await request.get('https://example.com/api/products/101' );
+
+  // 2. Validate the response status and headers
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('application/json');
+
+  // 3. Extract response data
+  const product = await response.json();
+
+  // 4. Validate API business data
+  expect(product.id).toBe(101);
+  expect(product.name).toBeTruthy();
+  expect(product.price).toBeGreaterThan(0);
+
+  // 5. Open the corresponding UI page
+  await page.goto('https://example.com/products/101');
+
+  // 6. Compare UI data with API response
+  await expect(page.getByTestId('product-name')).toHaveText(product.name);
+
+  await expect( page.getByTestId('product-price')).toHaveText(`$${product.price.toFixed(2)}`);
+});
+
+Note: The endpoint, response fields, test IDs, currency format, and UI structure are illustrative. Adapt them to the actual application. The example assumes price is a number and the UI displays two decimal places.
+3. How I validate the API response
+Validation          :	Example
+1. HTTP status	    :	expect(response.status()).toBe(200)
+2. Response headers :	Verify JSON content type
+3. Response schema  :	Check required fields and their data types
+4. Business rules   :	Price must be greater than zero
+5. Data consistency :	Product ID in the response matches the requested ID
+6. UI consistency   :	Product name and price match the API response
+
+For larger projects, I use reusable API clients, TypeScript interfaces, and schema validation where appropriate. I also validate negative scenarios, such as 401 Unauthorized, 404 Not Found, and invalid request payloads.
+4. What if the UI itself triggers the API?
+Sometimes, instead of making a separate API request, I need to validate the API response generated by a UI action. I listen for the response before clicking the button.
+const responsePromise = page.waitForResponse(response =>
+  response.url().includes('/api/products') &&
+  response.request().method() === 'GET' &&
+  response.status() === 200
+);
+
+await page.getByRole('button', { name: 'Load Products'}).click();
+
+const response = await responsePromise;
+const products = await response.json();
+
+expect(products.length).toBeGreaterThan(0);
+Registering waitForResponse() before the click prevents missing a fast response. In production tests, I would also match the expected URL more precisely and validate the response body.
+
+5. Why use API data in UI automation?
+- Less hardcoding: Expected values come from the API response.
+- Better coverage: Backend data and frontend rendering are checked together.
+- Faster setup: API calls can create or retrieve test data without navigating through every setup screen.
+- Easier debugging: If the API is correct but the UI is wrong, the issue is easier to isolate.
+
+One important distinction: when I compare the UI against the same API response, I verify that the frontend renders backend data correctly. For stronger end-to-end validation, I also compare against an independent expected value or a known test-data fixture, because the API and UI could otherwise share the same incorrect data.
+
+Interview-ready answer
+“With my Playwright and TypeScript framework, I use the API request fixture or page.waitForResponse() to capture API responses. I validate the status code, headers, response body, data types, and business rules. Then I extract the response data and compare it with the values displayed in the UI using Playwright assertions. I also use API calls for test-data setup to reduce execution time and avoid unnecessary UI navigation. This approach gives me better backend and frontend coverage and makes failures easier to debug.”
+
+#====================================================================================================
+# Q : How do you intercept an API response and mock the data?
+==> In Playwright with TypeScript, I use page.route() to intercept API requests and mock responses. This allows me to test different backend scenarios without depending on the actual backend service.
+For example, in an e-commerce project, I can mock product details, empty product lists, server errors, or unavailable services to verify how the UI behaves.
+1. How API interception works
+1. UI sends an API request
+GET /api/products
+
+2. Playwright intercepts the request
+page.route()
+
+Mock response
+Return controlled JSON
+
+Real backend
+Use route.continue()
+
+3. Validate the UI
+Verify the expected product data or error message
+
+2. Example 1: Intercept API and mock product data
+Suppose the real API returns product data, but I want to test the UI with controlled mock data.
+import { test, expect } from '@playwright/test';
+
+test('Mock product API response', async ({ page }) => {
+  // Intercept the API request
+  await page.route('**/api/products', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 101,
+          name: 'Laptop',
+          price: 50000
+        },
+        {
+          id: 102,
+          name: 'Mobile',
+          price: 20000
+        }
+      ])
+    });
+  });
+
+  // Open the application after registering the mock
+  await page.goto('https://example.com/products');
+
+  // Validate mocked data on the UI
+  await expect(page.getByText('Laptop')).toBeVisible();
+  await expect(page.getByText('Mobile')).toBeVisible();
+  await expect(page.getByText('50000')).toBeVisible();
+});
+How it works:
+- page.route() registers a handler for matching requests.
+- route.fulfill() returns the mocked response instead of sending the request to the backend.
+- The frontend processes the mock as an API response.
+- Playwright assertions verify the rendered UI.
+The URL and response structure must match the actual application's API contract for this example to work.
+
+3. Example 2: Mock a 500 Internal Server Error
+In real projects, I also test how the application behaves when the backend fails.
+
+test('Display error when product API fails', async ({ page }) => {
+  await page.route('**/api/products', async route => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Internal Server Error'
+      })
+    });
+  });
+
+  await page.goto('https://example.com/products');
+
+  await expect(page.getByText('Unable to load products')).toBeVisible();
+});
+
+This verifies the frontend's error handling without requiring the actual server to fail.
+Other useful mock scenarios include:
+- 200 — successful response.
+- 401 — unauthorized request.
+- 403 — forbidden request.
+- 404 — resource not found.
+- 500 — internal server error.
+- Empty arrays — no products available.
+- Delayed responses — loading indicators and timeout behavior.
+The error message in the assertion must match what the application actually displays.
+
+4. Example 3: Intercept a request but modify the real response
+Sometimes I want to call the actual backend and change only part of its response. For this, I use route.fetch() followed by route.fulfill().
+test('Modify real API response', async ({ page }) => {
+  await page.route('**/api/products', async route => {
+    // Fetch the real API response
+    const response = await route.fetch();
+
+    // Read the actual response body
+    const products = await response.json();
+
+    // Modify a field for testing
+    if (products.length > 0) {
+      products[0].name = 'Mocked Laptop';
+    }
+
+    // Return the modified response to the UI
+    await route.fulfill({
+      response,
+      json: products
+    });
+  });
+
+  await page.goto('https://example.com/products');
+
+  await expect(page.getByText('Mocked Laptop')).toBeVisible();
+});
+
+
+This technique is useful when I want to preserve most real backend data but override a specific field. The real API must be reachable, and its response must have the expected structure.
+
+5. Difference between fulfill(), continue(), and fetch()
+Method	Purpose
+route.fulfill()	 :      Return a mocked response directly
+route.continue() :	Send the request to the actual server without further route handling
+route.fetch()	 :	Send the request to the actual server and retrieve the response so it can be inspected or modified
+Interview tip	 : 	Register the route before navigating to the page or triggering the action. Otherwise, a fast API request may already have completed before interception is configured.
+Interview-ready answer
+“With my Playwright and TypeScript framework, I use page.route() to intercept API requests and route.fulfill() to return mocked responses. This helps me test positive and negative scenarios independently of backend availability. For example, I can mock product data, return a 500 error, or simulate an empty response and validate the corresponding UI behavior. If I need to modify a real backend response, I use route.fetch() and then route.fulfill(). This improves test reliability and gives me control over scenarios that are difficult to reproduce with a real backend.”
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

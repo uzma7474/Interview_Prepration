@@ -1814,25 +1814,317 @@ My interview conclusion:
 
 
 #===================================================================================
-# Q : 
+# Q : What is ObjectMapper in REST ASSURED?
+==> As an Automation and Development Engineer with 3.6 years of experience in Selenium Java and REST Assured, I use ObjectMapper from the Jackson library to convert Java objects into JSON and JSON responses into Java objects during API automation.
+
+1. Why do we use ObjectMapper?
+In REST Assured, ObjectMapper is useful for:
+- Serialization: Converting a Java object into a JSON string.
+- Deserialization: Converting a JSON response into a Java object.
+- Test data management: Creating request payloads using POJO classes instead of hardcoding JSON.
+- Response validation: Mapping API responses to Java objects for easier validation.
+
+2. Example: Serialization (Java object to JSON)
+Suppose I have a User class.
+public class User {
+    private String name;
+    private String job;
+
+    public User() {}
+
+    public User(String name, String job) {
+        this.name = name;
+        this.job = job;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getJob() {
+        return job;
+    }
+}
 
 
+Now, I use ObjectMapper to convert the object into JSON.
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+public class SerializationExample {
+    public static void main(String[] args) throws Exception {
+        User user = new User("John", "QA Engineer");
+
+        ObjectMapper mapper = new ObjectMapper();
+        String json = mapper.writeValueAsString(user);
+
+        System.out.println(json);
+    }
+}
+
+
+Output:
+{
+  "name": "John",
+  "job": "QA Engineer"
+}
+
+3. Example: Using ObjectMapper in REST Assured
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restassured.RestAssured;
+import org.testng.annotations.Test;
+
+@Test
+public void createUser() throws Exception {
+    User user = new User("John", "QA Engineer");
+
+    ObjectMapper mapper = new ObjectMapper();
+    String requestBody = mapper.writeValueAsString(user);
+
+    RestAssured.given()
+        .baseUri("https://reqres.in")
+        .header("Content-Type", "application/json")
+        .body(requestBody)
+    .when()
+        .post("/api/users")
+    .then()
+        .statusCode(201);
+}
+
+Here, I create a Java object, convert it into JSON using ObjectMapper, and pass that JSON as the request body to REST Assured.
+
+4. Deserialization: JSON to Java Object
+String responseBody =  "{\"name\":\"John\",\"job\":\"QA Engineer\"}";
+
+ObjectMapper mapper = new ObjectMapper();
+
+User user = mapper.readValue(responseBody, User.class);
+
+System.out.println(user.getName());
+System.out.println(user.getJob());
+
+Output:
+John
+QA Engineer
+
+5. ObjectMapper vs. REST Assured Serialization
+ObjectMapper					|	REST Assured
+Provided by Jackson				|	API testing library
+Explicitly converts objects to and from JSON    |	Can automatically serialize Java objects and deserialize responses when a compatible mapper is 
+						| 	available
+Uses methods like writeValueAsString() 		|	Uses methods like body(), as(), and extract().as()
+and readValue()					|
+
+For example, REST Assured can serialize a POJO automatically:
+given()
+    .contentType("application/json")
+    .body(user)
+.when()
+    .post("/users");
+
+
+This works when a compatible JSON object mapper, such as Jackson, is available on the classpath.
+Interview conclusion: In my framework, I use ObjectMapper when I need explicit control over JSON serialization and deserialization. It helps me maintain reusable POJO classes, avoid hardcoded JSON payloads, and make API request and response handling more maintainable.
 
 #===================================================================================
-# Q : 
+# Q :  Meaning of 405 status code in Postman , what does it means and how to resolve it?
+==> As an Automation and Development Engineer with 3.6 years of experience in Selenium Java and REST Assured, I would explain that 405 Method Not Allowed means the server recognizes the API endpoint, but the HTTP method used in the request is not supported for that particular resource.
 
+1. What does 405 mean in Postman?
+For example, suppose I send this request in Postman:
+GET https://simple-books-api.glitch.me/orders
+
+But the API endpoint supports only POST for the operation I'm trying to perform. The server may return:
+405 Method Not Allowed
+
+This means the HTTP method is not allowed for that resource. The response may include an Allow header indicating which methods are supported.
+2. Common reasons for a 405 error
+- Incorrect HTTP method: Using GET instead of POST, or POST instead of DELETE.
+- Incorrect API endpoint: The URL may point to a resource that does not support the selected method.
+- API documentation mismatch: The method used in Postman does not match the API contract.
+- Server or proxy configuration: The web server, gateway, or proxy may block certain HTTP methods.
+- Trailing slash or routing differences: Some server configurations handle routes with and without a trailing slash differently.
+
+3. How to resolve a 405 error in Postman
+1. Verify the API documentation and confirm the supported HTTP method.
+2. Check the endpoint URL and resource path.
+3. Inspect the response headers, especially Allow, if present.
+4. Verify that the request body and headers match the API requirements.
+5. If the method is correct, ask the backend team to check routing, gateway, or server configuration.
+
+Important: Missing or invalid authentication usually results in 401 or 403, rather than 405, although server implementations can vary.
+
+4. Example using REST Assured
+Incorrect request:
+given()
+    .baseUri("https://simple-books-api.glitch.me")
+.when()
+    .put("/status")
+.then()
+    .statusCode(405);
+
+
+If the API supports only GET for /status, change the request to:
+given()
+    .baseUri("https://simple-books-api.glitch.me")
+.when()
+    .get("/status")
+.then()
+    .statusCode(200);
+
+The expected status code depends on the API's actual contract.
+5. Difference between 404 and 405
+Status code		|	Meaning
+404 Not Found		|	The requested resource or route was not found.
+405 Method Not Allowed	|	The resource exists or is recognized, but the HTTP method is not permitted for it.
+
+Interview-ready answer
+"In my API testing experience, a 405 status code indicates that the HTTP method used in the request is not supported by the requested endpoint. When I encounter this error in Postman, I first verify the API documentation, endpoint URL, and HTTP method. I also inspect the response headers for the Allow header. If my request matches the API contract, I coordinate with the backend team to investigate server or gateway configuration issues."
 
 #===================================================================================
-# Q : 
+# Q : What are the different types of API authentication?
+===> In API testing, authentication is used to verify the identity of a user or client before allowing access to an API. The main types of API authentication I work with or consider during testing are Basic Authentication, Bearer Token Authentication, API Key Authentication, OAuth 2.0, JWT-based authentication, and client certificate authentication.
+1. Types of API authentication
+Authentication type : 	How it works :	Example
+1. Basic Authentication	: Sends a username and password encoded using Base64 in the Authorization header. :	Authorization: Basic <base64-value>
+2. Bearer Token Authentication : Sends an access token in the Authorization header. :	Authorization: Bearer <token>
+3. API Key Authentication : 	Uses a key to identify or authorize an API client, commonly through a header. :	x-api-key: abc123
+4. OAuth 2.0 : 	Uses access tokens issued through an authorization framework to grant scoped access. :	Access token obtained from an authorization server
+5. JWT Authentication :  Uses a signed JSON Web Token that the API validates. Often implemented with bearer tokens. :	Authorization: Bearer <JWT>
+6. Client Certificate / mTLS :	Uses client certificates to authenticate the client during a TLS handshake. :	Certificate-based client identity
+7. HMAC Authentication	: Uses a cryptographic signature generated from a secret and request data. :	Signature in an authorization header
+
+Important distinction: Bearer authentication describes how a token is presented. JWT describes a token format. OAuth 2.0 is an authorization framework that can issue access tokens, including JWTs or opaque tokens.
+
+2. REST Assured examples
+A. Basic Authentication
+given()
+    .auth()
+    .basic("username", "password")
+.when()
+    .get("/api/users")
+.then()
+    .statusCode(200);
 
 
+B. Bearer Token Authentication
+given()
+    .header("Authorization", "Bearer " + accessToken)
+.when()
+    .get("/api/users")
+.then()
+    .statusCode(200);
+
+
+C. API Key Authentication
+given()
+    .header("x-api-key", apiKey)
+.when()
+    .get("/api/users")
+.then()
+    .statusCode(200);
+
+
+D. OAuth 2.0 access token
+given()
+    .auth()
+    .oauth2(accessToken)
+.when()
+    .get("/api/users")
+.then()
+    .statusCode(200);
+
+In a real framework, I would obtain credentials and tokens from secure configuration or an authentication endpoint instead of hardcoding them.
+
+3. How do I test API authentication?
+As an Automation Engineer, I cover the following scenarios:
+- Valid credentials or token should allow authorized access.
+- Missing credentials should return the expected 401 Unauthorized response when authentication is required.
+- Invalid or expired tokens should be rejected.
+- Insufficient permissions should return 403 Forbidden when the client is authenticated but not authorized.
+- API keys should be validated, and revoked keys should not work.
+- Tokens should be handled securely and should not appear in logs or reports.
+- Protected endpoints should enforce authorization consistently.
+
+4. Interview conclusion
+“In my API automation framework using REST Assured, I commonly handle Basic Authentication, Bearer Tokens, API Keys, and OAuth 2.0. I create reusable authentication methods so that tokens and credentials can be managed centrally. I also validate negative scenarios such as missing, invalid, and expired tokens, along with authorization failures, to ensure that APIs are secure.
 
 #===================================================================================
-# Q : 
+# Q : What is JWT token?
+===> JWT stands for JSON Web Token. It is a compact, URL-safe token format used to securely transmit claims between two parties. In API testing, JWT is commonly used to authenticate users and carry information about their identity and permissions.
+For example, when a user logs in successfully, the server may generate a JWT and return it to the client. The client sends that token in subsequent API requests to access protected resources.
+1. Structure of a JWT
+A JWT typically consists of three parts separated by dots (.).
+Header
+Token type and signing algorithm
 
 
+Payload
+Claims such as user ID, role, and expiration
 
+
+Signature
+Used to verify token integrity and authenticity
+
+
+A JWT looks like this:
+xxxxx.yyyyy.zzzzz
+
+
+- Header: Specifies the signing algorithm, such as HS256.
+- Payload: Contains claims such as sub (subject), role, and exp (expiration time).
+- Signature: Allows the receiver to verify that the token has not been altered and was signed by a trusted party.
+
+Important: A signed JWT is not automatically encrypted. Its header and payload can usually be decoded, so passwords and other sensitive information should not be stored in them.
+2. How does JWT authentication work?
+1. The user sends login credentials to the authentication API.
+2. The server validates the credentials and generates a signed JWT.
+3. The client receives and stores the token securely.
+4. The client sends the token with subsequent requests using the Authorization header.
+5. The server validates the signature, expiration, and required claims before granting access.
+Example request header:
+Authorization: Bearer <JWT_TOKEN>
+
+
+3. How do I test JWT authentication using REST Assured?
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
+public class JwtAuthenticationTest {
+
+    public static void main(String[] args) {
+
+        RestAssured.baseURI = "https://api.example.com";
+
+        String token = "your_jwt_token";
+
+        given()
+            .header("Authorization", "Bearer " + token)
+        .when()
+            .get("/api/profile")
+        .then()
+            .statusCode(200);
+    }
+}
+In a real framework, I would obtain the token from the login or token endpoint rather than hardcoding it.
+JWT test scenarios
+- Valid JWT → expected successful response.
+- Missing JWT → typically 401 Unauthorized.
+- Invalid or tampered JWT → rejected.
+- Expired JWT → rejected.
+- Valid JWT with insufficient permissions → typically 403 Forbidden.
+- Verify that sensitive token data is not exposed in logs.
+
+4. JWT vs. session-based authentication
+JWT-based authentication :	Session-based authentication
+1. Client sends a token with requests. : 	Client typically sends a session ID in a cookie.
+2. Server can validate a signed token without looking up a session, depending on the design. : 	Server commonly maintains session state.
+3. Token expiration and revocation require careful handling. :	Sessions can often be invalidated centrally.
+
+Interview conclusion: “JWT is a token format commonly used for API authentication. It consists of a header, payload, and signature. In my REST Assured framework, I would retrieve the JWT from the authentication API, pass it as a Bearer token, and validate successful access as well as negative scenarios such as invalid, expired, and missing tokens.”
 
 #===================================================================================
 # Q : 

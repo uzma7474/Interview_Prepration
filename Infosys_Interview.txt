@@ -430,7 +430,6 @@ Find the first non-repeating character.
 19) Prepare any manual test cases & explain test design techniques
 20) How to Calculate defect leakage 
 
-
 ============================================================================================
 
 𝗣𝗵𝗮𝘀𝗲 𝟭 → 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹 𝗥𝗼𝘂𝗻𝗱
@@ -471,7 +470,6 @@ Find the first non-repeating character.
 → How would you determine whether a login page is user-friendly?
 → What key points do you consider while writing an effective test case?
 → If a developer is not fixing a reported bug, how would you handle the situation?
-Unable to share all the questions in one post comment if u want other rounds 
 
 =======================================================================================
 𝗥𝗼𝘂𝗻𝗱 𝟭: 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹 & 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻 𝗧𝗲𝘀𝘁𝗶𝗻𝗴 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
@@ -605,6 +603,91 @@ Selenium WebDriver & Automation Concepts
 19. What is POM (Page Object Model)?
 
 
+𝗟𝗧𝗜𝗠𝗶𝗻𝗱𝘁𝗿𝗲𝗲 | 𝗦𝗗𝗘𝗧 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
+
+🔹 𝗥𝗼𝘂𝗻𝗱 𝟭: 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹 𝟭
+1. Tell me about yourself & walk through your current test framework.
+2. How do you design Page Object Model (POM) classes for reusability?
+3. Reverse words in a sentence e.g. "LTIMindtree SDET" -> "SDET LTIMindtree".
+4. How do you handle StaleElementReferenceException in Selenium?
+5. How do you handle web tables with dynamic row counts in Selenium WebDriver?
+6. How do you switch frames & return to main parent context in WebDriver?
+7. How do you pass auth bearer tokens in REST Assured headers?
+8. What is Playwright auto-waiting vs Selenium explicit wait?
+9. How do you connect DB via JDBC & assert row counts post API call?
+10. Write SQL query to find second highest salary from Employee table.
+11. If UI locator changes on every release, how do you handle it in POM?
+12. If 40 out of 200 tests fail, how do you re-run only failed tests in TestNG?
+
+🔹 𝗥𝗼𝘂𝗻𝗱 𝟮: 𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻
+1. Walkthrough end-to-end execution flow once your build triggers in CI.
+2. Move all zeroes to end of array e.g. [1, 0, 2, 0, 3] -> [1, 2, 3, 0, 0].
+3. How do you handle multi-tab window switching using getWindowHandles() in Selenium?
+4. How do you ensure ThreadLocal safety during parallel runs?
+5. How do you capture failure screenshots automatically in TestNG reports?
+6. How do you mock 500 server error API responses in Playwright?
+7. How do you handle test data setup across QA, Staging & Prod?
+8. How do you debug scripts passing locally but failing in Jenkins?
+9. What is your strategy when a release feature changes mid-sprint?
+10. How do you handle developer pushback on non-reproducible bugs?
+11. How do you resolve Git merge conflicts during active sprint merges?
+
+🗓️ 𝟏:𝟏 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭 𝐓𝐫𝐚𝐢𝐧𝐢𝐧𝐠 (𝐰𝐢𝐭𝐡 𝐚 𝐝𝐞𝐝𝐢𝐜𝐚𝐭𝐞𝐝 𝐓𝐫𝐚𝐢𝐧𝐞𝐫): https://lnkd.in/gEpS93ub
+
+
+
+
+📌 𝗭𝗼𝗵𝗼 | 𝗦𝗗𝗘𝗧 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
+
+🔹 𝗥𝗼𝘂𝗻𝗱 𝟭: 𝗤𝗔 𝗖𝗼𝗿𝗲 & 𝗟𝗼𝗴𝗶𝗰
+1. Java: Find first non-repeating character in a string
+2. How do you handle shadow DOM inputs in Playwright vs Selenium?
+3. Extract auth token from JSON response and set as environment variable
+4. Fix dynamic element wait issue on fast-loading React forms
+5. How to trigger Jenkins build automatically on git push?
+6. Java 8: Filter even numbers from array list using streams
+7. Handle dynamic web table pagination with changing row counts
+
+🔹 𝗥𝗼𝘂𝗻𝗱 𝟮: 𝗤𝗔Ops & 𝗥𝗲𝗮𝗹-𝗪𝗼𝗿𝗹𝗱 𝗦𝗰𝗲𝗻𝗮𝗿𝗶𝗼𝘀
+1. Bypass login screen using saved storage state in Playwright
+2. How do you handle 429 rate limits in API automation tests?
+3. Run parallel tests in TestNG using threadLocal without data leaks
+4. Debug test passing locally but failing on Jenkins Linux container
+5. Validate JSON response structure against dynamic schema file
+6. How to manage multi-window tab switching in headless Chrome?
+7. Clean up test data created during parallel suite execution
+8. Attach video recordings to failed test reports in CI runner
+
+🗓️ 𝟏:𝟏 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭 𝐓𝐫𝐚𝐢𝐧𝐢𝐧𝐠 (𝐰𝐢𝐭𝐡 𝐚 𝐝𝐞𝐝𝐢𝐜𝐚𝐭𝐞𝐝 𝐓𝐫𝐚𝐢𝐧𝐞𝐫): https://lnkd.in/gEpS93ub
+
+🎯
+Altimetrik | Sr. QA Automation | #InterviewQuestions
+
+Round 1 :
+1.Can we create an object to interface?
+2.Can we override a constructor in a class?
+3.Difference between driver.get()method and driver.navigate() methods?
+4.Difference between path parameters and query parameters in api?
+5.Explain about deserialisation in API automation?
+6.Difference between no such element exception and element not found exception in selenium?
+7.How to handle multiple windows in selenium?
+8.In Jenkins, if you have to run a test plan on a daily basis,how would you achieve that efficiently?
+9.Explain the Automation framework in your project?
+10.How do you generate reports in selenium framework?
+11.Explain Given/When/Then pattern in Rest Assured?
+12.Difference between Where clause and Having clause in SQL?
+13.Write a java program to print the occurrence of each character in your name using collections?
+14.Inheritance program is given and asked to guess the output.
+15.How do you handle stale element reference exception in selenium?
+16.What happens when driver.navigate().refresh() method is called in a program and a sample program is given and asked to write the output before calling the driver.navigate().refresh() method and after calling the method?
+17.What is method overriding?…see more
+
+
+Show more results
+
+
+
+
 𝐋𝐓𝐈𝐌𝐢𝐧𝐝𝐭𝐫𝐞𝐞 | 𝐑𝐨𝐮𝐧𝐝 1 𝐈𝐧𝐭𝐞𝐫𝐯𝐢𝐞𝐰 𝐐𝐮𝐞𝐬𝐭𝐢𝐨𝐧𝐬 – 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭
 
 📌 2–7+ 𝐘𝐞𝐚𝐫𝐬 𝐄𝐱𝐩𝐞𝐫𝐢𝐞𝐧𝐜𝐞
@@ -624,6 +707,8 @@ Preparing for a Playwright/SDET interview? Don't focus only on definitions. Be r
 9️⃣ How do you handle dynamic locators when attributes change?
 🔟 Explain Browser, BrowserContext and Page with a real project example.
 1️⃣1️⃣ How do you validate an API response and use its data in UI automation?
+
+14/10/2026
 1️⃣2️⃣ How do you intercept an API response and mock the data?
 1️⃣3️⃣ How would you automate nested iframes?
 1️⃣4️⃣ How do you handle file downloads and verify content?
