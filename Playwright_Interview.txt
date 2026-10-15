@@ -1413,62 +1413,1070 @@ Interview-ready answer
 “With my Playwright and TypeScript framework, I use page.route() to intercept API requests and route.fulfill() to return mocked responses. This helps me test positive and negative scenarios independently of backend availability. For example, I can mock product data, return a 500 error, or simulate an empty response and validate the corresponding UI behavior. If I need to modify a real backend response, I use route.fetch() and then route.fulfill(). This improves test reliability and gives me control over scenarios that are difficult to reproduce with a real backend.”
 
 #====================================================================================================
-# Q :
+# Q : Do you build your own test environments on virtual machines, including snapshot and restore? Give one example.
+==> For a 3.6-year Automation Engineer interview, answer this honestly based on whether you personally manage virtual machines or mainly execute automation tests in environments maintained by a DevOps or infrastructure team.
+
+Interview-ready answer — if you have worked with VM snapshots
+	Yes, I have worked with test environments hosted on virtual machines, where snapshot and restore help maintain a consistent environment for test execution.
+For example, in a web application automation project using Playwright with TypeScript, we needed a stable environment to test login, product ordering, and error-handling scenarios.
+I would start with a clean VM containing the required browser, runtime, dependencies, and test configuration. Once the environment was configured and verified, we would take a snapshot. After tests that modified the environment or left behind unwanted configuration changes, we could restore the VM to its known baseline.
+
+My workflow would be:
+1. Create the environment: Configure the OS, Node.js, Playwright dependencies, browsers, and required network settings.
+2. Validate the baseline: Run a smoke test to confirm the application and test setup work correctly.
+3. Take a snapshot: Save the known-good VM state before executing tests.
+4. Execute automation: Run the regression suite and capture reports, logs, and traces.
+5. Restore the environment: Revert to the snapshot when the VM needs to return to its original state.
+6. Verify the restore: Rerun a smoke test and confirm the environment is ready for the next execution.
+This helps reduce environment drift and makes failures easier to reproduce.”
+
+Example workflow
+1. Configure VM
+OS, Node.js, Playwright, browser dependencies
+
+2. Take baseline snapshot
+
+3. Run automated tests
+Capture reports, screenshots, and traces
+
+4. Restore snapshot if needed
+
+5. Verify environment readiness
 
 
+If you have not personally managed VMs
+A safer answer is:
+“I have experience running automation tests in configured test environments, but I haven't personally owned the complete VM snapshot-and-restore process. I understand the workflow: provision a VM, configure dependencies, establish a known-good baseline, take a snapshot, run tests, and restore the baseline when necessary. In a team setup, I would coordinate with the DevOps or infrastructure team for VM provisioning and snapshot management. My focus has been on test automation, environment validation, and debugging failures.”
+Important technical point: A VM snapshot restores machine state, but it may not restore external databases, shared services, or test data stored outside the VM. Those may need separate reset or backup procedures.
+Use the first answer only if you actually performed or participated in VM snapshot and restore. Otherwise, the second answer demonstrates technical understanding without overstating your experience.
+
+#====================================================================================================
+# Q : Tell us about a flaky test you fixed. What was the real cause, and how did you find it?
+===> For a 3.6-year Automation Engineer interview, I would answer this using a real-world scenario, explaining the symptom, root cause, investigation, fix, and result. A strong example is a flaky Playwright test caused by a React page updating asynchronously after an API response.
+
+Interview-ready answer (STAR method)
+
+Situation:
+“In one of my automation projects, I had a Playwright test written in TypeScript that validated the product list on an e-commerce application. The test passed locally but failed intermittently in Jenkins. Sometimes the product list was displayed correctly, and sometimes the test failed because the expected product was not found.”
+
+Task:
+“My responsibility was to identify the actual root cause and make the test stable without simply increasing timeouts or adding retries.”
+Action — How I investigated and fixed it:
+“First, I checked the Jenkins execution logs, screenshots, and Playwright traces. I noticed that the test was trying to locate the product immediately after navigating to the page, while the frontend was still waiting for the product API response and rendering the list.
+The real cause was a race condition between the asynchronous API response, React component rendering, and the test assertion. It was not a locator issue or a backend defect.”
+
+Initially, the test looked something like this:
+await page.goto('/products');
+
+const product = page.getByText('Laptop');
+await product.click();
+
+
+The test assumed the product would be available immediately after navigation.
+I fixed it by waiting for the expected UI state using Playwright's web-first assertions:
+import { test, expect } from '@playwright/test';
+
+test('Select a product', async ({ page }) => {
+  await page.goto('/products');
+
+  const product = page.getByText('Laptop', {exact: true  });
+
+  // Wait until the product is actually rendered
+  await expect(product).toBeVisible();
+
+  await product.click();
+});
+
+
+If the API response itself was important to the scenario, I would register a response listener before navigating or triggering the action:
+const responsePromise = page.waitForResponse(response =>
+  response.url().includes('/api/products') &&
+  response.request().method() === 'GET' &&
+  response.status() === 200
+);
+
+await page.goto('/products');
+
+await responsePromise;
+
+await expect(page.getByText('Laptop', { exact: true })).toBeVisible();
+
+
+I would use the response wait only when the test needs to verify that specific API call. The UI assertion remains important because an API response alone does not guarantee that the frontend rendered the expected data.
+
+Result:
+“After removing the timing assumption and synchronizing the test with the actual application state, the test became more reliable in CI. I also reviewed similar tests for hardcoded sleeps, unstable selectors, and shared test data to prevent the same issue elsewhere. I used retries only to help diagnose intermittent failures, not as the permanent fix.”
+
+Follow-up questions an interviewer may ask
+
+1. Why didn't you use waitForTimeout(5000)?
+Because a fixed sleep waits for the same duration regardless of application state. It can slow down execution and still fail when the application takes longer. I prefer condition-based waits and web-first assertions.
+
+2. How did you prove the root cause?
+I correlated the failed assertion with the Playwright trace and API timing. The trace showed the test reaching the assertion before the product appeared in the DOM. After adding the appropriate synchronization, I reran the test repeatedly and in CI to verify stability.
+
+3. What if the test still fails intermittently?
+I would investigate other possible causes, such as shared test data, parallel execution conflicts, unstable selectors, network failures, or backend inconsistency. I would use traces, screenshots, logs, and response details to isolate the issue instead of automatically increasing retries.
+
+Short answer for a live interview
+	I fixed a flaky Playwright test that passed locally but failed intermittently in Jenkins. I investigated the execution logs and Playwright traces and found that the test was interacting with a product before the asynchronous API response had been rendered by React. I replaced the timing assumption with Playwright web-first assertions and added an API response wait where needed. I then reran the test locally and in CI to verify the fix. The key lesson was to identify and fix the actual race condition instead of hiding it with hardcoded sleeps or retries.”
+Interview tip: Use this as a sample only if it matches your experience. Be ready to explain the actual trace, error message, and verification steps from a flaky test you personally investigated
+
+#====================================================================================================
+# Q : How would you automate nested iframes?
+==> In Playwright with TypeScript, I automate nested iframes using frameLocator(). It allows me to locate an element inside an iframe and then move into another iframe nested inside it, without manually switching browser context.
+For example, in a payment application, the checkout page may contain a payment iframe, which contains another iframe for card details.
+1. Nested iframe structure
+Main page
+checkout.example.com
+Iframe 1 — Payment
+payment-frame
+Iframe 2 — Card details
+card-frame
+Card number input
+
+2. Playwright TypeScript example
+Suppose the card number input is inside a nested iframe.
+import { test, expect } from '@playwright/test';
+
+test('Handle nested payment iframes', async ({ page }) => {
+  await page.goto('https://example.com/checkout');
+
+  // Locate the outer iframe
+  const paymentFrame = page.frameLocator('iframe[title="Payment frame"]');
+
+  // Locate the nested iframe inside the outer iframe
+  const cardFrame = paymentFrame.frameLocator('iframe[title="Card details"]');
+
+  // Interact with elements inside the nested iframe
+  await cardFrame.getByLabel('Card number').fill('4111111111111111');
+
+  await cardFrame.getByLabel('Expiry date').fill('12/30');
+
+  await cardFrame.getByLabel('CVV').fill('123');
+
+  // Validate the expected state
+  await expect(cardFrame.getByLabel('Card number')).toHaveValue('4111111111111111');
+});
+The iframe selectors, labels, and payment data above are illustrative; they must match the actual page. Use only authorized test payment data in a sandbox environment.
+
+3. What if the iframe has no title or stable ID?
+I inspect the DOM and identify a reliable selector, such as a stable name, data-testid, or another unique attribute.
+const outerFrame = page.frameLocator('iframe[name="payment-container"]');
+
+const innerFrame = outerFrame.frameLocator('iframe[name="card-entry"]');
+
+await innerFrame.locator('input[name="cardNumber"]').fill('4111111111111111');
+
+If multiple iframes match the selector, I narrow the locator so it identifies the intended frame rather than relying on .first() or .nth() without a clear reason.
+
+4. What if the iframe loads slowly?
+I use Playwright's auto-waiting and web-first assertions rather than fixed sleeps.
+const cardFrame = page
+  .frameLocator('iframe[title="Payment frame"]')
+  .frameLocator('iframe[title="Card details"]');
+
+const cardNumber = cardFrame.getByLabel('Card number');
+
+await expect(cardNumber).toBeVisible();
+await cardNumber.fill('4111111111111111');
+
+
+If the iframe depends on an asynchronous network request, I investigate the relevant response or application state as well.
+5. Common interview follow-up questions
+
+Q: Do you need to switch into each iframe manually?
+	No. frameLocator() lets me chain through nested iframes directly.
+
+Q: Can Playwright handle cross-origin iframes?
+	Yes. Playwright can interact with elements inside cross-origin iframes when the frame is accessible to the browser automation session and the selectors are valid. Same-origin JavaScript restrictions do not prevent Playwright's normal frame-locator workflow.
+
+Q: What if the iframe is dynamically attached or detached?
+	I use frameLocator() and resilient locators, which resolve elements as needed. If the frame repeatedly detaches, I inspect the trace and application lifecycle to identify the cause instead of adding arbitrary delays.
+
+Q: How does Selenium Java differ?
+	Selenium typically requires explicit frame switching with driver.switchTo().frame(...), repeating the process for each nested frame, then returning with parentFrame() or defaultContent().
+
+Interview-ready answer
+“In Playwright, I handle nested iframes using chained frameLocator() calls. First, I locate the outer iframe, then locate the inner iframe within it, and finally interact with the required element using normal Playwright locators. I use stable iframe attributes, auto-waiting, and assertions to handle dynamic loading. Unlike Selenium, I don't need to manually switch into and out of each frame. This makes the automation code cleaner and easier to maintain.”
+
+#====================================================================================================
+# Q : How do you handle file downloads and verify content?
+==> In Playwright with TypeScript, I handle file downloads using page.waitForEvent('download'). I register the download listener before clicking the download button, save the file, and verify its existence, file name, and actual content.
+In my automation framework, I commonly apply this to reports, invoices, CSV exports, and PDF documents.
+
+1. Real project example: Download and verify an invoice
+Suppose an e-commerce application allows a customer to download an order invoice as a PDF. I need to verify that the download succeeds and that the invoice contains the correct order details.
+
+Step 1: Download the file
+import { test, expect } from '@playwright/test';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+test('Download and verify invoice', async ({ page }) => {
+  await page.goto('https://example.com/orders');
+
+  // Register listener before clicking Download
+  const downloadPromise = page.waitForEvent('download');
+
+  await page.getByRole('button', {name: 'Download Invoice'}).click();
+
+  const download = await downloadPromise;
+
+  // Verify suggested file name
+  expect(download.suggestedFilename()).toMatch(/invoice.*\.pdf$/i);
+
+  // Save the downloaded file
+  const filePath = path.join(test.info().outputDir, download.suggestedFilename());
+
+  await download.saveAs(filePath);
+
+  // Verify the file exists
+  const fileStat = await fs.stat(filePath);
+  expect(fileStat.size).toBeGreaterThan(0);
+
+  // Verify the download completed without an error
+  expect(await download.failure()).toBeNull();
+});
+
+
+This verifies that the file was downloaded and is non-empty. It does not yet prove that the PDF contains the correct invoice data.
+2. How do you verify the actual file content?
+The validation depends on the file format.
+
+1. CSV / Excel
+Parse rows and columns, then validate expected headers, order IDs, prices, and record counts.
+2. PDF
+Extract text using a PDF parsing library and assert the invoice number, customer name, and total amount.
+3. JSON / TXT
+Read the file and parse JSON or compare the expected text and values.
+
+Example: Verify a downloaded CSV
+import { test, expect } from '@playwright/test';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+test('Download and verify CSV export', async ({ page }) => {
+  await page.goto('https://example.com/orders');
+
+  const downloadPromise = page.waitForEvent('download');
+
+  await page.getByRole('button', {name: 'Export CSV'}).click();
+
+  const download = await downloadPromise;
+
+  const filePath = path.join(test.info().outputDir, download.suggestedFilename());
+
+  await download.saveAs(filePath);
+
+  const csv = await fs.readFile(filePath, 'utf8');
+
+  // Validate headers and business data
+  expect(csv).toContain('Order ID');
+  expect(csv).toContain('Customer');
+  expect(csv).toContain('ORD-1001');
+  expect(csv).toContain('Total');
+});
+For production tests, I would use a CSV parser rather than simple includes() checks when fields can contain commas, quotes, or line breaks. I would also assert the exact expected values rather than merely checking that a few strings exist.
+
+3. Important points I mention in interviews
+- Register waitForEvent('download') before clicking the download button to avoid missing the event.
+- Use test.info().outputDir to keep downloaded files organized per test.
+- Check download errors and ensure the file is non-empty.
+- Verify the actual content, not only the filename.
+- For PDFs, use a suitable PDF text-extraction library; for Excel, use a spreadsheet parser.
+- Clean up temporary files when necessary.
+- Playwright's acceptDownloads option is enabled by default in standard Playwright Test browser contexts, but check configuration if downloads are not being captured.
+
+Interview-ready answer
+“In my Playwright TypeScript framework, I handle downloads using page.waitForEvent('download'), registering the listener before clicking the download button. I save the file in the test output directory and validate the filename, download status, and file size. Then I verify the actual content according to the format—for example, parsing CSV records or extracting text from a PDF to check invoice numbers, order IDs, and totals. This ensures the download is not just successful but also contains the correct business data.
+
+#====================================================================================================
+# Q : A test passes individually but fails in parallel. What could cause it?
+==> In Playwright with TypeScript, if a test passes individually but fails when executed in parallel, I suspect a test isolation issue, shared test data, race condition, or resource contention.
+In my automation framework, I investigate the root cause rather than disabling parallel execution or adding retries immediately.
+1. Common causes and solutions
+Possible cause			| 	Real-world example 					|		How I fix it
+1. Shared test data		| Two tests update the same user account			|	Create unique test data for each test
+2. Shared accounts		| Two tests change the same user's password or settings		|	Use separate test accounts or isolated data
+3. Race conditions		| One test deletes a record while another verifies it		| 	Avoid dependencies and coordinate setup/cleanup
+4. Shared files			| Multiple tests overwrite the same downloaded  		|	Use a unique file path per test
+5.Global state			| Tests modify shared variables or singleton objects		|	Keep state test-scoped
+6. Backend contention		| Too many parallel requests overload the server		| 	Tune worker count and investigate server capacity
+7. Environment conflicts	| Tests share the same cart, database, or tenant		|	Isolate data and reset state reliably
+8. Timing assumptions		| A test expects an element before an asynchronous update finishes|	Use Playwright auto-waiting and web-first assertions
+
+2. Real project example: E-commerce application
+Suppose two tests run in parallel:
+- Test A adds a laptop to a shopping cart.
+- Test B verifies that the cart is empty.
+
+If both tests use the same account, Test A can modify the cart while Test B is checking it. Both tests may pass individually but fail when executed together.
+
+Root cause: Shared mutable test data.
+Fix: Give each test its own user or cart and create the required data independently.
+
+import { test, expect } from '@playwright/test';
+
+test('Customer A sees their own cart', async ({ page }) => {
+  // Each test receives its own test data and session.
+  const user = await createTestUser();
+
+  await login(page, user);
+  await page.goto('/cart');
+
+  await expect( page.getByText('Your cart is empty')).toBeVisible();
+});
+
+test('Customer B can add a product', async ({ page }) => {
+  const user = await createTestUser();
+
+  await login(page, user);
+  await page.goto('/products');
+
+  await page.getByRole('button', {  name: 'Add to cart'  }).click();
+
+  await expect( page.getByTestId('cart-count')).toHaveText('1');
+});
+
+
+Here, createTestUser() and login() represent project-specific helper functions. The important part is that each test receives independent user data, and the backend must enforce that isolation.
+3. How I investigate the failure
+
+Step 1: Reproduce
+	Run the test individually, then with parallel workers. Compare the failure patterns.
+
+Step 2: Inspect evidence
+	Check Playwright traces, screenshots, logs, API responses, and backend records.
+
+Step 3: Check isolation
+	Look for shared accounts, duplicate records, static variables, shared files, and test dependencies.
+
+Step 4: Verify the fix
+	Run the affected tests repeatedly in parallel and confirm that the root cause is resolved.
+
+4. How do you configure parallel execution?
+Playwright Test supports worker configuration in playwright.config.ts:
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  fullyParallel: true,
+  workers: process.env.CI ? 4 : undefined,
+
+  use: {
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure'
+  }
+});
+
+This is an example configuration, not a universal worker recommendation. I would tune the worker count according to CI machine resources, application capacity, and observed contention.
+Also, Playwright Test normally gives each test an isolated browser context. That does not automatically isolate backend accounts, database records, external services, or files.
+
+Interview-ready answer
+“If a test passes individually but fails in parallel, I first suspect shared test data, race conditions, or resource contention. For example, two e-commerce tests might modify the same user's cart, causing inconsistent results. I investigate using Playwright traces, screenshots, logs, and API responses. Then I isolate test data, avoid dependencies between tests, ensure proper cleanup, and tune the worker count if the environment is overloaded. Finally, I rerun the tests repeatedly in parallel to confirm the fix. I don't treat retries or disabling parallel execution as the permanent solution unless there is a justified infrastructure limitation.”
 
 
 #====================================================================================================
-# Q :
+# Q : How do you capture screenshots only when a test fails?
+==> In Playwright with TypeScript, I configure screenshot: 'only-on-failure' in playwright.config.ts. This automatically captures a screenshot when a test fails, without requiring screenshot code in every test case.
+
+1. Recommended approach: Playwright configuration
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure'
+  },
+
+  reporter: [
+    ['html', { open: 'never' }]
+  ]
+});
 
 
+How it works:
+- screenshot: 'only-on-failure' — captures screenshots for failed tests.
+- trace: 'retain-on-failure' — retains traces for debugging failed tests.
+- video: 'retain-on-failure' — retains video recordings for failed tests.
+- reporter — generates an HTML report containing test results and available attachments.
+The HTML report can be opened after execution using:
+npx playwright show-report
 
+2. Alternative: Capture screenshots manually
+If I need custom screenshot naming or want to control exactly what gets captured, I use a fixture or afterEach hook.
+import { test, expect } from '@playwright/test';
+
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    await page.screenshot({
+      path: testInfo.outputPath('failure.png'),
+      fullPage: true
+    });
+  }
+});
+
+test('Verify login', async ({ page }) => {
+  await page.goto('https://example.com/login');
+
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+});
+The hook captures a screenshot when the actual result differs from the expected result, including unexpected passes of tests marked as expected to fail. testInfo.outputPath() creates a test-specific output path, avoiding filename conflicts during parallel execution.
+Important: For ordinary projects, I prefer the built-in configuration because it is simpler and automatically integrates with Playwright's test reporting.
+
+Interview-ready answer
+“In my Playwright framework, I configure screenshot: 'only-on-failure' in playwright.config.ts. This automatically captures screenshots for failed test cases. I also enable trace: 'retain-on-failure' to inspect actions, locators, and network activity. If I need custom screenshot naming or conditional capture logic, I use an afterEach hook and testInfo.outputPath() to save screenshots without conflicts during parallel execution.”
 
 #====================================================================================================
-# Q :
+# Q : How would you support multiple environments, browsers and user roles?
+==> In Playwright with TypeScript, I support multiple environments, browsers, and user roles using a configuration-driven framework, reusable fixtures, and environment-specific test data. My goal is to avoid duplicating tests while making it easy to run the same suite across QA, staging, production-like environments, Chromium, Firefox, WebKit, and different user roles.
+For example, in an e-commerce project, I might run customer checkout tests on Chromium in QA, admin tests on Firefox in staging, and read-only customer smoke tests against a production-like environment.
+1. Framework design
+Environment configuration
+QA · Staging · Production-like
+
+Playwright projects
+Chromium · Firefox · WebKit
+
+Role-based fixtures
+Customer · Admin · Read-only user
+
+Reusable tests
+Login · Checkout · Order management · Authorization
+
+2. Support multiple environments
+I maintain environment-specific URLs in configuration rather than hardcoding them in test cases.
+Example: config/env.ts
+const environments = {
+  qa: 'https://qa.example.com',
+  staging: 'https://staging.example.com',
+  productionLike: 'https://preprod.example.com'
+};
+
+const envName = process.env.TEST_ENV || 'qa';
+
+if (!(envName in environments)) {
+  throw new Error(`Unsupported environment: ${envName}`);
+}
+
+export const baseURL =
+  environments[envName as keyof typeof environments];
 
 
+Then I use the selected URL in playwright.config.ts:
+import { defineConfig } from '@playwright/test';
+import { baseURL } from './config/env';
 
+export default defineConfig({
+  use: {
+    baseURL,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure'
+  }
+});
+
+
+Run the same tests against different environments:
+# Windows PowerShell
+$env:TEST_ENV="qa"; npx playwright test
+
+$env:TEST_ENV="staging"; npx playwright test
+
+In CI/CD, I set TEST_ENV as a pipeline variable. Credentials and secrets come from environment variables or a secrets manager, not source control.
+
+3. Support multiple browsers
+I define browser projects in playwright.config.ts so the same test suite can run across browsers.
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] }
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] }
+    }
+  ]
+});
+
+Run a particular browser:
+npx playwright test --project=chromium
+npx playwright test --project=firefox
+npx playwright test --project=webkit
+
+This configuration can be combined with the environment-specific use settings from the previous example in one config file.
+
+4. Support multiple user roles
+I use reusable fixtures to manage role-specific authentication and permissions. For example, a customer can place an order, while an administrator can manage orders.
+Here is a simplified fixture that logs in as the requested role:
+// fixtures/role-fixture.ts
+import { test as base, expect } from '@playwright/test';
+
+type Role = 'customer' | 'admin';
+
+type RoleFixtures = {
+  role: Role;
+};
+
+export const test = base.extend<RoleFixtures>({
+  role: ['customer', { option: true }],
+
+  page: async ({ page, role }, use) => {
+    const credentials = {
+      customer: {
+        email: process.env.CUSTOMER_EMAIL!,
+        password: process.env.CUSTOMER_PASSWORD!
+      },
+      admin: {
+        email: process.env.ADMIN_EMAIL!,
+        password: process.env.ADMIN_PASSWORD!
+      }
+    };
+
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(credentials[role].email);
+    await page.getByLabel('Password').fill(credentials[role].password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await use(page);
+  }
+});
+
+export { expect };
+
+Use the fixture in tests:
+import { test, expect } from '../fixtures/role-fixture';
+
+test('Customer can view orders', async ({ page }) => {
+  await page.goto('/orders');
+
+  await expect(page.getByRole('heading', { name: 'My Orders' })).toBeVisible();
+});
+
+test('Admin can manage orders', async ({ page }) => {
+  await page.goto('/admin/orders');
+
+  await expect(page.getByRole('heading', { name: 'Order Management' })).toBeVisible();
+});
+
+
+The examples assume the application has these login fields and headings. In a production framework, I would also wait for successful authentication, validate authorization, and use separate accounts and isolated data for parallel tests. For faster execution, I can save separate storageState files for each role and load them into the appropriate projects or fixtures.
+5. How I organize the framework
+playwright.config.ts
+
+Browser projects, base URL, reporters, retries, timeouts
+
+config/env.ts
+
+Environment URLs and environment selection
+
+fixtures/
+
+Authentication, user roles, reusable setup and teardown
+
+tests/
+
+Reusable test scenarios and role-specific assertions
+
+Interview-ready answer
+“With my Playwright and TypeScript framework, I support multiple environments using environment variables and centralized configuration, so URLs and settings are not hardcoded in tests. I use Playwright projects to run the same suite across Chromium, Firefox, and WebKit. For multiple user roles, I create reusable fixtures or role-specific storage states for customer, admin, and other users. I keep credentials in secure environment variables, isolate test data for parallel execution, and configure the CI/CD pipeline to select the required environment and browser. This makes the framework reusable, scalable, and easier to maintain.”
 
 #====================================================================================================
-# Q :
+# Q : A locator works in Chrome but fails in Firefox. How would you debug it?
+===> For an Automation Engineer with 3.6 years of experience, I would answer this using a systematic debugging approach in Playwright with TypeScript, rather than assuming the issue is a browser bug.
+
+Interview-ready answer
+“If a locator works in Chrome but fails in Firefox, I first determine whether the issue is caused by the locator, browser-specific rendering, timing, or an actual application compatibility problem.
+I would follow these steps:
+1. Reproduce the failure: Run the same test in both browsers and confirm that it consistently fails only in Firefox.
+2. Check the error and trace: Review the Playwright error message, screenshot, trace viewer, DOM snapshot, and console logs to understand whether the element is missing, hidden, covered, or not actionable.
+3. Validate the locator: Check whether the locator depends on a browser-specific CSS selector, unstable class, XPath, or exact text. Prefer stable attributes such as data-testid, accessible roles, and labels.
+4. Check timing and rendering: Firefox may render the page or complete an animation differently. Use Playwright's auto-waiting and web-first assertions instead of fixed sleeps.
+5. Check visibility and interaction: Verify that the element is visible, enabled, and not blocked by an overlay. Check whether the application behaves differently in Firefox.
+6. Compare browser configurations: Check browser versions, viewport size, permissions, authentication state, and network/API failures.
+7. Fix and verify: Make the locator or synchronization reliable, then rerun the test in Chromium, Firefox, and WebKit to ensure the fix is not browser-specific.”
+
+Example: Debugging with Playwright TypeScript
+Suppose a Login button works in Chrome but fails in Firefox.
+Potentially fragile locator
+// May depend on an unstable CSS class
+const loginButton = page.locator(".btn-primary.login-v2");
+await loginButton.click();
 
 
+I would inspect the DOM and replace it with a stable, user-facing locator if possible.
+Preferred approach
+import { test, expect } from "@playwright/test";
+
+test("login works across browsers", async ({ page }) => {
+  await page.goto("https://example.com/login");
+
+  const loginButton = page.getByRole("button", { name: "Login", exact: true });
+
+  await expect(loginButton).toBeVisible();
+  await expect(loginButton).toBeEnabled();
+
+  await loginButton.click();
+
+  await expect(page).toHaveURL(/dashboard/);
+});
+
+This helps eliminate brittle selectors and verifies the button's state before interaction. Playwright automatically waits for the click action's required actionability conditions.
+Important: If this still fails in Firefox, I would not immediately add a timeout or force the click. I would inspect the trace and DOM to identify the actual cause.
+
+How I would investigate the failure
+Symptom						|	What I would check
+1. Locator resolves to zero elements		|	DOM differences, selector validity, rendering, iframe or shadow DOM
+2. Strict mode violation			|	Multiple matching elements; scope the locator to the correct container
+3. Element is not visible			|	CSS differences, responsive layout, hidden elements
+4. Click times out				|	Overlay, animation, disabled state, or element movement
+5. Click succeeds but test fails		|	Application behavior, API responses, navigation timing
+6. Test passes alone but fails in a suite	|	Shared data, test isolation, parallel execution, or state leakage
+
+Run the test in Firefox with debugging enabled
+npx playwright test tests/login.spec.ts --project=firefox --headed
+
+
+To open the Playwright Inspector:
+npx playwright test tests/login.spec.ts --project=firefox --debug
+
+
+For trace collection, configure:
+// playwright.config.ts
+use: {
+  trace: "retain-on-failure",
+  screenshot: "only-on-failure"
+}
+
+Then inspect the trace to see the failed action, DOM snapshot, timing, and network activity.
+Strong closing statement for the interview
+“I would first isolate whether the failure is due to a brittle locator, timing, browser rendering, or an application defect. I would use Playwright traces and browser-specific debugging to find the root cause, fix the underlying issue, and rerun the test across all supported browsers. I would avoid waitForTimeout() and force: true unless there is a justified reason, because they can hide the real problem.”
 
 #====================================================================================================
-# Q :
+# Q : Your suite takes 2 hours. How would you reduce it to 30 minutes?
+==> For an Automation Engineer with 3.6 years of experience, I would approach this as a test execution optimization problem. My goal would be to reduce execution time from 2 hours to 30 minutes without compromising test coverage, reliability, or result accuracy.
+1. Interview-ready answer
+“If my automation suite takes 2 hours, I would first analyze where the time is being spent rather than immediately increasing parallel workers.
+I would take the following steps:
+1. Analyze execution time: Identify slow test cases, repeated setup, unnecessary waits, and environment bottlenecks using Playwright reports and traces.
+2. Enable parallel execution: Split independent tests across multiple workers and CI agents, ensuring tests do not share mutable data or state.
+3. Reduce unnecessary UI operations: Use API requests to create test data and establish preconditions instead of navigating through multiple UI screens.
+4. Remove fixed waits: Replace waitForTimeout() with web-first assertions, appropriate locator waits, and waits for specific network responses where necessary.
+5. Optimize test coverage: Run smoke tests on every pull request, execute the full regression suite on a schedule or before releases, and avoid duplicate scenarios without reducing required coverage.
+6. Improve test isolation: Use independent test data and accounts so tests can safely run in parallel.
+7. Optimize CI infrastructure: Check CPU, memory, browser startup overhead, and test environment response times. Add workers or distributed execution only when resources support them.
+8. Measure the results: Compare execution time, failure rate, retries, and coverage after each optimization.
+I would aim for 30 minutes through measured improvements, then validate that the faster suite remains stable across repeated CI runs.”
+2. How I would implement it in Playwright + TypeScript
+Step 1: Enable parallel execution
+In playwright.config.ts:
+import { defineConfig } from "@playwright/test";
+
+export default defineConfig({
+  fullyParallel: true,
+
+  workers: process.env.CI ? 4 : undefined,
+
+  retries: process.env.CI ? 1 : 0,
+
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }]
+  ],
+
+  use: {
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure"
+  }
+});
 
 
+Here, workers: 4 is an illustrative starting point, not a guaranteed optimal value. I would benchmark different worker counts against the available CI resources and application capacity.
+Step 2: Replace fixed waits
+Avoid this
+await page.waitForTimeout(5000);
+await expect(page.getByText("Order placed")).toBeVisible();
 
+
+Prefer this
+await expect(
+  page.getByText("Order placed")
+).toBeVisible({ timeout: 10000 });
+
+
+The assertion waits for the expected state instead of always consuming five seconds. The timeout is a maximum, not a delay that always runs.
+Step 3: Use API setup instead of repetitive UI setup
+Suppose every checkout test creates a user and adds products through the UI. That setup could take several minutes across many tests.
+Instead, create the user or seed the required data through an API, then use the UI only to test the checkout behavior itself.
+import { test, expect } from "@playwright/test";
+
+test("customer can view a seeded order", async ({
+  page,
+  request
+}) => {
+  const response = await request.post(
+    "/api/test/orders",
+    {
+      data: {
+        productId: "SKU-101",
+        quantity: 1
+      }
+    }
+  );
+
+  expect(response.ok()).toBeTruthy();
+
+  const order = await response.json();
+
+  await page.goto(`/orders/${order.id}`);
+
+  await expect(
+    page.getByTestId("order-status")
+  ).toHaveText("Confirmed");
+});
+
+This is illustrative: the test endpoint, authentication, and response structure must match the actual application. API-created data should not bypass the behavior the test is supposed to validate.
+Step 4: Separate fast feedback from full regression
+Test group		|	When to run		|	Purpose
+1. Smoke tests		| Every pull request		|	Validate critical application flows
+2.Focused regression	| After relevant changes	|	Test impacted features
+3. Full regression	| Scheduled or before release	|	Broader coverage across features
+4. Cross-browser suite	| CI or scheduled runs		|	Validate browser compatibility
+
+This improves feedback time without treating skipped regression tests as completed tests.
+
+4. How I would prioritize the work
+
+1. First: Measure
+	Find the slowest tests, expensive fixtures, repeated login/setup, and fixed waits.
+2. Second: Parallelize safely
+	Use independent data, isolate accounts, remove shared-file conflicts, and tune workers.
+3. Third: Remove waste
+	Use API-based setup, reusable authenticated state where appropriate, and event-based synchronization.
+4. Finally: Validate quality
+	Repeat runs and compare failures, flaky-test rates, coverage, and total execution time.
+
+5. Follow-up question interviewers may ask
+
+Q: What if you enable parallel execution but tests start failing?
+“I would investigate shared test data, shared user accounts, race conditions, environment capacity, and order-dependent setup. I would make tests independent and control access to genuinely shared resources. I would not simply reduce workers or add retries to hide the failures.”
+Strong closing line: “My strategy is to reduce wasted execution time, parallelize independent tests, optimize setup, and measure the results—while preserving coverage and reliability. I would target 30 minutes based on actual profiling rather than promise a fourfold speedup from parallelization alone.”
 
 #====================================================================================================
-# Q :
+# Q :  Build a Playwright framework from scratch. What components would you include?
+==> For an Automation Engineer with 3.6 years of experience, I would design a scalable, maintainable Playwright framework using TypeScript with clear separation between test cases, page objects, test data, configuration, API utilities, and reporting.
+My goal would be to build a framework that supports multiple environments, browsers, user roles, parallel execution, API testing, CI/CD integration, and easy debugging.
+1. Framework architecture
+Test Layer
+UI tests · API tests · BDD scenarios (optional)
+
+Reusable Components
+Page Objects · Fixtures · API clients · Test data builders
+
+Core Framework
+Configuration · Authentication · Utilities · Logging · Assertions
+
+Execution & Reporting
+Playwright projects · Parallel workers · HTML reports · Traces · CI/CD
 
 
+2. Folder structure I would create
+playwright-framework/
+├── tests/
+│   ├── ui/
+│   │   ├── login.spec.ts
+│   │   ├── checkout.spec.ts
+│   │   └── products.spec.ts
+│   └── api/
+│       ├── auth.api.spec.ts
+│       └── orders.api.spec.ts
+│
+├── pages/
+│   ├── LoginPage.ts
+│   ├── ProductsPage.ts
+│   └── CheckoutPage.ts
+│
+├── fixtures/
+│   └── testFixtures.ts
+│
+├── api/
+│   ├── ApiClient.ts
+│   └── OrderApi.ts
+│
+├── config/
+│   └── environments.ts
+│
+├── test-data/
+│   ├── users.json
+│   └── products.json
+│
+├── utils/
+│   ├── testDataFactory.ts
+│   └── fileUtils.ts
+│
+├── schemas/
+│   └── order.schema.json
+│
+├── playwright.config.ts
+├── package.json
+├── tsconfig.json
+├── .env.example
+├── .gitignore
+└── README.md
 
 
-#====================================================================================================
-# Q :
+I would add components only when they solve a real need. For example, BDD integration, visual testing, or schema validation can be added later rather than introducing unnecessary complexity at the beginning.
+
+3. Core components and why I need them
+Component			|	Responsibility
+1. Playwright Test Runner	|	Executes tests, manages fixtures, assertions, retries, and parallelism
+2. Page Object Model (POM)	|	Encapsulates page locators and UI actions
+3. Custom fixtures		|	Provides reusable pages, authenticated sessions, and test setup
+4. Environment configuration	|	Supports QA, staging, and other environments
+5. API layer			|	Creates test data, validates APIs, and handles cleanup
+6. Test data management		|	Provides controlled, independent data for each test
+7. Reporting and logging	|	Captures test results, errors, and diagnostics
+8. CI/CD integration		|	Runs tests automatically in pipelines
+9. Secrets management		|	Keeps passwords, tokens, and keys out of source control
+10. Utilities			|	Handles reusable tasks such as file verification and data generation
+
+4. Build the framework step by step
+
+Step 1 — Initialize the project
+mkdir playwright-framework
+cd playwright-framework
+
+npm init -y
+npm init playwright@latest
+
+Choose TypeScript when prompted. Then install any additional libraries needed by your project, such as a schema validator or CSV parser.
+
+Step 2 — Configure execution
+playwright.config.ts
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 4 : undefined,
+
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }]
+  ],
+
+  use: {
+    baseURL: process.env.BASE_URL || "https://example.com",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure"
+  },
+
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] }
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] }
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] }
+    }
+  ]
+});
+
+Why? This centralizes browser execution, test parallelism, diagnostics, and base URL configuration. Four CI workers are just a starting point; I would tune them based on machine capacity and test isolation.
+
+Step 3 — Implement a Page Object
+pages/LoginPage.ts
+import { type Page, type Locator } from "@playwright/test";
+
+export class LoginPage {
+  private readonly username: Locator;
+  private readonly password: Locator;
+  private readonly loginButton: Locator;
+  private readonly errorMessage: Locator;
+
+  constructor(private readonly page: Page) {
+    this.username = page.getByLabel("Username");
+    this.password = page.getByLabel("Password");
+    this.loginButton = page.getByRole("button", {
+      name: "Login"
+    });
+    this.errorMessage = page.getByTestId("login-error");
+  }
+
+  async open(): Promise<void> {
+    await this.page.goto("/login");
+  }
+
+  async login(username: string, password: string): Promise<void> {
+    await this.username.fill(username);
+    await this.password.fill(password);
+    await this.loginButton.click();
+  }
+
+  async getErrorMessage(): Promise<string | null> {
+    return this.errorMessage.textContent();
+  }
+}
+
+Why? Locators and page actions stay in one place, making maintenance easier when the UI changes. I would keep business assertions primarily in test files rather than making page objects responsible for every test expectation.
+
+Step 4 — Create a reusable fixture
+fixtures/testFixtures.ts
+import { test as base, expect } from "@playwright/test";
+import { LoginPage } from "../pages/LoginPage";
+
+type Fixtures = {
+  loginPage: LoginPage;
+};
+
+export const test = base.extend<Fixtures>({
+  loginPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+    await use(loginPage);
+  }
+});
+
+export { expect };
+
+Now each test can use the same fixture without constructing the page object repeatedly.
+Step 5 — Write a test
+tests/ui/login.spec.ts
+import { test, expect } from "../../fixtures/testFixtures";
+
+test("user sees an error for invalid credentials", async ({ loginPage }) => {
+  await loginPage.open();
+
+  await loginPage.login("invalid-user", "invalid-password");
+
+  await expect(loginPage["page"]?.getByTestId("login-error")).toBeVisible();
+});
+
+The test illustrates the flow, but the last assertion is not a good implementation because page is private. I would expose a locator or an assertion-friendly method from the page object instead.
+For example, add this method to LoginPage:
+get errorMessageLocator(): Locator {
+  return this.errorMessage;
+}
+Then use it in the test:
+await expect(loginPage.errorMessageLocator).toBeVisible();
+
+This keeps the page object's encapsulation intact.
+
+Step 6 — Support multiple environments
+config/environments.ts
+const environments = {
+  qa: "https://qa.example.com",
+  staging: "https://staging.example.com"
+} as const;
+
+type Environment = keyof typeof environments;
+
+const envName = process.env.TEST_ENV || "qa";
+
+if (!(envName in environments)) {
+  throw new Error(`Unsupported TEST_ENV: ${envName}`);
+}
+
+export const baseURL =   environments[envName as Environment];
 
 
+I would then configure baseURL in playwright.config.ts using the exported value.
+Run against different environments:
+$env:TEST_ENV="qa"
+npx playwright test
 
+$env:TEST_ENV="staging"
+npx playwright test
 
-#====================================================================================================
-# Q :
+In a production framework, I would also validate required credentials and keep secrets in environment variables or the CI secret store.
 
+Step 7 — Add an API layer
+For an e-commerce project, API utilities could create a customer or order before a UI test and clean up test data afterward.
+import { APIRequestContext, expect } from "@playwright/test";
 
+export class OrderApi {
+  constructor(private readonly request: APIRequestContext) {}
 
+  async getOrder(orderId: string) {
+    const response = await this.request.get(`/api/orders/${orderId}` );
 
-#====================================================================================================
-# Q :
+    expect(response.status()).toBe(200);
 
+    return response.json();
+  }
+}
+This uses Playwright's APIRequestContext. Authentication, the API base URL, and any request headers must be configured for the actual application.
 
+Step 8 — Add reporting and debugging
+I would include:
+- HTML report for test results.
+- Trace Viewer for failed actions, DOM snapshots, and network activity.
+- Screenshots and videos on failure when useful.
+- Console and API error diagnostics.
+- CI artifacts so the team can investigate failures after a pipeline run.
+Useful commands:
+npx playwright test
+npx playwright test --project=chromium
+npx playwright test --grep "@smoke"
+npx playwright test --last-failed
+npx playwright show-report
 
+For tagging, I would use titles or annotations consistently so smoke, regression, and other test groups can be selected easily.
 
-#====================================================================================================
-# Q :
+Step 9 — Integrate with CI/CD
+For Jenkins, GitHub Actions, or another CI system, I would configure the pipeline to:
+1. Check out the repository.
+2. Install dependencies using the lockfile.
+3. Install the required Playwright browsers and OS dependencies.
+4. Inject environment configuration and secrets.
+5. Run smoke or regression tests.
+6. Publish reports and failure artifacts.
+7. Fail the pipeline when required tests fail.
 
+Step 10 — Define coding standards
+I would establish these rules from the beginning:
+- Prefer role, label, and stable test-ID locators.
+- Avoid fixed sleeps and unnecessary force clicks.
+- Use independent test data and isolated sessions.
+- Avoid hard-coded credentials.
+- Keep page objects focused and reusable.
+- Do not swallow exceptions or mark failed tests as passed.
+- Use retries for transient CI failures only as a diagnostic aid, not as a substitute for fixing flaky tests.
+- Review test coverage, execution time, and flakiness regularly.
 
+5. What I would build first versus later
+Phase 1 — Essential
+Working framework foundation
+TypeScript, Playwright configuration, POM, fixtures, environment setup, test data, HTML reports, and Git integration.
+
+Phase 2 — Team-ready
+Reliability and scale
+API utilities, authenticated sessions, parallel execution, cleanup utilities, trace collection, and CI/CD.
+
+Phase 3 — Advanced
+Project-specific capabilities
+BDD with Cucumber, schema validation, visual regression, accessibility checks, and distributed execution where justified.
+
+6. Interview follow-up: Why Playwright fixtures instead of beforeEach()?
+“I use fixtures when I want reusable, dependency-driven setup with controlled lifecycle and automatic cleanup. For example, a login-page fixture can provide a page object to multiple tests, while an authenticated fixture can provide a logged-in session. I still use beforeEach() for straightforward setup that is specific to a test file. I choose the simplest approach that keeps the framework readable and maintainable.”
+
+Final interview summary:
+“I would build a modular Playwright TypeScript framework using POM, custom fixtures, centralized environment configuration, API utilities, test-data management, and reporting. I would integrate it with CI/CD, enable safe parallel execution, and enforce coding standards. I would start with a minimal, reliable framework and introduce advanced components as the project grows, rather than overengineering it from day one.”
 
 #====================================================================================================
 # Q :
