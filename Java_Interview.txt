@@ -1084,21 +1084,503 @@ My interview conclusion
 
 
 #==========================================================================================================
-# Q : 
+# Q : What is hashmap in java how it internally works
+==> A HashMap in Java is a class in java.util that stores data as key-value pairs. It implements the Map interface and gives average O(1) time for put() and get(). It allows one null key and multiple null values, does not guarantee ordering, and is not thread-safe.
+
+java
+Map<String, Integer> map = new HashMap<>();
+map.put("apple", 10);
+map.put("banana", 20);
+System.out.println(map.get("apple")); // 10
+
+How it works internally
+1. Data structure: array of buckets
+
+Internally, a HashMap is an array of nodes called table. Each slot is a bucket. The default initial capacity is 16 (always a power of 2), and the default load factor is 0.75.
+
+Each entry is stored as a Node<K,V> containing:
+
+hash (the key’s hash)
+key
+value
+next (pointer to the next node, forming a linked list)
+
+2. What happens on put(key, value)
+Compute hashCode: calls key.hashCode().
+Spread the hash: Java mixes the high bits into the low bits to reduce collisions:
+
+   static int hash(Object key) {
+       int h;
+       return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+   }
+Find the bucket index:
+
+   index = (n - 1) & hash;   // n = table length
+
+This is a fast replacement for hash % n, which works because n is a power of 2.
+4. Insert:
+
+If the bucket is empty, a new node is placed there.
+If the bucket is occupied (a collision), Java walks the chain. For each node, it checks whether the hash matches and key.equals(existingKey). If a match is found, the old value is replaced. Otherwise the new node is appended to the end of the list.
+3. What happens on get(key)
+Compute the hash and the bucket index the same way.
+Go to that bucket and compare hash and equals() along the chain.
+Return the value if found, else null.
+4. Collision handling
+
+Different keys can land in the same bucket. Java handles this with separate chaining (a linked list per bucket).
+
+Treeification (Java 8+): if a single bucket’s chain grows to 8 or more nodes and the table capacity is at least 64, the linked list is converted into a Red-Black Tree. This improves worst-case lookup from O(n) to O(log n). If the bucket shrinks to 6 or fewer nodes, it converts back to a list. If the table is smaller than 64, it resizes instead of treeifying.
+
+5. Resizing (rehashing)
+
+When size > capacity × load factor (e.g. 16 × 0.75 = 12 entries), the table doubles in size (16 → 32 → 64...). All entries are redistributed into the new table. In Java 8+, each node either stays at the same index or moves to oldIndex + oldCapacity, determined by one extra bit of the hash, so no full recomputation is needed. Resizing is expensive, so if you know the expected size, set the initial capacity up front: new HashMap<>(expectedSize / 0.75 + 1).
+
+The equals() and hashCode() contract
+
+This is a very common interview topic. For custom objects used as keys:
+
+If a.equals(b) is true, then a.hashCode() == b.hashCode() must be true.
+If you override one, override both.
+
+Keys should ideally be immutable (like String, Integer). If a key’s fields change after insertion, its hash changes and you will no longer find it in the map.
+Time complexity
+Operation			|	Average			|	Worst case
+put / get / remove		|	O(1)			|		O(log n) (Java 8+, tree bins), O(n) (before Java 8)
+Iteration
+			|	O(capacity + size)	
+HashMap vs. similar classes
+			 HashMap	|	Hashtable		|	ConcurrentHashMap			|   LinkedHashMap	|  TreeMap22
+2. Thread-safe	|	No		|  Yes (whole-method locking)	|   Yes (fine-grained: CAS and per-bucket locks)|	No		|  No
+3. Null key	|	1 allowed	|  Not allowed			|   Not allowed					|	1 allowed	|  Not allowed
+4. Ordering	|	None		|  None				|   None					|     Insertion order	|  Sorted by key
+5. Performance	|	O(1)	Slower	|  O(1), 			|   scalable					|     O(1)		|  O(log n)
+
+Common interview follow-ups
+Why is capacity a power of 2? So (n-1) & hash can replace the slower modulo operation and distribute indexes evenly.
+Why load factor 0.75? It balances space and time: lower values waste memory, higher values increase collisions.
+Is HashMap thread-safe? No. Concurrent modification can cause lost updates (and in old Java versions, infinite loops during resize). Use ConcurrentHashMap or Collections.synchronizedMap().
+What is fail-fast? HashMap iterators throw ConcurrentModificationException if the map is structurally modified during iteration (except via the iterator’s own remove()).
+What happens if two keys have the same hashCode? They go to the same bucket, and equals() distinguishes them.
+
+If you’d like, I can also walk through a diagram of the bucket and tree structure or a sample implementation of a simple custom HashMap.
+
 
 
 #==========================================================================================================
-# Q : 
+# Q : What is hashmap in java how it internally works
+==> HashMap in Java: What It Is and How It Works Internally
+What it is
+
+HashMap<K,V> is a hash-table-based implementation of the Map interface. It stores key-value pairs, allows one null key and multiple null values, is not thread-safe, and gives O(1) average time for get/put/remove. It does not guarantee ordering.
+
+Internal structure
+
+Internally it is an array of nodes (buckets):
+
+
+transient Node<K,V>[] table;
+
+static class Node<K,V> implements Map.Entry<K,V> {
+    final int hash;
+    final K key;
+    V value;
+    Node<K,V> next;   // linked list for collisions
+}
+Default initial capacity: 16 (always a power of 2)
+Default load factor: 0.75
+Threshold = capacity × load factor (16 × 0.75 = 12)
+How put(key, value) works
+Compute hash: calls key.hashCode() and spreads the bits to reduce collisions:
+
+
+   static final int hash(Object key) {
+       int h;
+       return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+   }
+
+XOR-ing the upper 16 bits into the lower 16 means high bits also influence the bucket index.
+
+Find bucket index:
+java
+   index = (n - 1) & hash;   // n = table length
+
+This is faster than % and works because n is a power of 2.
+
+Insert:
+Bucket empty → place a new Node there.
+Bucket occupied (collision) → traverse the chain:
+If a node has the same hash and equals() returns true → replace the value.
+Otherwise → append a new node at the tail.
+Treeify (Java 8+): if a single bucket’s chain length reaches 8 (TREEIFY_THRESHOLD) and table capacity is at least 64 (MIN_TREEIFY_CAPACITY), the linked list converts to a Red-Black Tree. Worst-case lookup in that bucket improves from O(n) to O(log n). If capacity is below 64, it resizes instead. When the tree shrinks to 6 nodes (UNTREEIFY_THRESHOLD) it reverts to a list.
+Resize: after insertion, if size > threshold, the table doubles in size.
+How get(key) works
+Compute hash(key) and the bucket index.
+Check the first node: same hash and (== or equals) → return value.
+Otherwise traverse the linked list or tree.
+Not found → return null.
+Resizing (rehashing)
+
+When size exceeds the threshold, capacity doubles (16 → 32 → 64...). Each node is redistributed, but Java 8 optimized this: because the capacity is a power of 2, each node either stays at the same index or moves to oldIndex + oldCapacity, decided by one extra bit of the hash (hash & oldCap). No full recomputation is needed, and relative order within a bucket is preserved.
+
+Resizing is costly, so if you know the expected size, pre-size it: new HashMap<>(expectedSize / 0.75f + 1).
+
+The equals/hashCode contract (very commonly asked)
+If a.equals(b) is true, then a.hashCode() == b.hashCode() must hold.
+Override both together. If you override equals only, two “equal” keys may land in different buckets and lookups fail.
+Keys should be immutable (like String, Integer). If a key’s fields change after insertion, its hash changes and the entry becomes unreachable.
+Key interview questions
+
+1. What happens with a poor hashCode (e.g., always returns 1)?
+All entries land in one bucket, so it degrades to O(n) (or O(log n) with treeification if keys are Comparable).
+
+2. HashMap vs Hashtable vs ConcurrentHashMap?
+
+			|  HashMap		      |	Hashtable			  |	ConcurrentHashMap
+1. Thread-safe		|  No			      |	Yes (method-level synchronized)	  |	Yes (fine-grained: CAS + synchronized on bucket head in Java 8+)
+2. Null key/value	|  1 null key, null values OK |	Not allowed			  |	Not allowed
+3. Performance		|  Fastest (single-thread)    |	Slow (single lock)		  |	Good under concurrency
+
+3. What is fail-fast behavior?
+HashMap tracks modCount. If the map is structurally modified during iteration (other than via the iterator’s own remove), it throws ConcurrentModificationException. This is best-effort, not guaranteed.
+
+4. Why is capacity a power of 2?
+So (n-1) & hash gives a uniform index cheaply, and resizing can split buckets using a single bit.
+
+5. Why load factor 0.75?
+A trade-off between space and time. Lower means fewer collisions but more memory. Higher saves memory but increases collisions.
+
+6. Can HashMap cause an infinite loop?
+In Java 7, concurrent resizing could create a circular linked list (head-insertion during transfer), causing infinite loops in get. Java 8 preserves order during resize, which largely avoids this, but HashMap is still unsafe for concurrent use (lost updates, data corruption). Use ConcurrentHashMap.
+
+7. How is null key handled?
+hash(null) returns 0, so it is always stored in bucket index 0.
+
+8. HashMap vs LinkedHashMap vs TreeMap?
+
+LinkedHashMap: maintains insertion (or access) order via a doubly linked list.
+TreeMap: sorted by key (Red-Black Tree), O(log n) operations, no null keys.
+
+9. How do you make a HashMap thread-safe?
+ConcurrentHashMap (preferred) or Collections.synchronizedMap(new HashMap<>()).
+
+Quick example showing the contract
+java
+class Employee {
+    int id; String name;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Employee)) return false;
+        Employee e = (Employee) o;
+        return id == e.id && Objects.equals(name, e.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name);
+    }
+}
+One-line summary for interviews
+
+“HashMap uses an array of buckets indexed by (n-1) & spread(hashCode). Collisions are handled with linked lists that convert to red-black trees at 8 nodes (when capacity is at least 64). It resizes by doubling when size exceeds 0.75 × capacity, and correctness depends on a consistent equals/hashCode and immutable keys.”
+
+I can also go deeper on ConcurrentHashMap internals or give mock follow-up questions with answers if you’d like.
+
+
+#==========================================================================================================
+# Q : what  is hashtable and how it internally work
+==> What it is
+
+Hashtable<K,V> is a legacy class (Java 1.0) that stores key-value pairs using hashing. It was retrofitted to implement Map in Java 1.2. Key traits:
+
+Thread-safe (every public method is synchronized)
+No null key and no null values (throws NullPointerException)
+Extends the obsolete Dictionary class
+No ordering guarantee
+Considered legacy: prefer ConcurrentHashMap (or HashMap for single-threaded use)
+Internal structure
+
+An array of entries (buckets), with collisions handled by chaining (linked list):
+
+java
+private transient Entry<?,?>[] table;
+
+private static class Entry<K,V> implements Map.Entry<K,V> {
+    final int hash;
+    final K key;
+    V value;
+    Entry<K,V> next;
+}
+
+Defaults:
+
+Initial capacity: 11 (not a power of 2)
+Load factor: 0.75
+Threshold = capacity × load factor (11 × 0.75 = 8)
+How put(key, value) works
+java
+public synchronized V put(K key, V value) {
+    if (value == null) throw new NullPointerException();
+
+    int hash = key.hashCode();              // NPE if key is null
+    int index = (hash & 0x7FFFFFFF) % tab.length;
+    ...
+}
+Null check: null key or value throws NullPointerException.
+Hash: uses key.hashCode() directly, with no bit-spreading like HashMap’s h ^ (h >>> 16).
+Index: (hash & 0x7FFFFFFF) % table.length. The mask clears the sign bit so the index is non-negative, then modulo picks the bucket. Because the capacity isn’t a power of 2, & can’t be used here, so it relies on % (slower than HashMap’s bitwise AND).
+Collision handling: traverse the chain. If a node has the same hash and equals() is true, the value is replaced and the old value returned. Otherwise a new entry is added.
+Insertion position: new entries are added at the head of the bucket’s chain (HashMap appends at the tail).
+Resize (rehash()) happens when the threshold is exceeded.
+Resizing (rehash)
+java
+int newCapacity = (oldCapacity << 1) + 1;   // 11 → 23 → 47 → 95 ...
+New capacity = 2n + 1 (stays odd, which tends to be better for modulo distribution than even sizes).
+Every entry is rehashed (index recomputed with the new length). HashMap’s Java 8 trick of “same index or index + oldCap” doesn’t apply here.
+Entries are re-inserted at the head of the new chain, so order within a bucket reverses.
+How get(key) works
+Compute hash = key.hashCode() and the index with %.
+Traverse the chain, matching hash and equals.
+Return the value, or null if not found.
+
+get is also synchronized, so even readers block each other.
+
+No treeification
+
+Unlike HashMap (Java 8+), Hashtable never converts long chains to Red-Black Trees. With heavy collisions, lookup degrades to O(n).
+
+Thread safety: how and the catch
+
+Every method locks on the entire Hashtable object (this). Only one thread can do anything (read or write) at a time. This causes:
+
+High contention, poor scalability
+Compound operations are still not atomic:
+java
+  if (!table.containsKey(k)) {   // two separate synchronized calls
+      table.put(k, v);           // another thread can sneak in between
+  }
+
+Needs external synchronization, or use ConcurrentHashMap.putIfAbsent() / computeIfAbsent().
+
+Iteration: fail-fast vs not
+Iterators from keySet(), values(), entrySet() are fail-fast (ConcurrentModificationException, tracked via modCount).
+The legacy Enumeration from keys() and elements() is not fail-fast.
+Hashtable vs HashMap vs ConcurrentHashMap
+Feature	Hashtable	HashMap	ConcurrentHashMap
+Thread-safe	Yes (whole-object lock)	No	Yes (CAS + bucket-level synchronized, Java 8+)
+Null key	No	One allowed	No
+Null values	No	Yes	No
+Default capacity	11	16	16
+Index calculation	(hash & 0x7FFFFFFF) % n	(n-1) & hash	(n-1) & spread(hash)
+Resize	2n + 1	2n	2n
+Collision structure	Linked list only	List → Red-Black Tree	List → Red-Black Tree
+Iterator	Fail-fast + Enumeration	Fail-fast	Weakly consistent (no CME)
+Performance	Slowest	Fastest (single thread)	Best under concurrency
+Status	Legacy	Standard	Preferred for concurrency
+Interview questions
+
+1. Why doesn’t Hashtable allow null keys/values?
+key.hashCode() and value == null checks throw NPE. In a concurrent map, get(k) == null would be ambiguous (absent key vs null value), and since you can’t safely follow up with containsKey under concurrency, nulls are banned. ConcurrentHashMap follows the same reasoning.
+
+2. Why is Hashtable’s default capacity 11?
+It uses %, and a prime or odd capacity gives better distribution than powers of 2 when hash codes are poorly distributed, since there is no bit-spreading step.
+
+3. Why is Hashtable slow?
+A single lock on the entire object, so reads and writes serialize. Plus the % operation and no tree-based collision handling.
+
+4. Is Hashtable fully thread-safe?
+Individual operations are, but compound check-then-act sequences are not.
+
+5. Hashtable vs Collections.synchronizedMap(new HashMap<>())?
+Both use coarse-grained locking. The synchronized wrapper allows null key/values (since it wraps a HashMap), and lets you synchronize on a shared mutex. Neither is a good choice for high concurrency.
+
+6. What would you use instead today?
+ConcurrentHashMap for concurrent access, HashMap for single-threaded use.
+
+Quick demo
+java
+Hashtable<String, Integer> ht = new Hashtable<>();
+ht.put("a", 1);
+ht.put("b", 2);
+
+ht.put(null, 3);       // NullPointerException
+ht.put("c", null);     // NullPointerException
+
+Enumeration<String> keys = ht.keys();   // legacy iteration
+while (keys.hasMoreElements()) {
+    System.out.println(keys.nextElement());
+}
+One-line summary for interviews
+
+“Hashtable is a legacy, fully synchronized hash table using an array of buckets with linked-list chaining, default capacity 11, index (hash & 0x7FFFFFFF) % n, resize to 2n+1, no nulls and no treeification. Its single object-level lock makes it slow, so ConcurrentHashMap replaced it for concurrent use.”
+
+If you’d like, I can go through ConcurrentHashMap internals next, since interviewers often chain Hashtable, HashMap and ConcurrentHashMap together.
 
 
 
 #==========================================================================================================
-# Q : 
+# Q : how many ways we can iterate hashmap in java
+==> Map<String, Integer> map = new HashMap<>();
+map.put("a", 1);
+map.put("b", 2);
+map.put("c", 3);
+1. Enhanced for loop over entrySet() (most common, recommended)
+java
+for (Map.Entry<String, Integer> e : map.entrySet()) {
+    System.out.println(e.getKey() + " = " + e.getValue());
+}
 
+Best when you need both key and value. One pass, no extra lookups.
 
+2. Enhanced for loop over keySet()
+java
+for (String key : map.keySet()) {
+    System.out.println(key + " = " + map.get(key));
+}
 
-#==========================================================================================================
-# Q : 
+Fine for keys only. If you also call get(key), it does an extra hash lookup per key, so prefer entrySet().
+
+3. Enhanced for loop over values()
+java
+for (Integer value : map.values()) {
+    System.out.println(value);
+}
+
+Use when you only need values.
+
+4. Iterator over entrySet()
+java
+Iterator<Map.Entry<String, Integer>> it = map.entrySet().iterator();
+while (it.hasNext()) {
+    Map.Entry<String, Integer> e = it.next();
+    System.out.println(e.getKey() + " = " + e.getValue());
+}
+
+The only safe way to remove entries while iterating:
+
+java
+while (it.hasNext()) {
+    if (it.next().getValue() == 2) {
+        it.remove();   // safe
+    }
+}
+5. Iterator over keySet() / values()
+java
+Iterator<String> it = map.keySet().iterator();
+while (it.hasNext()) {
+    String key = it.next();
+    System.out.println(key + " = " + map.get(key));
+}
+6. forEach with lambda (Java 8+)
+java
+map.forEach((key, value) -> System.out.println(key + " = " + value));
+
+Concise and readable. Map.forEach(BiConsumer).
+
+7. Streams (Java 8+)
+java
+map.entrySet().stream()
+   .forEach(e -> System.out.println(e.getKey() + " = " + e.getValue()));
+
+Useful when you also want to filter, map, sort or collect:
+
+java
+map.entrySet().stream()
+   .filter(e -> e.getValue() > 1)
+   .sorted(Map.Entry.comparingByKey())
+   .forEach(e -> System.out.println(e.getKey()));
+
+parallelStream() is also possible, but rarely worth it for small maps.
+
+8. Iterable.forEach on entrySet() / keySet() / values()
+java
+map.entrySet().forEach(e -> System.out.println(e.getKey() + " = " + e.getValue()));
+map.keySet().forEach(System.out::println);
+map.values().forEach(System.out::println);
+9. Convert keys to an array/list and use a classic for loop
+java
+List<String> keys = new ArrayList<>(map.keySet());
+for (int i = 0; i < keys.size(); i++) {
+    System.out.println(keys.get(i) + " = " + map.get(keys.get(i)));
+}
+
+Works, but creates a copy. Useful only if you need index-based access.
+
+10. Enumeration (legacy, mainly for Hashtable)
+
+HashMap doesn’t have keys()/elements(), but you can wrap with Collections.enumeration():
+
+java
+Enumeration<String> en = Collections.enumeration(map.keySet());
+while (en.hasMoreElements()) {
+    System.out.println(en.nextElement());
+}
+
+Rarely used.
+
+Summary table
+#	Approach	Gives	Can remove while iterating?	Java version
+1	for-each on entrySet()	key + value	No	5+
+2	for-each on keySet()	key (+ get)	No	5+
+3	for-each on values()	value	No	5+
+4	Iterator on entrySet()	key + value	Yes (it.remove())	1.2+
+5	Iterator on keySet()/values()	key or value	Yes	1.2+
+6	map.forEach(BiConsumer)	key + value	No	8+
+7	Stream	key + value	No (use removeIf instead)	8+
+8	forEach on views	key / value / entry	No	8+
+9	List copy + index loop	key (+ get)	Yes (on original map, as you iterate the copy)	1.2+
+10	Enumeration wrapper	key or value	No	1.0+
+Safe removal while iterating
+
+Modifying the map directly inside a loop throws ConcurrentModificationException:
+
+java
+for (String key : map.keySet()) {
+    if (key.equals("a")) map.remove(key);   // CME
+}
+
+Safe alternatives:
+
+java
+// 1. Iterator.remove()
+map.entrySet().iterator()...it.remove();
+
+// 2. removeIf (Java 8+), cleanest
+map.entrySet().removeIf(e -> e.getValue() == 2);
+map.keySet().removeIf(k -> k.equals("a"));
+map.values().removeIf(v -> v == 3);
+
+// 3. replaceAll to update values in place
+map.replaceAll((k, v) -> v * 10);
+
+Updating a value through entry.setValue() during iteration is allowed, since it isn’t a structural modification:
+
+java
+for (Map.Entry<String, Integer> e : map.entrySet()) {
+    e.setValue(e.getValue() + 1);
+}
+Interview points
+
+1. Which is the best way?
+entrySet() with for-each (or map.forEach on Java 8+) when you need both key and value. It avoids the extra get() lookup.
+
+2. Is iteration order guaranteed?
+Not for HashMap. Use LinkedHashMap for insertion order or TreeMap for sorted order.
+
+3. Time complexity of iteration?
+O(capacity + size), since it walks the whole bucket array. A HashMap with a huge capacity but few entries is slow to iterate. This is why you shouldn’t over-size the initial capacity.
+
+4. Fail-fast or fail-safe?
+HashMap iterators are fail-fast (checked via modCount). ConcurrentHashMap iterators are weakly consistent: no CME, but they may or may not reflect concurrent updates.
+
+5. keySet() + get() vs entrySet()?
+keySet() + get() hashes each key again, so it’s an extra O(1) per element (and worse with collisions). entrySet() hands you the node directly.
+
+One-line summary for interviews
+
+“You can iterate a HashMap via for-each or Iterator over entrySet(), keySet() or values(), Map.forEach, forEach on the views, and Streams. entrySet() is the most efficient for key-value access, and Iterator.remove() or removeIf is the only safe way to remove during iteration.”
 
 
 

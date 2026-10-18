@@ -96,28 +96,28 @@ WebDriver
                  │   Feature Files        │
                  │    Gherkin BDD         │
                  └────────┬─────────┘
-                          ↓
+                             ↓
                  ┌──────────────────┐
                  │ Step Definitions      │
                  └────────┬─────────┘
-                          ↓
+                             ↓
                  ┌──────────────────┐
                  │     Actions      	  │
                  │ Business Logic   	  │
                  └────────┬─────────┘
-                          ↓
+                             ↓
              ┌─────────────────────────┐
-             │ Pages + Components      		   │
-             │     Page Objects        		   │
+             │        Pages + Components      │
+             │         Page Objects        	   │
              └───────────┬─────────────┘
-                         ↓
-                  ┌─────────────┐
-                  │  BasePage   	│
-                  └──────┬──────┘
-                         ↓
-                  ┌─────────────┐
-                  │ WebDriver   	│
-                  └─────────────┘
+                             ↓
+                   ┌─────────────┐
+                   │    BasePage   	 │
+                   └──────┬──────┘
+                            ↓
+                   ┌─────────────┐
+                   │   WebDriver   	 │
+                   └─────────────┘
 
  Supporting layers:
  ├── Driver Management
@@ -230,8 +230,7 @@ public class TestListener implements ITestListener {
             File destination = new File(screenshots/" + testName + ".png");
 
             try {
-                Files.copy(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING  		
-                );
+                Files.copy(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING );
 
                 System.out.println("Screenshot captured for failed test: " + testName);
 
@@ -499,21 +498,16 @@ Some common configurations are:
 <threadCount>4</threadCount>
 
 3. Include/exclude tests
-
-We can configure which test classes or methods should be executed.
+	We can configure which test classes or methods should be executed.
 
 4. System properties
-
-For example:
-
-mvn test -Dbrowser=chrome -Denvironment=qa
+	mvn test -Dbrowser=chrome -Denvironment=qa
 
 Then the framework can read those values.
 
 5. Failure behavior
 
 Surefire also controls how Maven handles test failures and generates test execution reports.
-
 Surefire reports
 
 After execution, Surefire typically generates reports under:
@@ -631,21 +625,17 @@ public void verifyBrokenLinks() {
 1. Why <a> tag?
 	For hyperlinks, I locate the <a> elements and read their href attribute.”
 
-2. Why HTTP connection instead of clicking every link?
-	
+2. Why HTTP connection instead of clicking every link?	
 	I don't click every link because clicking can navigate away from the current page and makes the test slower. I can directly validate the URL using an HTTP request.”
 
 3. What is a broken link?
-
 Typically:
 
 200–399 → generally reachable/redirected
 400–499 → client-side error
 500–599 → server-side error
 
-So I generally flag:
-
-if (responseCode >= 400)
+So I generally flag: if (responseCode >= 400)
 
 4. What about href being null?
 
@@ -682,7 +672,6 @@ for (WebElement link : links) {
 If I need exactly 10 links
 
 List<WebElement> links = driver.findElements(By.tagName("a"));
-
 int count = Math.min(10, links.size());
 
 for (int i = 0; i < count; i++) {
@@ -694,7 +683,6 @@ for (int i = 0; i < count; i++) {
     }
 
     driver.get(href);
-
     System.out.println("Link " + (i + 1) + " | Title: " + driver.getTitle() );
 }
 
@@ -706,8 +694,7 @@ If the requirement is only to print the title of each linked page, I would say:
 
 String originalWindow = driver.getWindowHandle();
 
-List<WebElement> links =
-        driver.findElements(By.tagName("a"));
+List<WebElement> links = driver.findElements(By.tagName("a"));
 
 for (int i = 0; i < Math.min(10, links.size()); i++) {
 
@@ -720,10 +707,7 @@ for (int i = 0; i < Math.min(10, links.size()); i++) {
     driver.switchTo().newWindow(WindowType.TAB);
     driver.get(href);
 
-    System.out.println(
-        "Link " + (i + 1) +
-        " | Title: " + driver.getTitle()
-    );
+    System.out.println("Link " + (i + 1) + " | Title: " + driver.getTitle() );
 
     driver.close();
     driver.switchTo().window(originalWindow);
@@ -754,9 +738,7 @@ I use an implicit wait when I want Selenium to wait for an element to be present
 
 driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
 
-For example:
-
-driver.findElement(By.id("user-name")).sendKeys("standard_user");
+For example: driver.findElement(By.id("user-name")).sendKeys("standard_user");
 
 If the element isn't immediately available, Selenium waits up to 10 seconds while trying to locate it.
 
@@ -769,21 +751,13 @@ When I want a basic global synchronization mechanism
 But in a real automation framework, I generally prefer explicit waits because they give much better control.
 
 2. Explicit Wait — When would I use it?
-
-I use an explicit wait when I need to wait for a specific condition.
+	I use an explicit wait when I need to wait for a specific condition.
 
 For example, if a button becomes clickable after some processing:
 
-WebDriverWait wait = new WebDriverWait(
-        driver,
-        Duration.ofSeconds(15)
-);
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(15));
 
-WebElement loginButton = wait.until(
-        ExpectedConditions.elementToBeClickable(
-                By.id("login-button")
-        )
-);
+WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable( By.id("login-button")));
 
 loginButton.click();
 
@@ -800,19 +774,13 @@ ExpectedConditions.invisibilityOfElementLocated(locator)
 ExpectedConditions.urlContains("inventory")
 
 ExpectedConditions.titleContains("Swag Labs")
+
 Real Selenium example
+	Suppose after clicking Login, the Inventory page takes a few seconds to load.
 
-Suppose after clicking Login, the Inventory page takes a few seconds to load.
+I wouldn't use: Thread.sleep(5000);
 
-I wouldn't use:
-
-Thread.sleep(5000);
-
-Instead:
-
-wait.until(
-    ExpectedConditions.urlContains("inventory.html")
-);
+Instead: wait.until(ExpectedConditions.urlContains("inventory.html"));
 
 This is better because Selenium continues as soon as the condition is satisfied instead of always waiting the full five seconds
 
@@ -827,7 +795,6 @@ I would say:
 “Technically, yes, but I generally avoid mixing them because their interaction can make the actual wait behavior difficult to predict and can increase synchronization time. In a framework, I prefer explicit waits or a centralized wait utility for better control.”
 
 What about Fluent Wait?
-
 I would also mention:
 
 “For more customized synchronization, I can use FluentWait, where I can define the timeout, polling interval, and exceptions to ignore.”
@@ -844,29 +811,20 @@ Best interview answer
 
 #======================================================================================================================================
 # Q : How to you handle multiple frames ? how would you switch to parent frame.
-
 ==> When working with multiple iframes, I first switch from the main document to the required frame using switchTo().frame(). If there are nested frames, I switch frame by frame. To move from a child frame back to its immediate parent, I use parentFrame(). If I want to return completely to the main page, I use defaultContent().
 
 1. Switch to a frame
 
-By index:
+By index: driver.switchTo().frame(0);
 
-driver.switchTo().frame(0);
+By name or ID: driver.switchTo().frame("paymentFrame");
 
-By name or ID:
-
-driver.switchTo().frame("paymentFrame");
-
-By WebElement:
-
-WebElement frame = driver.findElement(
-        By.id("paymentFrame")
-);
+By WebElement: WebElement frame = driver.findElement( By.id("paymentFrame"));
 
 driver.switchTo().frame(frame);
-2. Handling nested/multiple frames
 
-Suppose the structure is:
+2. Handling nested/multiple frames
+	Suppose the structure is:
 
 Main Page
    |
@@ -882,19 +840,14 @@ driver.switchTo().frame("frameA");
 
 driver.switchTo().frame("frameB");
 
-driver.findElement(By.id("cardNumber"))
-      .sendKeys("123456789");
+driver.findElement(By.id("cardNumber")).sendKeys("123456789");
 
 I cannot directly switch to Frame B from the main page if Frame B is nested inside Frame A.
 
 3. Switch to parent frame
-
-If I am currently inside Frame B:
-
-driver.switchTo().parentFrame();
+	If I am currently inside Frame B:  driver.switchTo().parentFrame();
 
 Now I am back inside Frame A.
-
 For example:
 
 driver.switchTo().frame("frameA");
@@ -906,8 +859,7 @@ driver.switchTo().parentFrame();
 
 // Now I am inside Frame A
 4. Switch back to main document
-
-If I want to completely come out of all frames:
+	If I want to completely come out of all frames:
 
 driver.switchTo().defaultContent();
 
@@ -931,14 +883,9 @@ Practical framework approach
 
 In a framework, I prefer using an explicit wait when the frame loads:
 
-WebDriverWait wait =
-        new WebDriverWait(driver, Duration.ofSeconds(15));
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
-wait.until(
-    ExpectedConditions.frameToBeAvailableAndSwitchToIt(
-        By.id("paymentFrame")
-    )
-);
+wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(By.id("paymentFrame")));
 
 This is useful when the iframe is dynamically loaded.
 
@@ -970,7 +917,6 @@ driver.navigate().forward();
 driver.navigate().refresh();
 
 Important interview point
-
 A common misconception is:
 
 “get() waits but navigate().to() doesn't.”
@@ -987,8 +933,7 @@ I would not give that as a blanket answer. Both are navigation commands and Sele
 ==>	“In Selenium, handling a location permission popup depends on whether it is a browser-level permission popup or a JavaScript alert. Selenium cannot directly interact with native browser permission popups using normal WebDriver methods. I handle them by configuring browser preferences before launching the browser
 
 1. Handle Location Popup in Chrome
-
-We can use ChromeOptions to automatically allow or block location access.
+	We can use ChromeOptions to automatically allow or block location access.
 Allow location permission:
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -1030,9 +975,7 @@ public class FirefoxLocationExample {
 
         FirefoxOptions options = new FirefoxOptions();
 
-        options.addPreference(
-            "permissions.default.geo", 1
-        );
+        options.addPreference("permissions.default.geo", 1 );
 
         WebDriver driver = new FirefoxDriver(options);
 
@@ -1085,28 +1028,17 @@ public class DynamicDropdownExample {
 
     public static void main(String[] args) {
 
-        WebDriverWait wait =
-            new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         // Enter city name
-        WebElement cityInput = wait.until(
-            ExpectedConditions.visibilityOfElementLocated(
-                By.id("city")
-            )
-        );
+        WebElement cityInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("city")) );
 
         cityInput.sendKeys("Pune");
 
         // Wait for dynamic suggestions
-        By optionsLocator = By.xpath(
-            "//ul[@id='city-options']//li"
-        );
+        By optionsLocator = By.xpath("//ul[@id='city-options']//li" );
 
-        List<WebElement> options = wait.until(
-            ExpectedConditions.visibilityOfAllElementsLocatedBy(
-                optionsLocator
-            )
-        );
+        List<WebElement> options = wait.until( ExpectedConditions.visibilityOfAllElementsLocatedBy(optionsLocator));
 
         // Select the required option
         for (WebElement option : options) {
@@ -1139,24 +1071,13 @@ Important: The Select class works only with HTML <select> elements, not custom d
 3. Dynamic dropdown using a custom dropdown
 	For dropdowns built with div or li, click the dropdown and select the required option.
 
-WebDriverWait wait =
-    new WebDriverWait(driver, Duration.ofSeconds(10));
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
 // Open dropdown
-wait.until(
-    ExpectedConditions.elementToBeClickable(
-        By.id("countryDropdown")
-    )
-).click();
+wait.until(ExpectedConditions.elementToBeClickable(By.id("countryDropdown")).click();
 
 // Select option
-wait.until(
-    ExpectedConditions.elementToBeClickable(
-        By.xpath("//div[@role='option' and normalize-space()='India']")
-    )
-).click();
-
-
+wait.until(ExpectedConditions.elementToBeClickable( By.xpath("//div[@role='option' and normalize-space()='India']"))).click();
 
 Strong interview summary:
 
@@ -17444,7 +17365,86 @@ Interview conclusion:
 “Yes, I am aware of virtualization and its practical use in software testing. I would use it when I need isolated test environments, cross-platform compatibility, parallel execution, or efficient infrastructure utilization. In automation frameworks, virtualization helps maintain consistent environments and supports reliable CI/CD execution.”
 
 #====================================================================================================
-# Q :
+# Q : Explain in maven Lifecycle
+==> Maven Lifecycle is a sequence of predefined phases that Maven follows to build, test, package, verify, and deploy a Java project. In my Automation & Development Engineer role, I use the Maven lifecycle to compile automation code, execute TestNG tests, generate reports, and integrate test execution with Jenkins.
+Maven has 3 main built-in lifecycles.
+
+1. Default Lifecycle
+This lifecycle handles the main build process.
+
+1. validate :Checks that the project is correctly configured.
+
+2. compile : Compiles the main Java source code.
+
+3. test-compile : Compiles the test source code.
+
+4. test :  Executes tests using TestNG or JUnit through Surefire.
+
+5. package : Packages compiled code into a JAR or WAR.
+
+6. verify : Runs checks to validate the package and build results.
+
+7. install : Installs the generated artifact into the local Maven repository (.m2).
+
+8. deploy : Publishes the artifact to a remote repository.
+
+Important: When you execute a phase, Maven runs the preceding phases in that lifecycle first.
+For example: mvn test
+
+Runs the phases up to test, including compilation and test compilation.
+mvn install
+
+Runs the preceding default lifecycle phases up to install, including tests and packaging.
+
+2. Clean Lifecycle
+This lifecycle removes files generated by previous builds.
+Phase		Purpose
+1. pre-clean : 	Tasks before cleaning
+2. clean :	Deletes the build output directory, typically target/
+3. post-clean :	Tasks after cleaning
+Command: mvn clean
+
+3. Site Lifecycle
+This lifecycle generates project documentation and reports.
+Phase			Purpose
+1. pre-site	: 	Prepares for site generation
+2. site	Generates : 	project documentation
+3. post-site :		Performs post-generation tasks
+4. site-deploy :	Publishes the generated site
+Command: mvn site
+
+Common Maven commands in automation testing
+Command	What it does
+1. mvn clean 	:	Deletes previous build output
+2. mvn compile	:	Compiles application code
+3. mvn test	:	Compiles and runs tests
+4. mvn package	:	Runs preceding build phases and packages the project
+5. mvn verify	:	Runs preceding phases and verification checks
+6. mvn install	:	Builds, tests, packages, and installs the artifact locally
+7. mvn clean install :	Cleans old output, then builds through install
+
+Example from a Selenium + TestNG framework
+Suppose I have a Maven automation project with Selenium and TestNG dependencies.
+When I run: mvn clean test
+
+The execution flow is:
+Delete old target/
+       ↓
+Compile Java code
+       ↓
+Compile TestNG test classes
+       ↓
+Surefire executes tests
+       ↓
+Generate test reports
+
+I can then use the generated Surefire reports in Jenkins to review test results.
+
+Interview-ready answer
+Maven has three built-in lifecycles: default, clean, and site. The default lifecycle handles building, testing, packaging, verification, installation, and deployment. The clean lifecycle removes previous build artifacts, while the site lifecycle generates project documentation.
+In my automation framework, I mainly use mvn clean test to perform a fresh build and execute Selenium/TestNG tests. When I need to package the project and install its artifact into the local Maven repository, I use mvn clean install. In Jenkins, these commands help standardize automated test execution.
+
+Interview tip: Remember that Maven lifecycle phases are sequential. Running mvn package, for example, also executes the earlier default lifecycle phases, including test.
 
 
 

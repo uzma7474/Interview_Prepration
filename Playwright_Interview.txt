@@ -608,8 +608,10 @@ test('Handle Shadow DOM inputs', async ({ page }) => {
 
 
 Why does this work?
-Playwright's CSS locators and most other locators, such as role and label locators, pierce open Shadow DOM boundaries automatically.
+	Playwright's CSS locators and most other locators, such as role and label locators, pierce open Shadow DOM boundaries automatically.
+
 There are exceptions: XPath does not pierce Shadow DOM boundaries, and closed Shadow DOM roots are not accessible through Playwright's normal locators.
+
 2. Selenium with Java
 In Selenium, I explicitly retrieve the shadow root using getShadowRoot() and then locate the input fields inside it.
 import org.openqa.selenium.By;
@@ -735,6 +737,7 @@ test('Submit dynamic React form', async ({ page }) => {
 
 
 Why? A Playwright Locator resolves the element when it is used, so it can handle DOM replacement better than a previously captured ElementHandle.
+
 2. Problem: Button becomes enabled after API validation
 Suppose a React form validates an email address through an API before enabling the Submit button.
 const emailInput = page.getByLabel('Email');
@@ -764,6 +767,7 @@ expect(response.ok()).toBeTruthy();
 await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled();
 
 This assumes the email input triggers that request. I register the response listener before filling the field so the request is not missed.
+
 3. Problem: Form appears before React finishes rendering
 Sometimes, the page loads but the form is still being initialized.
 Instead of waiting an arbitrary number of seconds, I wait for a meaningful UI condition.
@@ -1123,12 +1127,6 @@ Suppose I am automating an e-commerce application with two scenarios:
 1. A customer logs in and places an order.
 2. An administrator logs in and verifies the order.
 I can create separate browser contexts for the customer and administrator, so their cookies and session storage do not mix.
-
-
-
-
-
-
 
 softwareadvice.ie
 
@@ -2479,13 +2477,265 @@ Final interview summary:
 “I would build a modular Playwright TypeScript framework using POM, custom fixtures, centralized environment configuration, API utilities, test-data management, and reporting. I would integrate it with CI/CD, enable safe parallel execution, and enforce coding standards. I would start with a minimal, reliable framework and introduce advanced components as the project grows, rather than overengineering it from day one.”
 
 #====================================================================================================
-# Q :
+# Q : Explanation: opening and capturing a new tab
+typescript
+const [newTab] = await Promise.all([
+    context.waitForEvent('page'),
+    sauceDemoLink.click({ modifiers: ['Control'] })
+]);
+
+This statement clicks a link so that it opens in a new tab, and gets a handle to that new tab so you can control it. The blank lines in your version are just formatting and change nothing.
+
+The problem it solves
+
+When you Ctrl+click a link, the browser opens a new tab. Playwright does not return that tab from click(). It only announces it as an event on the browser context. Your code has to be listening for that event before the click happens.
+
+You can think of it as registering a listener before firing the action that triggers it.
+
+Piece by piece
+context.waitForEvent('page')
+context is the browser session that holds all the tabs.
+waitForEvent('page') means “notify me when a new page (tab) is created in this context”.
+It returns a Promise that stays pending until a tab opens. It then resolves with the new tab’s Page object.
+It starts listening immediately when the line runs. It does not block.
+sauceDemoLink.click({ modifiers: ['Control'] })
+Clicks the link while holding the Ctrl key, which makes the browser open it in a new tab.
+modifiers accepts 'Control', 'Shift', 'Alt' and 'Meta'.
+On macOS, Cmd+click opens a new tab, so you would use 'Meta' there.
+It also returns a Promise. That Promise resolves with nothing (void) once the click has finished.
+Promise.all([ ... ])
+Takes an array of Promises and runs them concurrently.
+Returns one Promise that resolves when all of them have resolved.
+The result is an array of the results in the same order as the input: [ <result of waitForEvent>, <result of click> ], which here is [ Page, undefined ].
+If any Promise rejects (for example, the click fails), Promise.all rejects immediately.
+Java analogy: it is similar to CompletableFuture.allOf(...), except it also hands back all the values.
+const [newTab] = ...
+This is array destructuring. It takes the first element of the result array and names it newTab.
+The first element is the Page from waitForEvent. The undefined from the click is ignored.
+It is shorthand for const result = await Promise.all([...]); const newTab = result[0];.
+await
+
+Pauses the test until Promise.all resolves, meaning the tab exists and the click is done.
+
+Order of execution
+JavaScript evaluates the array items from top to bottom.
+context.waitForEvent('page') runs first and the listener is now active.
+click(...) runs second and the click happens.
+The browser opens the new tab and the page event fires.
+The waitForEvent Promise resolves with the new Page, the click Promise resolves, and Promise.all resolves.
+
+Because the listener is registered before the click, the event cannot be missed.
+
+Why not write it sequentially?
+
+Wrong version 1: click first, then listen
+
+typescript
+await sauceDemoLink.click({ modifiers: ['Control'] });
+const newTab = await context.waitForEvent('page');
+
+This is a race condition. If the tab opens before waitForEvent starts listening, the event is already gone. The test then waits until it times out. It may pass on a fast machine and fail on a slow one, which is the worst kind of flaky test.
+
+Wrong version 2: listen first with await, then click
+
+typescript
+const newTab = await context.waitForEvent('page'); // waits forever
+await sauceDemoLink.click({ modifiers: ['Control'] }); // never reached
+
+The await pauses the test until a tab opens. But the click that opens the tab is on the next line, so it never runs. The test times out.
+
+Equivalent version without Promise.all
+typescript
+const newTabPromise = context.waitForEvent('page'); // no await: listener starts, Promise saved
+await sauceDemoLink.click({ modifiers: ['Control'] });
+const newTab = await newTabPromise;                 // now wait for the result
+
+This does the same thing and is the pattern shown in Playwright’s docs. The key is that you do not await the listener before the click. Many people find it easier to read than Promise.all.
+
+Why context and not page?
+context.waitForEvent('page') catches any new tab opened anywhere in that context. This is the safest choice for a Ctrl+click.
+page.waitForEvent('popup') only catches popups opened by that specific page, such as window.open or target="_blank" links.
+Use context when you want any new tab, and popup when you want a tab opened by one particular page.
+Likely interview questions
+
+Q: Why is Promise.all used here?
+To start listening for the new tab and click the link at the same time, so the new tab event is never missed.
+
+Q: What does newTab hold?
+A Page object for the new tab. All later actions on that tab must use newTab.locator(...), not page.locator(...).
+
+Q: What if no tab opens?
+waitForEvent times out and throws an error, so Promise.all rejects and the test fails. You can also pass { timeout: ... } as a second argument to control how long it waits.
+
+Q: How is this different from Selenium?
+In Selenium you click, then read driver.getWindowHandles() and call switchTo().window(handle). In Playwright you get a separate Page object for each tab, so there is no switching. You just use the newTab object.
+
+If you want, I can walk through the same pattern for target="_blank" links and popups.
 
 
+//===================================================================================================================
+// modifiers
+//===================================================================================================================
 
+Playwright has five modifier values:
+
+Modifier            :	Key	Notes
+1. 'Alt'	        :   Alt (Option on Mac)	
+2. 'Control'	    :   Ctrl	
+3. 'Meta'	        :   Windows key on Windows/Linux, Cmd on Mac	
+4. 'Shift'	        :   Shift	
+5. 'ControlOrMeta'	:   Ctrl on Windows/Linux, Cmd on Mac	Added in newer Playwright versions (around 1.45), so check your version
+
+Usage
+
+// single modifier
+await link.click({ modifiers: ['Control'] });
+
+// multiple modifiers at once (Ctrl + Shift + click)
+await link.click({ modifiers: ['Control', 'Shift'] });
+
+// cross-platform: Ctrl on Windows/Linux, Cmd on Mac
+await link.click({ modifiers: ['ControlOrMeta'] });
+
+modifiers is an array, so you can combine several. Playwright presses them down before the click and releases them afterward.
+
+Where they work
+
+The modifiers option is available on mouse actions such as click(), dblclick(), hover() and tap().
+
+Common browser behaviors
+Ctrl/Cmd + click opens a link in a new background tab (what your test uses).
+Shift + click opens a link in a new window.
+Alt + click downloads the link in Chrome.
+
+These behaviors come from the browser, not from Playwright, and can vary by browser and OS.
+
+Keyboard shortcuts are separate
+
+For keyboard combinations, use press() instead, and join the keys with +:
+
+typescript
+await page.keyboard.press('Control+A');
+await page.keyboard.press('Shift+Tab');
+await page.keyboard.press('ControlOrMeta+C');
+Interview tip
+
+Using ControlOrMeta makes your test portable across Windows, Linux and Mac. If your Playwright version is older, you can use process.platform === 'darwin' ? 'Meta' : 'Control' instead.
 
 #====================================================================================================
-# Q :
+# Q : What is world.ts explained
+
+===>	1. What a “World” is
+
+In Cucumber, a World is an object that holds the state of one scenario. Cucumber creates a fresh one at the start of every scenario and discards it when the scenario ends. Inside every step and hook, this refers to that World.
+
+Cucumber has no built-in way to pass data between steps. Each step is just an isolated function:
+
+gherkin
+Given I am on the login page        # step 1
+When I login as "standard_user"     # step 2
+Then I should be on the inventory page   # step 3
+
+These three steps live in different files, yet they all need the same browser page. The World is the shared object that makes this possible. Step 1 opens the page through this.pages.login, and step 3 asserts against the same page through this.pages.inventory.
+
+2. Why not use global variables?
+
+You could write let page: Page; at the top of a file, but that breaks in two ways:
+
+Parallel runs: with PARALLEL=4, several scenarios run at the same time. A shared global would be overwritten by whichever scenario started last, so scenario A would click buttons in scenario B’s browser.
+Leaking state: data from one scenario could silently affect the next, producing flaky tests that pass or fail depending on order.
+
+Because each scenario gets its own World, none of that can happen. That is what the comment means by “full isolation”.
+
+3. The code, line by line
+typescript
+import { IWorldOptions, World, setWorldConstructor } from '@cucumber/cucumber';
+World is Cucumber’s base class. It provides useful built-ins such as this.attach() (add screenshots or text to the report), this.log() and this.parameters.
+IWorldOptions is the TypeScript type for the options Cucumber passes into the constructor.
+setWorldConstructor registers your class with Cucumber.
+typescript
+import { BrowserContext, Page } from '@playwright/test';
+import { PageManager } from '../pages/PageManager';
+
+These are only used as types for the fields below.
+
+typescript
+export class CustomWorld extends World {
+
+Your World inherits everything from Cucumber’s World and adds the fields this framework needs. It is exported so that steps and hooks can import it as a type.
+
+typescript
+  context!: BrowserContext;
+  page!: Page;
+  pages!: PageManager;
+context is the Playwright browser context, an isolated profile with its own cookies and storage. The After hook closes it, and tracing runs on it.
+page is the browser tab the scenario controls.
+pages is the PageManager, which hands out page objects such as this.pages.login and this.pages.cart.
+
+The ! is TypeScript’s definite assignment assertion. These fields cannot be set in the constructor because creating a browser context is asynchronous, and constructors cannot await. They are filled in later by the Before hook:
+
+typescript
+Before(async function (this: CustomWorld) {
+  this.context = await browser.newContext(...);
+  this.page = await this.context.newPage();
+  this.pages = new PageManager(this.page);
+});
+
+Without the !, TypeScript’s strict mode would report “property has no initializer”. The ! says: “I promise this will be assigned before it is used.”
+
+typescript
+  addedProducts: string[] = [];
+
+This is shared scenario data, not browser infrastructure. When you add a product to the cart, the step records its name here. Later, the checkout step compares the number of prices on the overview page with this.addedProducts.length. Since the World is created per scenario, it starts as an empty array each time. For this field a ! isn’t needed, because it is initialized immediately.
+
+typescript
+  constructor(options: IWorldOptions) {
+    super(options);
+  }
+
+Cucumber passes options (the attach and log functions and any world parameters) into the constructor. super(options) hands them to the base class, which is how this.attach(...) works later. This constructor is technically optional, because TypeScript would generate the same one automatically. It is written out here to make clear where the options come from, and it is the place to add setup logic if you ever need it.
+
+typescript
+setWorldConstructor(CustomWorld);
+
+This is the line that makes everything work. Without it, Cucumber would use its default World, which has no page or pages. This call tells Cucumber to create a CustomWorld for each scenario. Because it runs at import time, the file must be loaded, which cucumber.js guarantees through require: ['src/support/**/*.ts', ...].
+
+4. The this: CustomWorld annotation in steps
+
+Cucumber steps must use function, not arrow functions. Cucumber binds this to the World when it calls the step, and arrow functions cannot receive a bound this. The this: CustomWorld parameter does nothing at runtime. It tells TypeScript what this is, so you get autocomplete and type checking:
+
+typescript
+When('I login as {string}', async function (this: CustomWorld, userKey: string) {
+  await this.pages.login.login(...);   // fully typed
+});
+5. Lifecycle of one World
+Scenario starts
+   │
+   ├─ Cucumber: new CustomWorld(options)       ← constructor runs, fields empty
+   ├─ Before hook: fills context/page/pages
+   ├─ Steps run: read and write this.*
+   ├─ After hook: screenshot, trace, close context
+   │
+Scenario ends → World is garbage-collected
+6. How you would extend it
+
+Add any per-scenario state here, for example:
+
+typescript
+orderNumber?: string;                 // data captured in one step, checked in another
+currentUser?: Credentials;            // who is logged in
+apiResponse?: unknown;                // if you add API calls
+
+Don’t put things here that are shared across scenarios, such as the browser or config. Those belong in hooks.ts (browser) or env.ts (config), because they live longer than one scenario.
+
+Summary
+Part	Purpose
+extends World	Gets Cucumber’s built-ins (attach, log, parameters)
+context, page, pages	Give every step access to the same browser session
+! on those fields	Promises TypeScript they are set later, in Before
+addedProducts	Scenario-scoped data shared between steps
+setWorldConstructor	Registers the class so Cucumber uses it
+New instance per scenario	Prevents state leaking, which makes parallel runs safe
 
 
 
