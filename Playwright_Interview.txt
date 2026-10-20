@@ -1,3 +1,69 @@
+#==================================================================================================
+# Q : DOM Hierarchy 
+===>  The Document Object Model (DOM) hierarchy in JavaScript is a tree-like structure that represents the architecture of an HTML document. When a browser loads a webpage, it parses the HTML and constructs this object-oriented representation in memory, allowing JavaScript to dynamically read, traverse, and modify the page content.
+
+1. The Logical DOM Hierarchy
+
+At the runtime level, the hierarchy begins even before the document itself, starting from the global browser context.
+text
+[window]                 <-- The global browser environment (BOM)
+   │
+   └── [document]        <-- The root entry point of the web page (DOM)
+          │
+          └── <html>     <-- The root element of the HTML document
+               ├── <head>
+               │     ├── <title>
+               │     └── <link>
+               └── <body>
+                     ├── <h1>
+                     ├── <p>
+                     └── <div>
+Use code with caution.
+• window (BOM): The global object representing the browser window. It serves as the container for the entire execution environment.
+• document: A property of the window object (window.document). It is the absolute entry point to the actual webpage content.
+• Root Element (<html>): The primary node that encapsulates all other structural elements on the page.
+
+2. The Node Inheritance Hierarchy (Prototype Chain)
+
+Behind the scenes, every piece of the DOM tree is a JavaScript object. These objects inherit properties and methods from a strict class/interface hierarchy.
+
+Interface / Class	Description	Key Properties & Methods
+EventTarget	The root interface that allows objects to receive events.	addEventListener(), removeEventListener(), dispatchEvent()
+Node	The base class for everything inside the document.	parentNode, childNodes, appendChild(), removeChild()
+Document	Represents the entire webpage.	getElementById(), createElement(), body
+Element	Represents an actual HTML or XML tag element.	querySelector(), innerHTML, classList, getAttribute()
+HTMLElement	The base class for all standard HTML tags.	style, innerText, dataset, click()
+Specific Elements	Specialized blueprints tailored to individual tags.	E.g., HTMLAnchorElement (href), HTMLImageElement (src)
+
+Example: A <button> element inherits from: HTMLButtonElement → HTMLElement → Element → Node → EventTarget → Object.
+
+3. Types of Nodes in the Tree
+
+Not everything in the DOM tree is an HTML tag. The tree contains several specialized node types:
+1. Element Nodes (Node.ELEMENT_NODE): The HTML tags themselves (e.g., <body>, <div>).
+2. Text Nodes (Node.TEXT_NODE): The actual text inside tags, including whitespaces and line breaks.
+3. Attribute Nodes (Node.ATTRIBUTE_NODE): The attributes applied to tags (e.g., class="container", href="...").
+4. Comment Nodes (Node.COMMENT_NODE): HTML comments (<!-- comment -->) which remain accessible via script.
+
+4. Navigating the Hierarchy
+
+JavaScript provides two distinct pathways to traverse the DOM hierarchy: Node Traversal (which includes whitespaces/text nodes) and Element Traversal (which ignores text nodes and focuses strictly on HTML tags).
+javascript
+// Assume we start with an element: const base = document.querySelector('.item');
+
+// ─── MOVE UPWARDS ───
+let parent = base.parentElement;      // Gets the parent HTML element
+let parentNode = base.parentNode;    // Gets the parent node (could be a document node)
+
+// ─── MOVE DOWNWARDS ───
+let HTMLchildren = base.children;     // Live HTMLCollection of element children only
+let allNodes = base.childNodes;      // NodeList of all child nodes (includes text/spaces)
+let firstTag = base.firstElementChild;// First child that is a tag
+
+// ─── MOVE SIDEWAYS (SIBLINGS) ───
+let nextTag = base.nextElementSibling;// Next sibling element on the same level
+
+
 #====================================================================================================
 # Q : Explain your Playwright framework architecture. Why did you choose it?
 ===> In my current project, I have designed and worked with a modular Playwright automation framework using TypeScript, the Page Object Model (POM), and Playwright Test Runner. The main objective was to make the framework scalable, maintainable, reusable, and easy to integrate with CI/CD pipelines.
@@ -2729,31 +2795,178 @@ apiResponse?: unknown;                // if you add API calls
 Don’t put things here that are shared across scenarios, such as the browser or config. Those belong in hooks.ts (browser) or env.ts (config), because they live longer than one scenario.
 
 Summary
-Part	Purpose
-extends World	Gets Cucumber’s built-ins (attach, log, parameters)
-context, page, pages	Give every step access to the same browser session
-! on those fields	Promises TypeScript they are set later, in Before
-addedProducts	Scenario-scoped data shared between steps
-setWorldConstructor	Registers the class so Cucumber uses it
-New instance per scenario	Prevents state leaking, which makes parallel runs safe
-
-
-
-
-#====================================================================================================
-# Q :
-
-
+Part				Purpose
+1. extends World		Gets Cucumber’s built-ins (attach, log, parameters)
+2. context, page, pages		Give every step access to the same browser session
+3. ! on those fields		Promises TypeScript they are set later, in Before
+4. addedProducts		Scenario-scoped data shared between steps
+5. setWorldConstructor		Registers the class so Cucumber uses it
+6. New instance per scenario	Prevents state leaking, which makes parallel runs safe
 
 
 #====================================================================================================
-# Q :
+# Q : const browser = await pw.webkit.launch();
+console.log(browser.contexts().length); // prints `0`
 
+const context = await browser.newContext();
+console.log(browser.contexts().length); // prints `1`
+what is difference between above length 
 
+==> The difference in length occurs because pw.webkit.launch() boots up the raw browser process without any active user sessions (contexts), while browser.newContext() initializes an isolated, incognito-like user session.
+Here is exactly what is happening under the hood in your code:
 
+1. browser.contexts().length is 0
+
+When you call pw.webkit.launch(), Playwright starts the core browser application engine (the background process). At this exact moment, the browser is just an empty shell.
+• It contains no open tabs and no user sessions.
+• Because no sessions exist yet, browser.contexts() returns an empty array [], making its length 0.
+
+2. browser.contexts().length becomes 1
+
+When you execute await browser.newContext(), you explicitly command Playwright to create a new Browser Context.
+• Think of a Browser Context as an independent incognito window. It has its own completely isolated cookies, local storage, cache, and session data.
+• Now that the browser process is hosting exactly one active session, browser.contexts() returns an array containing that single context object, making its length 1.
+
+The Playwright Hierarchy
+
+To easily visualize how Playwright structures this, think of it as a three-layer tree:
+text
+Browser (The overall application process)
+  └── Browser Context (An isolated incognito session)
+        └── Page (An individual tab inside that session)
+Use code with caution.
+If you were to call await browser.newContext() a second time, the length would become 2. This architecture allows you to simulate multiple entirely separate users (like a customer and an admin) within the exact same browser process without their data leaking into one another.
+Are you trying to open a new page/tab to start automation, or are you looking to configure specific settings like cookies, proxies, or viewports inside that context? I can show you how to structure the next steps.
 
 #====================================================================================================
-# Q :
+# Q :   const browser = await chromium.launch();
+console.log(browser.contexts().length); // prints `0`
+
+const context = await browser.newContext();
+console.log(browser.contexts().length); // prints `1`
+Explain in detail about difference in length why is it
+
+===>  The difference in length occurs because chromium.launch() creates a fresh browser process with no active user profiles or memory sessions, while browser.newContext() instantiates a completely isolated, incognito-like environment within that process.
+To understand why the count shifts from 0 to 1, we have to look closely at Playwright’s architecture and how it manages browser states under the hood.
+
+Phase 1: chromium.launch() \(\rightarrow \) Length: 0
+
+When you call await chromium.launch(), Playwright starts a native Chromium browser instance in the background.
+• The Raw Engine: At this point, you have launched the physical browser application process (like opening chrome.exe), but it has been launched with zero user profiles, no history, and no memory allocations.
+• No Default State: Unlike opening a retail browser on your desktop—which automatically loads your default profile, active extensions, and homepage—Playwright launches a "headless" or stripped-down process.
+• The Array is Empty: Because there are no active environments or profiles currently managed by this browser instance, calling browser.contexts() returns an empty array ([]). Its length is logically 0.
+
+Phase 2: browser.newContext() \(\rightarrow \) Length: 1
+
+When you run await browser.newContext(), you are explicitly asking Playwright to provision an isolated sandbox inside the running Chromium process.
+• What is a Context? A BrowserContext is a completely isolated session. It possesses its own separate cookies, local storage, session storage, browser cache, and permissions.
+• Like an Incognito Window: You can think of a context as an entirely fresh Incognito or Private Browsing window. It does not share any state with any other contexts you might create later.
+• The Array Populates: Now that the Chromium process is actively hosting and managing one of these distinct session sandboxes, browser.contexts() returns an array containing that specific context object ([BrowserContext]). The length of this array is now 1.
+
+Visualising the Hierarchy
+
+Playwright uses a strict three-tier hierarchy to handle automation. Understanding this explains why contexts and pages (tabs) are managed separately:
+text
+┌─────────────────────────────────────────────────────────┐
+│ 				BROWSER (The overall operating system process)         		│
+│ 				browser.contexts().length // 1                          	│
+└────────────┬────────────────────────────────────────────┘
+             			│
+             			▼
+┌─────────────────────────────────────────────────────────┐
+│ 				BROWSER CONTEXT (An isolated Incognito profile)       		│
+│ 				context.pages().length // 0                            		│
+└────────────┬────────────────────────────────────────────┘
+             			│
+             			▼
+┌─────────────────────────────────────────────────────────┐
+│ 				PAGE (A single tab inside that Incognito profile)   	    │
+└─────────────────────────────────────────────────────────┘
+
+Use code with caution.
+If you were to then run const page = await context.newPage();, your browser.contexts().length would still be 1, because you haven't created a new profile—you have just opened a tab inside the existing one.
+
+Why does Playwright do this?
+
+This design is built for efficiency and speed. Launching a browser process (chromium.launch()) is resource-heavy and takes time. Creating a context (browser.newContext()) takes milliseconds.
+By separating the browser from the context, Playwright allows you to spin up dozens of completely isolated user sessions (e.g., testing a chat app with User A and User B concurrently) without needing to pay the time and CPU penalty of launching multiple separate browser processes.
+Are you looking to run parallel tests using multiple contexts, or do you need to configure specific session attributes like geolocations, user agents, or storage states inside your context? I can provide the exact code setup for either scenario.
+
+#====================================================================================================
+# Q : What is addInitScript() ?
+
+==> page.addInitScript() injects and runs a JavaScript snippet into every web page before any of the page's own scripts execute.
+It ensures your custom code is active from the absolute beginning of the page lifecycle—even before the HTML begins parsing or the DOM loads.
+
+Why to Use It (The Core Benefit)
+
+If you evaluate standard script via page.evaluate() after a page loads, you are usually too late. By that time, the website’s own scripts have already run, API requests have fired, and features have initialized.
+addInitScript() provides a "time-machine" effect, letting you modify the browser environment before the website knows what hit it.
+
+When to Use It (Common Use Cases)
+
+1. Mocking or Stubbing Browser APIs: Overriding built-in objects (like navigator.geolocation or Notification) to control their behavior during a test.
+2. Bypassing Bot Detection: Adding fake plugins or overriding navigator.webdriver properties to prevent anti-bot services (like Cloudflare or Akamai) from flagging your script as an automated tool.
+3. Preloading Global Configurations / Mocks: Attaching mock tokens, data layers (window.dataLayer), or testing flags to the window object before the application boots up.
+
+How to Use It (Code Examples)
+
+You can call addInitScript on either a context level (applies to all tabs/pages opened in that session) or a page level (applies only to that specific tab).
+
+Example 1: Mocking Geolocation (Context Level)
+
+This example intercepts the browser's geolocation API so that the website automatically believes the user is in Paris, France, without prompting for permissions.
+javascript
+import { chromium } from 'playwright';
+
+const browser = await chromium.launch();
+const context = await browser.newContext();
+
+// Inject the script into the context before navigating
+await context.addInitScript(() => {
+  const mockCoords = { latitude: 48.8566, longitude: 2.3522 };
+  
+  // Override the native getCurrentPosition function
+  navigator.geolocation.getCurrentPosition = (success) => {
+    success({ coords: mockCoords, timestamp: Date.now() });
+  };
+});
+
+const page = await context.newPage();
+await page.goto('https://weather.com'); // The site will immediately read Paris coordinates
+Use code with caution.
+
+Example 2: Pre-populating a Global Object (Page Level)
+
+This example injects a feature flag into the global window object before an Angular, React, or Vue application mounts.
+javascript
+import { chromium } from 'playwright';
+
+const browser = await chromium.launch();
+const page = await browser.newPage();
+
+// Inject a mock token or feature flag
+await page.addInitScript(() => {
+  window.__MY_APP_FLAGS__ = {
+    enableBetaFeatures: true,
+    mockAuthToken: 'xyz123'
+  };
+});
+
+await page.goto('https://my-single-page-app.com');
+// The app reads window.__MY_APP_FLAGS__ during its initialisation boot phase
+Use code with caution.
+
+Example 3: Passing Arguments to the Script
+
+If you need to pass dynamic data from your Node.js testing environment into the browser script, you can pass an argument object.
+javascript
+// Passing a dynamic user object into the init script
+await page.addInitScript((user) => {
+  window.currentUser = user;
+}, { name: 'John Doe', role: 'admin' });
+Use code with caution.
+Are you trying to bypass a specific bot detection mechanism, or are you looking to mock an API or data layer for a frontend app? Tell me your exact goal, and I can write the tailored script for it. 
 
 
 
