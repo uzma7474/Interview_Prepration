@@ -195,67 +195,113 @@ Complete List of Common Standard HTTP Status Codes
 1xx Informational
 
 • 100 Continue: The server has received the request headers and the client should proceed to send the request body.
+
 • 101 Switching Protocols: The requester has asked the server to switch protocols (e.g., upgrading to WebSockets).
+
 • 103 Early Hints: Used to return some response headers before the final HTTP message.
 
 2xx Success
 
 • 200 OK: The standard response for successful HTTP requests.
+
 • 201 Created: The request has been fulfilled, resulting in the creation of a new resource.
+
 • 202 Accepted: The request has been accepted for processing, but processing is not complete.
+
 • 204 No Content: The server successfully processed the request but is not returning any content in the response body.
+
 • 206 Partial Content: The server is delivering only part of the resource due to a range header sent by the client.
 
 3xx Redirection
 
 • 301 Moved Permanently: The requested resource has been assigned a new permanent URI.
+
 • 302 Found: The requested resource resides temporarily under a different URI.
+
 • 304 Not Modified: Indicates that the resource has not been modified since the version cached by the client.
+
 • 307 Temporary Redirect: The request should be repeated with another URI, but future requests should still use the original URI.
+
 • 308 Permanent Redirect: The request and all future requests should be repeated using another URI.
 
 4xx Client Error
 
 • 400 Bad Request: The server cannot process the request due to a client error (e.g., malformed request syntax).
+
 • 401 Unauthorized: The request requires user authentication. (Strictly speaking, this means "unauthenticated").
+
 • 403 Forbidden: The server understood the request but refuses to authorize it.
+
 • 404 Not Found: The requested resource could not be found on the server.
+
 • 405 Method Not Allowed: The request method (GET, POST, etc.) is not supported for the requested resource.
+
 • 408 Request Timeout: The server timed out waiting for the request from the client.
+
 • 409 Conflict: The request could not be completed due to a conflict with the current state of the target resource.
+
 • 422 Unprocessable Entity: The request was well-formed but was unable to be followed due to semantic errors.
+
 • 429 Too Many Requests: The user has sent too many requests in a given amount of time (rate-limiting).
 
-Code	Meaning
-400	Bad Request
-401	Unauthorized
-402	Payment Required
-403	Forbidden
-404	Not Found
-405	Method Not Allowed
-406	Not Acceptable
-407	Proxy Authentication Required
-408	Request Timeout
-409	Conflict
-410	Gone
-411	Length Required
-412	Precondition Failed
-413	Payload Too Large
-414	URI Too Long
-415	Unsupported Media Type
-416	Range Not Satisfiable
-417	Expectation Failed
-418	I’m a teapot
-421	Misdirected Request
-422	Unprocessable Content
-423	Locked
-424	Failed Dependency
-425	Too Early
-426	Upgrade Required
-428	Precondition Required
-429	Too Many Requests
-431	Request Header Fields Too Large
-451	Unavailable For Legal Reasons
+Code		Meaning
+1. 400 :	Bad Request
+
+2. 401 :	Unauthorized
+
+3. 402 :	Payment Required
+
+4. 403 :	Forbidden
+
+5. 404 :	Not Found
+
+6. 405 : 	Method Not Allowed
+
+7. 406 : 	Not Acceptable
+
+8. 407 : 	Proxy Authentication Required
+
+9. 408	:	Request Timeout
+
+10. 409	:	Conflict
+
+11. 410	:	Gone
+
+12. 411 :	Length Required
+
+13. 412 :	Precondition Failed
+
+14. 413 :	Payload Too Large
+
+15. 414 :	URI Too Long
+
+16. 415 :	Unsupported Media Type
+
+17. 416 :	Range Not Satisfiable
+
+18. 417 :	Expectation Failed
+
+19. 418 :	I’m a teapot
+
+20. 421 :	Misdirected Request
+
+21. 422 :	Unprocessable Content
+
+22. 423 :	Locked
+
+23. 424 :	Failed Dependency
+
+24. 425 :	Too Early
+
+25. 426 :	Upgrade Required
+
+26. 428 :	Precondition Required
+
+27. 429 :	Too Many Requests
+
+28. 431 :	Request Header Fields Too Large
+
+29. 451 :	Unavailable For Legal Reasons
 
 
 
@@ -263,55 +309,97 @@ Code	Meaning
 5xx Server Error
 
 • 500 Internal Server Error: A generic error message given when an unexpected condition was encountered on the server.
+
 • 501 Not Implemented: The server either does not recognize the request method or lacks the ability to fulfill it.
+
 • 502 Bad Gateway: The server, while acting as a gateway or proxy, received an invalid response from an upstream server.
+
 • 503 Service Unavailable: The server cannot handle the request because it is overloaded or down for maintenance.
+
 • 504 Gateway Timeout: The server, while acting as a gateway or proxy, did not receive a timely response from an upstream server.
+
 • 505 HTTP Version Not Supported: The server does not support the HTTP protocol version used in the request.
 I
 
-500	Internal Server Error
-501	Not Implemented
-502	Bad Gateway
-503	Service Unavailable
-504	Gateway Timeout
-505	HTTP Version Not Supported
-506	Variant Also Negotiates
-507	Insufficient Storage
-508	Loop Detected
-510	Not Extended
-511	Network Authentication Required
+1. 500 	Internal Server Error
+
+2. 501	Not Implemented
+
+3. 502	Bad Gateway
+
+4. 503	Service Unavailable
+
+5. 504	Gateway Timeout
+
+6. 505	HTTP Version Not Supported
+
+7. 506	Variant Also Negotiates
+
+8. 507	Insufficient Storage
+
+9. 508	Loop Detected
+
+10. 510	 Not Extended
+
+11. 511	Network Authentication Required
+
 Non-Standard and Vendor Codes
 Cloudflare, Nginx, Microsoft, and Akamai all return codes outside the official spec when their infrastructure layer fails. These are the ones to recognize on sight because they tell you the failure is in the edge, not your origin.
 
-Code	Meaning
-419	Authentication Timeout
-420	Enhance Your Calm / Method Failure
-440	Login Timeout (Microsoft)
-444	No Response (Nginx)
-449	Retry With (Microsoft)
-450	Blocked by Windows Parental Controls
-460	Client Closed Connection
-494	Request Header Too Large (Nginx)
-495	SSL Certificate Error (Nginx)
-496	SSL Certificate Required (Nginx)
-497	HTTP Request Sent to HTTPS Port
-498	Invalid Token
-499	Client Closed Request (Nginx)
-509	Bandwidth Limit Exceeded
-520	Unknown Error (Cloudflare)
-521	Web Server Is Down (Cloudflare)
-522	Connection Timed Out (Cloudflare)
-523	Origin Is Unreachable (Cloudflare)
-524	A Timeout Occurred (Cloudflare)
-525	SSL Handshake Failed (Cloudflare)
-526	Invalid SSL Certificate (Cloudflare)
-527	Railgun Error (Cloudflare)
-529	Site Overloaded
-530	Site Frozen / Origin DNS Error
-561	Unauthorized (Akamai)
-598	Network Read Timeout
-599	Network Connect Timeout
+Code		Meaning
+1. 419 		Authentication Timeout
+
+2. 420		Enhance Your Calm / Method Failure
+
+3. 440		Login Timeout (Microsoft)
+
+4. 444		No Response (Nginx)
+
+5. 449		Retry With (Microsoft)
+
+6. 450		Blocked by Windows Parental Controls
+
+7 .460		Client Closed Connection
+
+8. 494		Request Header Too Large (Nginx)
+
+9. 495		SSL Certificate Error (Nginx)
+
+10. 496		SSL Certificate Required (Nginx)
+
+11. 497		HTTP Request Sent to HTTPS Port
+
+12. 498		Invalid Token
+
+13. 499		Client Closed Request (Nginx)
+
+14. 509		Bandwidth Limit Exceeded
+
+15. 520		Unknown Error (Cloudflare)
+
+16. 521		Web Server Is Down (Cloudflare)
+
+17. 522		Connection Timed Out (Cloudflare)
+
+18. 523		Origin Is Unreachable (Cloudflare)
+
+19. 524		A Timeout Occurred (Cloudflare)
+
+20. 525		SSL Handshake Failed (Cloudflare)
+
+21. 526		Invalid SSL Certificate (Cloudflare)
+
+22. 527		Railgun Error (Cloudflare)
+
+23. 529		Site Overloaded
+
+24. 530		Site Frozen / Origin DNS Error
+
+25. 561		Unauthorized (Akamai)
+
+26. 598		Network Read Timeout
+
+27. 599		Network Connect Timeout
 Code ranges not listed above (104-199, 209-225, 227-299, 309-399, 432-450, 452-499, 512-599) are either unassigned, deprecated, or reserved for vendor use. Treat any code in those ranges as vendor-specific and check your infrastructure’s documentation.
 
 The Codes Your Monitoring Should Actually Alert On
@@ -2127,7 +2215,7 @@ JWT-based authentication :	Session-based authentication
 Interview conclusion: “JWT is a token format commonly used for API authentication. It consists of a header, payload, and signature. In my REST Assured framework, I would retrieve the JWT from the authentication API, pass it as a Bearer token, and validate successful access as well as negative scenarios such as invalid, expired, and missing tokens.”
 
 #===================================================================================
-# Q : 
+# Q : Write logic to reverse a string taken from the console.
 
 
 

@@ -1,0 +1,242 @@
+how to run playwright typescript cucumber test cases
+To run Playwright automated test cases using TypeScript and Cucumber, you have two primary options:
+1. The Classic Approach (cucumber-js): Cucumber acts as the test runner, pulling in Playwright purely as a library.
+2. The Modern Approach (playwright-bdd): This maps Gherkin feature files directly into the native Playwright Test runner, giving you access to all native Playwright features like the UI Mode, HTML reporting, and parallelization.
+The modern playwright-bdd approach is recommended for new projects because it offers better performance and debugging tools. Below is the step-by-step setup guide.
+
+Step 1: Install Dependencies
+
+Initialize a new project and install the required modules:
+bash
+mkdir playwright-cucumber-demo && cd playwright-cucumber-demo
+npm init -y
+
+# Install Playwright, Cucumber, and the BDD integration tool
+npm i -D @playwright/test @cucumber/cucumber playwright-bdd typescript @types/node
+
+# Install required browsers
+npx playwright install chromium
+Use code with caution.
+
+Step 2: Configure TypeScript (tsconfig.json)
+
+Initialize your TypeScript configuration file:
+bash
+npx tsc --init
+Use code with caution.
+Replace the content of the generated tsconfig.json with the following configuration:
+json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "lib": ["ESNext", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "outDir": "dist"
+  },
+  "include": ["features/**/*.ts", "playwright.config.ts"]
+}
+Use code with caution.
+
+Step 3: Configure Playwright BDD (playwright.config.ts)
+
+Create a playwright.config.ts file in the project root. The defineBddConfig function tells the library where to scan for feature files and their corresponding TypeScript step definitions.
+typescript
+import { defineConfig } from '@playwright/test';
+import { defineBddConfig } from 'playwright-bdd';
+
+const testDir = defineBddConfig({
+  features: 'features/*.feature',
+  steps: 'features/steps/*.ts',
+});
+
+export default defineConfig({
+  testDir,
+  reporter: [['html']],
+  use: {
+    browserName: 'chromium',
+    headless: true,
+    screenshot: 'on',
+  },
+});
+Use code with caution.
+
+Step 4: Create a Feature File
+
+Create the folder structure features/steps/. Inside the features folder, create a file named login.feature:
+gherkin
+Feature: User Login
+
+  Scenario: Successful Login
+    Given I navigate to the login page
+    Then the page title should contain "Login"
+Use code with caution.
+
+Step 5: Write Step Definitions
+
+Inside features/steps/, create a file named login.steps.ts. Use the custom createBdd wrappers provided by playwright-bdd to get native Playwright page fixtures directly inside your steps:
+typescript
+import { createBdd } from 'playwright-bdd';
+import { expect } from '@playwright/test';
+
+const { Given, Then } = createBdd();
+
+Given('I navigate to the login page', async ({ page }) => {
+  await page.goto('https://example.com');
+});
+
+Then('the page title should contain {string}', async ({ page }, expectedTitle: string) => {
+  await expect(page).toHaveTitle(new RegExp(expectedTitle));
+});
+Use code with caution.
+
+Step 6: Run Your Test Cases
+
+To execute the tests, you must first generate the underlying Playwright test specification files from the Gherkin files, then trigger the runner:
+1. Generate BDD files:bash
+npx bddgen
+Use code with caution.
+2. Execute tests:bash
+npx playwright test
+Use code with caution.
+(Optional) You can combine these into a unified command in your package.json file under scripts:
+json
+"scripts": {
+  "test": "bddgen && playwright test"
+}
+Use code with caution.
+Then execute it simply by running npm test.
+If you'd like, let me know:
+• Do you prefer to use the classic cucumber-js runner instead of the native Playwright test runner?
+• Do you need assistance setting up a Page Object Model (POM) structure with this framework?
+• Are you looking to run your test cases in parallel or across multiple browser environments?
+• 
+YouTube·LetCode with Koushik
+Create feature, steps & config | Playwright & Cucumber
+Create feature, steps & config | Playwright & Cucumber - Typescript | Part 1 thank you hello guys welcome back to that code after ...
+20:13
+• 
+YouTube·NATASA Tech
+Playwright and Typescript with Cucumber BDD Complete Easy ...
+#playwright - 7 | Playwright and Typescript with Cucumber BDD Complete Easy Setup Guide | hello friends today we are going to be l...
+27:00
+• 
+YouTube·JoanMedia
+Playwright and Cucumber: EASY SETUP
+hey masters welcome back to Junk Media. today I want to create a video for you masters about the integration. between playright an...
+13:07
+Show all
+
+which approach is used in industry mostly
+
+In the enterprise tech landscape, industry adoption is divided based on whether a company is migrating an old test suite or building a brand-new one.
+However, a massive shift has occurred: Plain Playwright (without Cucumber entirely) is now the dominant choice for tech-first companies. If BDD is strictly required, the industry splits between two distinct paths:
+
+1. The Legacy Powerhouse: @cucumber/cucumber (with Playwright as a library)
+
+Usage: Most common in large enterprise environments and banks.
+• Why it's used: Large companies typically migrate from legacy Selenium/Java or WebdriverIO frameworks where QA teams, Product Managers, and Business Analysts are already accustomed to standard Cucumber configurations.
+• The Blueprint: They preserve their existing .feature files and historical reporting pipelines (like Jira Xray or Allure). They swap out Selenium for Playwright purely to interact with the browser, but keep the cucumber-js runner in charge.
+• The Catch: Engineering teams frequently complain about this setup because it relies on complex "boilerplate code" (like custom World objects) to manage browser sessions. It completely loses Playwright’s native parallel execution, built-in HTML reports, and the Trace Viewer unless hours are spent building custom workarounds.
+
+2. The Greenfield Standard: playwright-bdd
+
+Usage: Most common in modern software companies and new ("greenfield") projects.
+• Why it's used: When a team is tasked with building a modern automation framework from scratch but must retain Cucumber for business visibility, they lean into playwright-bdd.
+• The Blueprint: It addresses the fundamental flaw of the old setup. Instead of fighting Playwright's native test runner, playwright-bdd acts as a compiler. It converts Gherkin steps into native .spec.ts files under the hood.
+• The Advantage: The team gets the human-readable Gherkin syntax alongside Playwright’s incredibly fast native multi-threaded parallelization, auto-waiting fixtures, and zero-configuration Trace Viewer.
+
+Summary: What is the Real Trend?
+
+
+If your scenario is...	Industry Standard Choice
+Migrating a massive, existing testing framework with thousands of Cucumber steps	Classic Approach (@cucumber/cucumber)
+Starting a new project where non-technical stakeholders insist on reading Gherkin specs	Modern Approach (playwright-bdd)
+An engineering-led team prioritizing speed, minimal maintenance, and stable CI/CD pipelines	Plain Playwright (No Cucumber)
+
+💡 The SDET Consensus: In modern QA engineering, many teams are actively moving away from Cucumber entirely. Because Playwright's native test('should clear login credentials when clicking reset', async () => {}) syntax is already highly readable, many industries find the extra structural layer of Gherkin redundant unless non-technical product owners are actively writing the test criteria.
+Are you setting up a brand new framework from scratch, or are you migrating an existing test suite that already relies heavily on standard Cucumber? Knowing this can help target your infrastructure layout.
+AI can make mistakes, so double-check responses 
+• 
+The Testing Academy
+Playwright with Cucumber: BDD Tests in TypeScript
+cucumber-js is the reference implementation of Cucumber for Node. It gives you full control over the World object, hooks, tags, an...
+• 
+www.arrangility.com
+Cucumber.js vs Playwright-bdd
+The Cucumber. js + Playwright Architecture. Let's first clarify the architecture when combining Cucumber. js with Playwright. ... ...
+• 
+QASkills.sh
+Cucumber vs Playwright in 2026 — BDD Gherkin vs E2E, and ...
+Key Takeaways * Cucumber is a specification layer, not an automation engine. It parses Gherkin ( Given/When/Then ) and maps each s...
+Show all
+
+what is the difference between these approaches
+
+The core difference between the two approaches comes down to who controls the execution lifecycle.
+In the Classic Approach (cucumber-js), Cucumber is the boss, and Playwright is treated as a simple tool. In the Modern Approach (playwright-bdd), Playwright is the boss, and Cucumber syntax is compiled down into Playwright’s native language before running.
+Here is a direct comparison of how they operate under the hood:
+
+Direct Comparison
+
+
+Feature	Classic Approach (@cucumber/cucumber)	Modern Approach (playwright-bdd)
+Primary Test Runner	cucumber-js	@playwright/test
+How It Works	Parses Gherkin text dynamically at runtime and matches them directly to step definitions.	Pre-compiles Gherkin files into hidden, native Playwright .spec.ts files, then executes them.
+Browser Management	Manual. You must write Before and After hooks to initialize the browser, context, and page.	Automatic. You use standard Playwright page fixtures directly inside your steps.
+Parallel Execution	Handled by Cucumber (processes). It can be clunky to scale and resource-heavy.	Handled natively by Playwright (worker threads). Incredibly fast, isolated, and highly optimized.
+Trace Viewer & Debugging	Requires manual integration to capture traces on failure.	Fully native. Works out-of-the-box with standard flags (--trace on, UI Mode, etc.).
+Reporting	Uses Cucumber formatters (HTML, JSON) or external tools like Allure.	Uses native Playwright HTML reporters, list reporters, or third-party plugins.
+
+
+Code Architecture Difference
+
+To understand why the industry favors the modern approach, look at how you have to pass the browser page instance between steps:
+
+1. The Classic Way (State Management Overhead)
+
+Because Cucumber runs the show, you have to create a custom global "World" object or shared variable to pass the browser page from your setup hooks into your step files.
+typescript
+// features/support/hooks.ts (Classic Setup)
+import { Before, After } from '@cucumber/cucumber';
+import { chromium, Page, Browser } from 'playwright';
+
+let browser: Browser;
+let page: Page;
+
+Before(async function () {
+  browser = await chromium.launch();
+  const context = await browser.newContext();
+  this.page = await context.newPage(); // Attaching page instance to Cucumber's "this" context
+});
+
+// features/steps/login.ts
+import { Given } from '@cucumber/cucumber';
+
+Given('I navigate to the login page', async function () {
+  await this.page.goto('https://example.com'); // Must rely on implicit string/any context
+});
+Use code with caution.
+
+2. The Modern Way (Clean Dependency Injection)
+
+Because playwright-bdd maps directly to Playwright's native runner, it natively injects the isolated page fixture into every step automatically. No custom hooks or global state management are required.
+typescript
+// features/steps/login.ts (Modern Setup)
+import { createBdd } from 'playwright-bdd';
+
+const { Given } = createBdd();
+
+// Playwright's native "page" fixture is injected automatically right here:
+Given('I navigate to the login page', async ({ page }) => {
+  await page.goto('https://example.com'); 
+});
+Use code with caution.
+
+Which one should you pick?
+
+• Choose the Classic Approach only if you have an existing CI/CD dashboard or enterprise reporting system (like Jira Xray) tightly integrated with cucumber-js JSON outputs, and you cannot easily change it.
+• Choose the Modern Approach for any new project. It gives you the best of both worlds: business-readable Gherkin syntax for stakeholders, and the full speed, power, and tooling of native Playwright for developers.
+Would you like to see how to configure parallel execution or multi-browser cross-testing using the modern playwright-bdd approach?

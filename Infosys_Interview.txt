@@ -32,6 +32,7 @@ Framework design
 21. Write a stale-element-safe click: retry up to 3 times on StaleElementReferenceException.
 22. Validate a form: submit it empty, capture all the error messages, and assert each against expected text.
 
+#======================================================================================================
 
 Round 1 : ( Technical ) 
 
@@ -66,7 +67,8 @@ Round 1 : ( Technical )
 👉 : What is method hiding in Java ?
 👉 : Write Java code to print all the array elements that appears atleast 2 times. (means 2 or greater than two)
 
----------------------------------------------------------------------------------------------
+#======================================================================================================
+
 
 Architecture of Selenium
 
@@ -86,7 +88,8 @@ What are Listeners and how do you use them?
 
 Difference between Assert and Verify
 
--------------------------------------------------------------------------------------------
+#======================================================================================================
+
 
 Project & Framework Design
 
@@ -346,7 +349,7 @@ Check if a string is palindrome.
 Remove duplicates from a string.
 Find the first non-repeating character.
 
----------------------------------------------------------------------------------------
+#======================================================================================================
 1. Please introduce yourself.
 2. Please explain your Automation Framework, all the components.
 3. What is a Page Object Model?
@@ -495,6 +498,7 @@ Find the first non-repeating character.
 6. What is dependency injection in Rest Assured? How does it enhance API testing?
 7. Explain the difference between HTTP 401 (Unauthorized) and HTTP 403 (Forbidden) status codes.
 
+#======================================================================================================
 
 .Introduce yourself along with your work experience.
 2.Explain your last project.
@@ -563,8 +567,6 @@ Find the first non-repeating character.
 17. What is the difference between HashMap and HashTable?
 18. Explain Exception Handling, Collections, and OOP concepts with real-time exam
 
-
-
 1. Manual Testing vs Automation Testing
 2. Software Development Life Cycle (SDLC)
 3. Software Testing Life Cycle (STLC)
@@ -602,6 +604,7 @@ Selenium WebDriver & Automation Concepts
 18. Handling Multiple Browser Windows
 19. What is POM (Page Object Model)?
 
+#======================================================================================================
 
 𝗟𝗧𝗜𝗠𝗶𝗻𝗱𝘁𝗿𝗲𝗲 | 𝗦𝗗𝗘𝗧 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
 
@@ -632,10 +635,9 @@ Selenium WebDriver & Automation Concepts
 10. How do you handle developer pushback on non-reproducible bugs?
 11. How do you resolve Git merge conflicts during active sprint merges?
 
+#======================================================================================================
+
 🗓️ 𝟏:𝟏 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭 𝐓𝐫𝐚𝐢𝐧𝐢𝐧𝐠 (𝐰𝐢𝐭𝐡 𝐚 𝐝𝐞𝐝𝐢𝐜𝐚𝐭𝐞𝐝 𝐓𝐫𝐚𝐢𝐧𝐞𝐫): https://lnkd.in/gEpS93ub
-
-
-
 
 📌 𝗭𝗼𝗵𝗼 | 𝗦𝗗𝗘𝗧 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
 
@@ -658,6 +660,7 @@ Selenium WebDriver & Automation Concepts
 7. Clean up test data created during parallel suite execution
 8. Attach video recordings to failed test reports in CI runner
 
+#=========================================================================================
 🗓️ 𝟏:𝟏 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭 𝐓𝐫𝐚𝐢𝐧𝐢𝐧𝐠 (𝐰𝐢𝐭𝐡 𝐚 𝐝𝐞𝐝𝐢𝐜𝐚𝐭𝐞𝐝 𝐓𝐫𝐚𝐢𝐧𝐞𝐫): https://lnkd.in/gEpS93ub
 
 🎯
@@ -682,11 +685,7 @@ Round 1 :
 16.What happens when driver.navigate().refresh() method is called in a program and a sample program is given and asked to write the output before calling the driver.navigate().refresh() method and after calling the method?
 17.What is method overriding?…see more
 
-
-Show more results
-
-
-
+#======================================================================================================
 
 𝐋𝐓𝐈𝐌𝐢𝐧𝐝𝐭𝐫𝐞𝐞 | 𝐑𝐨𝐮𝐧𝐝 1 𝐈𝐧𝐭𝐞𝐫𝐯𝐢𝐞𝐰 𝐐𝐮𝐞𝐬𝐭𝐢𝐨𝐧𝐬 – 𝐏𝐥𝐚𝐲𝐰𝐫𝐢𝐠𝐡𝐭
 
@@ -721,8 +720,8 @@ Preparing for a Playwright/SDET interview? Don't focus only on definitions. Be r
 
 
 -------------------------------------------------------------------------------------------------
-
 (2–4 Years Experience)
+
 Round 1 – Online Assessment
 • Java Basics: Object‑oriented concepts, exception handling mechanisms, and collection framework usage
 • Selenium Concepts: Element identification strategies, synchronization techniques, and browser navigation
@@ -730,26 +729,33 @@ handling
 • TestNG & Automation Frameworks: Test lifecycle, execution order, and data‑driven testing approaches
 • Database Knowledge: Writing and understanding SQL queries
 • Automation MCQs: XPath and CSS selectors, assertions, and test validations
-Hands‑On Coding Tasks
+
+# Hands‑On Coding Tasks
 • Write a program to identify and count repeated words in a given string
 • Automate a login workflow and validate successful or failed authentication
 • Solve basic logical problems such as array operations and string reversal
+
 Round 2 – Technical Interview
 • Differences between HashMap and Hashtable
 • Handling dynamic XPath expressions, iframes, and browser alerts
 • Automating dynamic web tables in real‑time applications
-Automation Framework & Tooling
+
+
+# Automation Framework & Tooling
 • Framework design using Page Object Model (POM)
 • Dependency management with Maven and orchestration using TestNG
 • Reporting with Extent Reports
 • Exception handling, screenshot capture on failures, and logging using Log4j
-Test Strategy & API Automation
+
+# Test Strategy & API Automation
 • Integrating automation suites with CI/CD pipelines (Jenkins)
 • API testing using Rest Assured with JSONPath validations and schema checks
 • Approaches for automating 2FA or CAPTCHA‑based flows
-Advanced Testing Practices
+
+# Advanced Testing Practices
 • Git branching models and version control strategies
 • Running tests using headless browser configurations
+
 Round 3 – Techno‑Managerial & HR
 • Leading automation initiatives for complex systems such as insurance claims platforms
 • Handling unstable or flaky automation scripts within sprint timelines
@@ -805,3 +811,43 @@ Topmate – Interview Guidance
 19- In Jenkins, what is the purpose of a CRON expression?
 
 #QualityAssurance #SoftwareTesting #QATesting #QAInterview #InterviewPreparation #TestAutomation #
+
+#==============================================================================================
+LTIMindtree | QA Analyst | Interview Questions
+L1 Round:
+Give a brief introduction about yourself.
+• What is Selenium and what are its main components ?
+• What types of waits are available in Selenium ?
+• Write the syntax for using Explicit Wait.
+• About Java Collections with any example.
+• Explain the use of the static keyword in Java.
+• Provide a sample code snippet for a POST request.
+• What is the difference between PUT and PATCH methods ?
+• Write logic to reverse a string taken from the console.
+• Compare Relative XPath and Absolute XPath.
+• How do you run test cases in parallel ?
+
+L2 Round:
+
+• Give your introduction.
+• Have you designed a framework from scratch ? Also explain Page Object Model.
+• Open Chrome, search “Playwright” and write the XPath for the “Playwright” text.
+• What is the difference between Authentication and Authorization ?
+• Which HTTP status code represents “Service Unavailable” ?
+• Write logic to check whether given input is alphanumeric.
+• What are checked and unchecked exceptions ?
+• Explain OOPs concepts and how you apply them in your framework.
+• Describe Implicit Wait and Explicit Wait.
+• How do you handle alerts when you need to input text ?
+• How do you perform data-driven testing ?
+• When does a Git conflict occur and how do you resolve it ?
+
+HR Round:
+
+• Tell me about yourself beyond your technical background.
+• Why do you want to join LTIMindtree ?
+• Why are you planning to switch from your current company ?
+• Describe a difficult situation you handled in a project.
+• How do you manage pressure or tight deadlines ?
+• Are you comfortable with relocation ?
+

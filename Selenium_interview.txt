@@ -29,40 +29,40 @@ Explain your framework architecture.
               Test / Scenario Layer
            ┌─────────────────────────┐
            │ SIT / Regression / Sanity		│
-           │ Functional Test Cases   		│
+           │ Functional Test Cases   		    │
            └────────────┬────────────┘
                         │
                         ▼
               Automation Layer
            ┌─────────────────────────┐
            │ Selenium / Playwright  		    │
-           │ Python Automation       		│
+           │ Python Automation       		    │
            │ PUMBA / SIMBA            		│
            └────────────┬────────────┘
                         │
                         ▼
               Reusable Components
            ┌─────────────────────────┐
-           │ Page/Component Objects   		│
-           │ API Modules              		│
-           │ Socket Communication     		│
-           │ ECU/Flashing Modules     		│
+           │    Page/Component Objects      │
+           │    API Modules              	│
+           │    Socket Communication     	│
+           │   ECU/Flashing Modules     		│
            └────────────┬────────────┘
                         │
                         ▼
                  Utility Layer
            ┌─────────────────────────┐
-           │ Config / JSON / Files   		│
-           │ Logging / Reporting     		│
-           │ Common Utilities        		│
-           │ Error Handling          		│
+           │    Config / JSON / Files   		│
+           │    Logging / Reporting     		│
+           │     Common Utilities        	│
+           │    Error Handling          		│
            └────────────┬────────────┘
                         │
                         ▼
                 Execution / CI
            ┌─────────────────────────┐
-           │ Maven / Gradle / Git   			│
-           │ Jenkins / CI Pipeline   		│
+           │    Maven / Gradle / Git   		│
+           │   Jenkins / CI Pipeline   		│
            └─────────────────────────┘
 
 =====================================================================================================
@@ -102,21 +102,22 @@ WebDriver
                  └────────┬─────────┘
                              ↓
                  ┌──────────────────┐
-                 │     Actions      	  │
-                 │ Business Logic   	  │
+                 │        Actions      	 
+│
+                 │      Business Logic   │
                  └────────┬─────────┘
                              ↓
              ┌─────────────────────────┐
              │        Pages + Components      │
-             │         Page Objects        	   │
+             │         Page Objects        	  │
              └───────────┬─────────────┘
                              ↓
                    ┌─────────────┐
-                   │    BasePage   	 │
+                   │    BasePage    │
                    └──────┬──────┘
                             ↓
                    ┌─────────────┐
-                   │   WebDriver   	 │
+                   │   WebDriver     │
                    └─────────────┘
 
  Supporting layers:
@@ -279,8 +280,7 @@ public void tearDown(Scenario scenario) {
 
     if (scenario.isFailed()) {
 
-        byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-               			 .getScreenshotAs(OutputType.BYTES);
+        byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver()).getScreenshotAs(OutputType.BYTES);
 
         scenario.attach(screenshot, "image/png", "Failure Screenshot" );
     }
@@ -384,9 +384,7 @@ Then inside onTestFailure():
 @Override
 public void onTestFailure(ITestResult result) {
 
-    FailureDetails failure = new FailureDetails(
-        result.getMethod().getMethodName(),
-        result.getTestClass().getName(),
+    FailureDetails failure = new FailureDetails(result.getMethod().getMethodName(), result.getTestClass().getName(),
         result.getThrowable() != null
             ? result.getThrowable().getMessage()
             : "Unknown error",
