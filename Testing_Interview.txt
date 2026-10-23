@@ -541,10 +541,58 @@ If the interviewer asks, “Which tool do you personally use?”
 Be specific and truthful. If you use Jira with Xray, say Xray. If you use Zephyr, say Zephyr. If you manage test cases in Excel and track defects in Jira, explain that workflow instead.
 The strongest answer describes the actual tool you have used, how you linked test cases to user stories and defects, and how you tracked automated execution results
 
-
 #===================================================================================================
-#  Q  : 
+#  Q  : How do you handle developer pushback on non-reproducible bugs?
+==> When a developer pushes back on a bug because they cannot reproduce it, I handle the situation objectively by providing clear evidence, narrowing down the conditions under which the issue occurs, and collaborating with the developer to identify the root cause. My goal is not to prove someone wrong, but to ensure the product behaves as expected.
+My approach
+1. Provide detailed reproduction steps
 
+I document the preconditions, test data, environment, browser version, exact steps, and expected versus actual results. I also mention whether the issue occurs consistently or intermittently.
+
+2. Collect evidence using Playwright
+
+I capture screenshots, videos, traces, console errors, and network request/response details to help the developer understand what happened.
+
+For example, in playwright.config.ts:
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure'
+  },
+  retries: process.env.CI ? 1 : 0
+});
+
+
+I can then inspect the trace using:
+npx playwright show-trace test-results/trace.zip
+
+
+This helps me identify whether the issue is caused by a UI rendering problem, a failed API request, a timing issue, or an unexpected application state.
+
+3. Investigate intermittent failures
+
+If the bug is not consistently reproducible, I try to identify patterns by varying the browser, environment, test data, network conditions, and execution mode.
+
+For example, if a checkout test fails only during parallel execution, I investigate shared test data, race conditions, and session conflicts instead of immediately classifying it as a flaky test.
+
+4. Reproduce the issue together
+
+I arrange a short debugging session with the developer, share the evidence, and reproduce the issue using the same environment and test data. This often helps us discover differences between local and CI environments.
+
+5. Keep the discussion evidence-based
+
+If the issue cannot be reproduced after investigation, I document the findings and keep the defect status aligned with the team's triage process. I do not close a potentially critical issue simply because it happened once or is difficult to reproduce.
+Real-time example
+Suppose a developer says that the checkout page works correctly, but my Playwright test intermittently shows an incorrect order total.
+
+I would review the trace and network logs, compare the displayed total with the checkout API response, and repeat the test with controlled test data. If the API returns the correct amount but the UI displays a stale total, I would share the evidence with the developer and investigate a possible UI state synchronization issue.
+
+Once the fix is available, I would rerun the original test, verify the expected behavior, and execute relevant regression tests.
+Strong closing statement for the interview
+“My approach is collaborative and evidence-driven. I provide clear reproduction steps and Playwright artifacts, investigate environmental and timing-related factors, and work with the developer to identify the root cause. If the issue remains intermittent, I document the risk and follow the team's defect triage process rather than dismissing it without sufficient evidence.”
 
 
 

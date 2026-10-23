@@ -3226,61 +3226,645 @@ Use code with caution.
 Example 3: Passing Arguments to the Script
 
 If you need to pass dynamic data from your Node.js testing environment into the browser script, you can pass an argument object.
-javascript
+
 // Passing a dynamic user object into the init script
 await page.addInitScript((user) => {
   window.currentUser = user;
 }, { name: 'John Doe', role: 'admin' });
+
 Use code with caution.
 Are you trying to bypass a specific bot detection mechanism, or are you looking to mock an API or data layer for a frontend app? Tell me your exact goal, and I can write the tailored script for it. 
 
+#====================================================================================================
+# Q : How do you mock 500 server error API responses in Playwright?
+==> In my Playwright automation framework, I use page.route() and route.fulfill() to mock API responses with an HTTP 500 Internal Server Error. This allows me to validate how the application handles server failures without depending on the actual backend.
+
+For example, if the product API returns a 500 error, I verify that the application displays an appropriate error message.
+Code example — Playwright with TypeScript
+
+import { test, expect } from '@playwright/test';
+
+test('should handle API 500 server error', async ({ page }) => {
+
+  // Intercept the products API
+  await page.route('**/api/products', async route => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Internal Server Error'
+      })
+    });
+  });
+
+  // Navigate to the application
+  await page.goto('https://example.com/products');
+
+  // Verify the error message
+  await expect(page.getByText('Something went wrong')).toBeVisible();
+});
+
+How it works
+1. page.route() intercepts requests matching the products API URL.
+2. route.fulfill() returns a mocked HTTP 500 response with a JSON error message.
+3. The browser processes the response, and the application's error-handling logic runs.
+4. I use Playwright assertions to verify that the expected error message is displayed.
+
+How I use this in a Cucumber framework
+I keep the API mocking logic in a reusable helper or step definition so that multiple scenarios can reuse it.
+import { Given } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+
+Given('the products API returns a 500 error', async function () {
+  await this.page.route('**/api/products', async route => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Internal Server Error'
+      })
+    });
+  });
+});
+
+Here, this.page assumes my Cucumber World exposes the Playwright Page instance.
+
+Example Gherkin scenario:
+Feature: Product API error handling
+
+  Scenario: Display an error when the products API returns 500
+    Given the products API returns a 500 error
+    When I navigate to the products page
+    Then I should see the server error message
 
 
+Best practice: I register the route before navigating to the page, use specific URL patterns to avoid intercepting unrelated requests, and verify the user-facing error state. I also keep mocked API tests separate from integration tests that validate the real backend.
 
 #====================================================================================================
-# Q :
+# Q : How do you debug scripts passing locally but failing in Jenkins?
+==> In my experience, when Playwright tests pass locally but fail in Jenkins, I first investigate environmental differences, timing issues, browser configuration, and test execution differences. I follow a systematic debugging approach rather than immediately increasing timeouts or adding retries.
+My debugging approach
+1. Analyze Jenkins execution logs
+
+I check the Jenkins console output to identify the exact failing test, error message, stack trace, and failure stage. I also review whether the failure occurs during browser launch, navigation, API calls, or assertions.
+
+2. Compare local and Jenkins environments
+
+I verify that both environments use compatible versions of Node.js, Playwright, browser binaries, and dependencies. In Jenkins, I run:
+node --version
+npm --version
+npx playwright --version
+npx playwright install --with-deps
+npm ci
 
 
+I also check environment variables, base URLs, credentials, file paths, and permissions.
 
+3. Debug timing and synchronization issues
+
+Sometimes a test passes locally because the machine is faster or the application responds differently. I use Playwright's auto-waiting and web-first assertions instead of fixed delays.
+await page.getByRole('button', { name: 'Login' }).click();
+
+await expect(
+  page.getByText('Welcome')
+).toBeVisible({ timeout: 10000 });
+
+
+I avoid using waitForTimeout() as a permanent solution because it can make tests slower without fixing the underlying issue.
+
+4. Capture screenshots, videos, and traces
+
+I configure Playwright to retain debugging artifacts when a test fails.
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+
+  use: {
+    headless: true,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure'
+  },
+
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }]
+  ]
+});
+
+
+In Jenkins, I publish the HTML report and archive the test-results directory so I can inspect screenshots, videos, and Playwright traces.
+
+5. Investigate parallel execution and test data
+
+If tests fail only in Jenkins, I check whether parallel execution causes shared-state issues, such as multiple tests updating the same user, database record, or file. I temporarily reduce the worker count to reproduce the issue and then isolate test data or use independent browser contexts.
+
+6. Check network and infrastructure issues
+
+I investigate API timeouts, unavailable test environments, authentication failures, proxy settings, and intermittent server errors. I also verify that Jenkins agents have sufficient memory and CPU resources.
+Example from my automation framework
+Suppose a login test passes locally but fails intermittently in Jenkins. I would inspect the trace to see whether the login API returned an error, the dashboard loaded slowly, or the locator matched an unexpected element. Based on the evidence, I would fix the underlying problem—for example, correct the environment configuration, wait for the actual dashboard state, or isolate test data.
+My conclusion in an interview
+“I use Jenkins logs and Playwright traces as my primary debugging tools. I compare the local and CI environments, verify synchronization and test-data isolation, and check network and resource constraints. I use retries only to help identify intermittent failures, not to hide defects. Once I identify the root cause, I fix it and rerun the affected test and the relevant regression suite.”
 
 #====================================================================================================
-# Q :
+# Q : What is your strategy when a release feature changes mid-sprint?
+==> When a release feature changes mid-sprint, my strategy is to understand the impact of the change, reassess testing priorities, and collaborate with the developers, Product Owner, and Business Analyst to ensure the updated requirements are validated without compromising release quality.
+My approach
+1. Understand the requirement change
 
+First, I discuss the change with the Product Owner or Business Analyst to clarify the updated acceptance criteria, expected behavior, and business impact. I identify what has changed compared with the original requirement.
 
+2. Perform impact analysis
 
+I identify the affected test cases, existing automation scripts, API validations, and dependent modules. I also check whether the change impacts shared components or existing regression scenarios.
+
+3. Prioritize testing based on risk
+
+I prioritize the following:
+- Critical business workflows and updated acceptance criteria.
+- Impacted functional and integration test cases.
+- API and UI validations related to the changed feature.
+- Regression testing for related modules.
+- Low-risk scenarios, which can be tested later if time is limited.
+4. Update the Playwright automation framework
+
+I update the affected page objects, reusable methods, locators, test data, and assertions. If the API contract changes, I also update API validation and mocking logic where required.
+
+For example, if the login flow changes from email-based login to email plus OTP, I update the login page methods, add OTP-related test scenarios, and validate successful login, invalid OTP, expired OTP, and relevant regression flows.
+
+5. Collaborate with the team
+
+I communicate the testing impact, additional effort, risks, and potential release blockers during sprint discussions. If the change introduces significant additional work, I discuss scope and timeline adjustments with the team rather than silently reducing test coverage.
+
+6. Execute focused regression testing
+
+I run the updated feature tests first, followed by regression tests covering dependent modules. In Jenkins, I verify the relevant pipeline results and review test reports before providing QA sign-off.
+Real-time example
+Suppose a checkout feature changes mid-sprint to introduce a new discount validation rule. I would clarify the updated business rules, identify affected checkout and payment tests, update the Playwright TypeScript automation scripts, and add positive and negative discount scenarios. I would then run focused regression tests around cart totals, payment amounts, and order confirmation.
+
+If the change creates a critical defect or leaves insufficient time for adequate validation, I communicate the risk to the Product Owner and recommend the appropriate release decision.
+
+My conclusion in an interview:
+
+“My priority is to adapt quickly without compromising quality. I assess the impact, prioritize risk-based testing, update automation scripts, and maintain close communication with the team. I also ensure that the updated acceptance criteria are covered and that any residual release risks are clearly communicated before sign-off.”
 
 #====================================================================================================
-# Q :
+# Q : How to trigger Jenkins build automatically on git push?
+==> In my automation framework, I configure Jenkins to trigger a build automatically whenever code is pushed to GitHub. I typically use a GitHub webhook to notify Jenkins about repository changes, so the Playwright test suite can execute without manual intervention.
+1. Configure Jenkins
+First, I make sure Jenkins has the required Git and Pipeline plugins installed.
+- Open the Jenkins job.
+- Select Configure.
+- Under Source Code Management, select Git.
+- Enter the GitHub repository URL and configure credentials if the repository is private.
+- Specify the branch, for example, */main.
+- Under Build Triggers, select GitHub hook trigger for GITScm polling.
+For a Pipeline job, I can also configure the trigger in the Jenkinsfile, depending on the job type and Jenkins setup.
 
+2. Configure a GitHub webhook
+In the GitHub repository:
+1. Navigate to Settings → Webhooks → Add webhook.
+2. Enter the Jenkins webhook URL: https://your-jenkins-domain/github-webhook/
+3. Set the content type to application/json.
+4. Select Just the push event.
+5. Save the webhook and verify its delivery status.
+Jenkins must be reachable by GitHub through a properly secured endpoint. For a private or local Jenkins instance, appropriate network access or a secure webhook relay may be necessary.
 
+3. Create a Jenkinsfile for Playwright TypeScript
+I define the pipeline stages in a Jenkinsfile so the process is version-controlled alongside the automation code.
+pipeline {
+    agent any
 
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm ci'
+            }
+        }
+
+        stage('Install Playwright Browsers') {
+            steps {
+                bat 'npx playwright install chromium'
+            }
+        }
+
+        stage('Run Playwright Tests') {
+            steps {
+                bat 'npx playwright test'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts(
+                artifacts: 'test-results/**/*,playwright-report/**/*',
+                allowEmptyArchive: true
+            )
+        }
+    }
+}
+
+This example uses a Windows Jenkins agent. On a Linux agent, I would replace bat with sh. The Jenkins agent also needs the required Node.js version and any operating-system dependencies for Playwright.
+
+4. End-to-end workflow
+Developer pushes code to GitHub
+
+GitHub webhook triggers Jenkins
+
+Jenkins checks out code and installs dependencies
+
+Playwright TypeScript tests execute
+
+Reports and test artifacts are archived
+
+5. How do you verify that the trigger works?
+I push a small commit to the configured branch, then check:
+- GitHub webhook delivery history for a successful HTTP response.
+- Jenkins build history to confirm a new build started.
+- Jenkins console logs to verify checkout and test execution.
+- Playwright reports and archived artifacts for test results.
+
+6. GitHub webhook vs polling
+GitHub webhook				     |	Polling
+GitHub notifies Jenkins when a push occurs.  |	Jenkins periodically checks for changes.
+Usually triggers builds faster.		     |  Build starts at the next polling interval.
+Requires webhook connectivity.		     |	Requires repository access from Jenkins.
+Preferred for GitHub push events.	     |	Useful when webhooks cannot be configured.
+
+My interview conclusion:
+
+“In my Playwright TypeScript framework, I use a GitHub webhook to trigger Jenkins automatically on every push to the configured branch. Jenkins checks out the latest code, installs dependencies, runs the Playwright suite, and archives the reports. This helps us detect automation failures early and provides continuous feedback to the development team.”
 
 #====================================================================================================
-# Q :
+# Q : How do you pass the browser name as an argument from a Jenkins file to a Cucumber step definition?
+==> I pass the browser name from the Jenkins pipeline as an environment variable or command-line parameter. Then, I read that value in the Playwright configuration and launch the selected browser. My Cucumber step definitions use the page object from a shared Cucumber World, so they don't need to handle browser selection directly.
+
+For example, if Jenkins passes BROWSER=firefox, the framework runs the Cucumber scenarios using Firefox instead of Chromium.
+1. Pass the browser from the Jenkinsfile
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'BROWSER',
+            choices: ['chromium', 'firefox', 'webkit'],
+            description: 'Select browser for automation'
+        )
+    }
+
+    stages {
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright install --with-deps'
+            }
+        }
+
+        stage('Run Cucumber Tests') {
+            steps {
+                sh 'BROWSER=${BROWSER} npx cucumber-js'
+            }
+        }
+    }
+}
 
 
+Here, the Jenkins parameter lets the user select the browser when starting a build. The selected value is passed to the Cucumber process through the BROWSER environment variable.
 
+For a Windows Jenkins agent, I would use a Windows-compatible bat command instead of sh.
+2. Read the browser in Playwright configuration
+Create a browser configuration file, for example, support/browser.ts:
+import {
+  chromium,
+  firefox,
+  webkit,
+  Browser,
+  BrowserType
+} from '@playwright/test';
+
+export async function launchBrowser(): Promise<Browser> {
+  const browserName = process.env.BROWSER || 'chromium';
+
+  const browsers: Record<string, BrowserType> = {
+    chromium,
+    firefox,
+    webkit
+  };
+
+  const browserType = browsers[browserName];
+
+  if (!browserType) {
+    throw new Error(`Unsupported browser: ${browserName}`);
+  }
+
+  return await browserType.launch({
+    headless: true
+  });
+}
+
+
+This helper validates the browser name and launches the corresponding browser.
+3. Initialize the browser in the Cucumber World
+In support/world.ts:
+
+import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
+import {Browser, BrowserContext, Page} from '@playwright/test';
+import { launchBrowser } from './browser';
+
+export class CustomWorld extends World {
+  browser!: Browser;
+  context!: BrowserContext;
+  page!: Page;
+
+  constructor(options: IWorldOptions) {
+    super(options);
+  }
+
+  async openBrowser() {
+    this.browser = await launchBrowser();
+    this.context = await this.browser.newContext();
+    this.page = await this.context.newPage();
+  }
+}
+setWorldConstructor(CustomWorld);
+
+4. Use the shared World in step definitions
+In step-definitions/login.steps.ts:
+
+import { Given, When, Then} from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+import { CustomWorld } from '../support/world';
+
+Given('the user opens the login page', async function (this: CustomWorld) {
+    await this.openBrowser();
+
+    await this.page.goto('https://example.com/login');
+});
+
+When('the user enters valid credentials', async function (this: CustomWorld) {
+    await this.page.getByLabel('Username').fill('testuser');
+    await this.page.getByLabel('Password').fill('testpassword');
+    await this.page.getByRole('button', { name: 'Login' }).click();
+});
+
+Then('the dashboard should be displayed', async function (this: CustomWorld) {
+    await expect(this.page.getByText('Dashboard')).toBeVisible();
+});
+
+
+Add appropriate After hooks to close the context and browser after each scenario.
+5. Expected execution flow
+Jenkins parameter
+
+BROWSER=firefox
+
+Environment variable
+
+process.env.BROWSER
+
+Browser factory
+
+Launches Firefox
+
+Cucumber step definitions
+
+Execute scenarios using the shared page
+
+Important interview point
+Strictly speaking, I don't pass the browser name directly into each Cucumber step definition. I pass it from Jenkins to the test process, read it during browser initialization, and expose the resulting browser and page through the shared Cucumber World.
+
+This keeps browser selection separate from test logic and makes the framework reusable across Chromium, Firefox, and WebKit.
 
 #====================================================================================================
-# Q :
+# Q : In Cucumber, how can you ensure that a specific piece of code runs only before the first scenario in a feature file?
+==> In Cucumber, I use a BeforeAll hook when I want a piece of code to execute only once before the first scenario starts, rather than before every scenario.
+
+However, there is an important distinction: BeforeAll runs once before all scenarios in the test run, not once per feature file. If I specifically need code to run once before the first scenario of a particular feature, I use a guarded Before hook or a feature-specific setup strategy.
+1. Using BeforeAll — once per test run
+import { BeforeAll } from '@cucumber/cucumber';
+
+BeforeAll(async function () {
+  console.log('Runs once before all scenarios');
+  // Perform global setup
+});
 
 
+2. Run setup only once for a specific feature
+For example, if I want to initialize feature-specific test data only before the first scenario in a feature, I can use a shared flag in a custom World or support module.
+import { Before } from '@cucumber/cucumber';
+
+let featureSetupDone = false;
+
+Before({ tags: '@userFeature' }, async function () {
+  if (!featureSetupDone) {
+    console.log('Setup before the first matching scenario');
+
+    // Perform feature-specific setup
+    featureSetupDone = true;
+  }
+});
+
+
+In the feature file:
+@userFeature
+Feature: User management
+
+  Scenario: Create a user
+    Given the user management page is open
+
+  Scenario: Update a user
+    Given the user management page is open
+
+
+Important: This flag is shared across the test run. It works for a single feature-specific group in a serial execution, but it is not a robust general solution for multiple features running in parallel or independently. For those cases, use isolated setup keyed to the feature or move setup to a dedicated workflow.
+Interview conclusion
+“I use BeforeAll for one-time global setup across a Cucumber test run. If the requirement is once per feature, I distinguish that from global setup and use a feature-scoped setup strategy. A normal Before hook executes before every matching scenario, so I avoid placing one-time initialization there without a guard.”
 
 #====================================================================================================
-# Q :
+# Q : In Jenkins, if you have to run a test plan on a daily basis,how would you achieve that efficiently?
+==> In my automation framework, I use Jenkins' Build periodically trigger with a cron expression to execute the test plan automatically every day at a scheduled time. I configure the pipeline to check out the latest code, install dependencies, execute the required Cucumber scenarios, and publish the test reports.
+1. Configure a daily schedule in Jenkins
+In Jenkins, I open the job and navigate to Configure → Build Triggers → Build periodically.
+
+For example, to run the test plan every day at 2:00 AM:
+H 2 * * *
 
 
+This schedules the job once daily during the 2 AM hour, with Jenkins choosing a consistent minute based on the job name.
 
+I prefer H instead of hardcoding a minute because it helps distribute scheduled jobs across the hour.
+2. Configure the Jenkinsfile
+For a Playwright TypeScript and Cucumber project, I can define the schedule directly in the pipeline:
+pipeline {
+    agent any
+
+    triggers {
+        cron('H 2 * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright install --with-deps'
+            }
+        }
+
+        stage('Run Daily Regression') {
+            steps {
+                sh 'npx cucumber-js --tags "@Regression"'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts(
+                artifacts: 'reports/**/*,test-results/**/*',
+                allowEmptyArchive: true
+            )
+        }
+
+        success {
+            echo 'Daily regression completed successfully.'
+        }
+
+        failure {
+            echo 'Daily regression failed. Please review the reports.'
+        }
+    }
+}
+
+
+This example assumes a Linux Jenkins agent and a Cucumber configuration that supports the @Regression tag and writes reports to the configured directories.
+3. How I make the daily execution efficient
+- Tag-based execution: Run the required test plan using tags such as @Smoke, @Regression, or @API.
+- Parallel execution: Configure Cucumber workers carefully to reduce execution time without overloading the test environment.
+- Dependency management: Use npm ci for reproducible installations and manage browser dependencies appropriately.
+- Reporting: Publish HTML or JSON reports and archive screenshots, traces, and logs for failures.
+- Failure notifications: Notify the team through email or Slack when the suite fails.
+- Test stability: Investigate flaky tests and distinguish automation failures from actual application defects.
+4. How I handle failures
+If the daily regression fails, I review the Jenkins console logs and reports, inspect Playwright traces and screenshots, identify the root cause, and log defects when appropriate. I avoid automatically rerunning the entire suite repeatedly because that can hide genuine failures.
+Interview conclusion
+“In my project, I schedule daily regression execution using a Jenkins cron trigger. Jenkins checks out the latest automation code, installs dependencies, runs the required Cucumber test plan, and archives the results. I optimize execution using tags and controlled parallelism, publish reports, and configure failure notifications so the team gets early feedback without manual intervention.”
+
+Practical tip: Jenkins cron schedules use the Jenkins controller's configured timezone. I would verify that timezone before scheduling a run for 2 AM local time.
 
 #====================================================================================================
-# Q :
+# Q : In your framework, if you have 100 pages, do you create 100 Page Objects?
+==> No, I don't blindly create 100 Page Objects just because the application has 100 pages. I design the framework based on page responsibilities, reusable components, and application workflows.
+
+In my Playwright TypeScript framework, I follow the Page Object Model (POM), but I avoid unnecessary duplication and oversized classes.
+1. How I design the framework
+I categorize the application into three layers:
+- Page Objects: Represent distinct pages or major application screens, such as Login, Dashboard, and Checkout.
+- Reusable Components: Represent shared UI elements, such as navigation bars, headers, side menus, and reusable tables.
+- Utilities and Services: Handle common functionality such as API calls, test data, authentication, and reporting.
+For example, if 20 pages share the same header and navigation menu, I create a reusable component instead of duplicating that logic across 20 Page Objects.
+2. Example folder structure
+src/
+├── pages/
+│   ├── LoginPage.ts
+│   ├── DashboardPage.ts
+│   ├── CheckoutPage.ts
+│   └── UserManagementPage.ts
+│
+├── components/
+│   ├── HeaderComponent.ts
+│   ├── NavigationComponent.ts
+│   ├── SidebarComponent.ts
+│   └── DataTableComponent.ts
+│
+├── services/
+│   └── ApiService.ts
+│
+├── utils/
+│   ├── TestDataFactory.ts
+│   └── ConfigManager.ts
+│
+└── step-definitions/
+    ├── login.steps.ts
+    └── checkout.steps.ts
 
 
+The actual number of Page Objects depends on the application's structure, not on an arbitrary limit.
+3. Example: Reusable component in Playwright
+Suppose 30 pages share the same navigation menu. I create one reusable component.
+
+NavigationComponent.ts
+import { Page, Locator } from '@playwright/test';
+
+export class NavigationComponent {
+  private readonly dashboardLink: Locator;
+  private readonly profileLink: Locator;
+
+  constructor(private page: Page) {
+    this.dashboardLink = page.getByRole('link', {
+      name: 'Dashboard'
+    });
+
+    this.profileLink = page.getByRole('link', {
+      name: 'Profile'
+    });
+  }
+
+  async openDashboard() {
+    await this.dashboardLink.click();
+  }
+
+  async openProfile() {
+    await this.profileLink.click();
+  }
+}
 
 
-#====================================================================================================
-# Q :
+DashboardPage.ts
+import { Page } from '@playwright/test';
+import { NavigationComponent } from '../components/NavigationComponent';
 
+export class DashboardPage {
+  readonly navigation: NavigationComponent;
+
+  constructor(private page: Page) {
+    this.navigation = new NavigationComponent(page);
+  }
+
+  async openProfile() {
+    await this.navigation.openProfile();
+  }
+}
+
+
+Other Page Objects can reuse the same component, reducing duplicated locator and interaction logic.
+4. What if the application has 100 genuinely distinct pages?
+If all 100 pages have distinct functionality and meaningful interactions, creating 100 Page Objects can be perfectly reasonable.
+
+However, I would avoid:
+- Creating separate classes for pages that differ only in test data.
+- Duplicating common locators and actions.
+- Putting all application interactions into one massive Page Object.
+- Mixing test assertions, business logic, and browser setup unnecessarily.
+I would also group Page Objects by feature or module as the framework grows.
+Interview conclusion
+“My approach is to design Page Objects around distinct page responsibilities and extract shared UI elements into reusable components. If the application genuinely has 100 distinct pages, I may create 100 Page Objects, but I don't create them mechanically. My goal is maintainability, reusability, and minimal duplication while keeping the framework easy to extend.”
 
 
 

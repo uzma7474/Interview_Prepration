@@ -2221,20 +2221,268 @@ Interview conclusion: “JWT is a token format commonly used for API authenticat
 
 
 #===================================================================================
-# Q : 
+# Q : How do you handle 429 rate limits in API automation tests?
+==> In my API automation framework, I handle HTTP 429 – Too Many Requests by implementing retry logic with exponential backoff, respecting the Retry-After header, and controlling the rate of API requests.
 
+A 429 response usually indicates that the API has exceeded its allowed request limit within a specific time window.
 
+My approach involves the following steps:
+1. Check the response: Verify whether the API returns status code 429.
+2. Read the Retry-After header: If provided, wait for the specified duration before retrying.
+3. Implement exponential backoff: If the header is missing, gradually increase the wait time between retries, for example, 1, 2, and 4 seconds.
+4. Limit retries: Set a maximum retry count to avoid infinite loops and unnecessary server load.
+5. Control parallel execution: Reduce concurrent requests in TestNG or configure rate limiting when multiple scenarios hit the same API.
+6. Validate the final response: After retrying, verify the expected status code and response body. If the limit persists, report the failure with useful logs.
+I also avoid blindly retrying every failed request. For example, I retry a 429 only according to the API's rate-limit policy, and I handle non-idempotent operations such as POST carefully to avoid creating duplicate records.
+Java + Rest Assured example
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+
+public class RateLimitHandler {
+
+    public static Response getWithRetry(String endpoint) throws InterruptedException {
+
+        int maxRetries = 3;
+        int retryCount = 0;
+
+        while (true) {
+            Response response = RestAssured
+                    .given()
+                    .get(endpoint);
+
+            if (response.statusCode() != 429) {
+                return response;
+            }
+
+            if (retryCount >= maxRetries) {
+                throw new RuntimeException( "API rate limit exceeded after retries. Status: " + response.statusCode()
+                );
+            }
+
+            String retryAfter = response.getHeader("Retry-After");
+
+            long waitSeconds;
+
+            if (retryAfter != null  && retryAfter.matches("\\d+")) {
+                waitSeconds = Long.parseLong(retryAfter);
+            } else {
+                waitSeconds = (long) Math.pow(2, retryCount);
+            }
+
+            System.out.println("Received 429. Retrying after "+ waitSeconds + " seconds."
+            );
+
+            Thread.sleep(waitSeconds * 1000);
+            retryCount++;
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+
+        Response response = getWithRetry("https://api.example.com/users");
+
+        System.out.println("Final status: "+ response.statusCode());
+
+        response.then().statusCode(200);
+    }
+}
+
+Note: This example assumes Retry-After contains a number of seconds. HTTP also permits an HTTP-date value, which a production implementation should parse. The example uses exponential backoff without jitter; for parallel tests, adding random jitter helps prevent retries from occurring simultaneously.
+How I integrate this into a Cucumber framework
+I keep retry logic in a reusable API utility or request wrapper rather than duplicating it in every step definition.
+
+For example:
+Scenario: Get users when rate limiting occurs
+  When I send a GET request to "/users" with rate-limit retry enabled
+  Then the response status code should be 200
+
+The step definition calls the reusable Rest Assured method, while TestNG handles test execution and reporting. I log the retry count, response status, Retry-After value, and final outcome for debugging.
+Possible interviewer follow-up: Should we always retry a 429?
+My answer: No. First, I check whether the test is exceeding the API's documented quota or whether the rate limit is caused by excessive parallel execution. For functional tests, I may validate that the API returns 429 when the limit is exceeded. For normal business-flow tests, I use bounded retries and backoff where appropriate. I also distinguish between an expected rate-limit response and an unexpected one so that retries do not hide genuine defects.
+
+Key point: I handle 429 responses through bounded retries, Retry-After, exponential backoff, and controlled concurrency, while keeping rate-limit validation separate from normal API functional testing
 
 #===================================================================================
-# Q : 
+# Q : Validate JSON response structure against dynamic schema file
+==> In my API automation framework, I use JSON Schema Validation to verify that the API response follows the expected JSON structure, including property names, data types, mandatory fields, and nested objects.
+
+When the schema file is dynamic, I load the appropriate schema at runtime based on the API, environment, or test scenario instead of hardcoding the schema path.
+
+I generally follow these steps:
+1. Send the API request using Rest Assured.
+2. Identify the schema file dynamically based on the API or scenario.
+3. Load the schema from the resources folder.
+4. Validate the response using matchesJsonSchema.
+5. Report validation failures through TestNG assertions and Cucumber reports.
+1. Add Maven dependency
+Add the following dependency to pom.xml:
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>json-schema-validator</artifactId>
+    <version>5.5.6</version>
+    <scope>test</scope>
+</dependency>
 
 
+Use a version compatible with your existing Rest Assured setup.
+2. Project structure
+src
+ └── test
+     ├── java
+     │    ├── runners
+     │    ├── stepdefinitions
+     │    └── utils
+     │         └── SchemaValidator.java
+     └── resources
+          ├── schemas
+          │    ├── users-schema.json
+          │    └── products-schema.json
+          └── features
+               └── users.feature
 
+
+3. Create a JSON schema file
+users-schema.json
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": ["id", "name", "email"],
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    }
+  }
+}
+
+This schema checks that the response is a JSON object containing id, name, and email with the specified data types.
+4. Implement dynamic schema validation
+import io.restassured.response.Response;
+import io.restassured.module.jsv.JsonSchemaValidator;
+
+import java.io.InputStream;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static io.restassured.module.jsv.JsonSchemaValidator .matchesJsonSchema;
+
+public class SchemaValidator {
+
+    public static void validateSchema( Response response, String schemaFile) {
+
+        String schemaPath = "/schemas/" + schemaFile;
+
+        try (InputStream schema =  SchemaValidator.class.getResourceAsStream(schemaPath)) {
+
+            if (schema == null) {
+                throw new IllegalArgumentException("Schema file not found: " + schemaPath );
+            }
+            assertThat( response.asString(), matchesJsonSchema(schema));
+
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Unable to read schema: " + schemaPath, e );
+        }
+    }
+}
+The schemaFile parameter allows the framework to select different schemas at runtime.
+
+5. Use it in a Cucumber step definition
+Feature file:
+Scenario: Validate users API response schema
+  When I send a GET request to "/users/1"
+  Then the response should match schema "users-schema.json"
+
+
+Step definition:
+import io.cucumber.java.en.Then;
+import io.restassured.response.Response;
+
+public class UserSteps {
+
+    private Response response;
+
+    @Then("the response should match schema {string}")
+    public void validateResponseSchema(String schemaFile) {
+        SchemaValidator.validateSchema(response, schemaFile);
+    }
+}
+Here, response is assumed to be populated by the request step. In a real framework, I would share it through scenario-scoped context or dependency injection rather than use a static global response.
+
+6. Select the schema dynamically
+If different endpoints return different response structures, I can map the endpoint or scenario to the appropriate schema.
+String schemaFile;
+
+switch (endpoint) {
+    case "/users":
+        schemaFile = "users-schema.json";
+        break;
+
+    case "/products":
+        schemaFile = "products-schema.json";
+        break;
+
+    default:
+        throw new IllegalArgumentException("No schema configured for: " + endpoint );
+}
+
+SchemaValidator.validateSchema(response, schemaFile);
+
+In a larger framework, I would maintain this mapping in a configuration file or test-data management layer.
+
+7. What do you validate with JSON Schema?
+- Structure: Object, array, nested object, and property presence.
+- Data types: String, integer, number, boolean, and null.
+- Required fields: Ensure mandatory properties are present.
+- Constraints: Minimum/maximum values, string patterns, and array sizes.
+- Unexpected fields: Use "additionalProperties": false when the API contract requires strict validation.
+
+Interview follow-up: What is the difference between JSON Schema validation and normal response validation?
+JSON Schema validation				| Normal response validation
+1. Validates the overall response structure	| Validates specific values or business rules
+2. Checks types and required fields		| Checks values such as status, email, or ID
+3. Useful for contract validation		| Useful for functional assertions
+4. Can validate nested objects and arrays	| Often targets individual JSON paths
+
+For example, I may use schema validation to ensure id is an integer and email is a string, then use a separate Rest Assured assertion to verify that the returned email matches the expected test data.
+
+My approach: I keep schema validation reusable, select schemas at runtime, and combine contract validation with functional assertions. This reduces duplication and makes the framework easier to maintain when API response structures change.
 
 #===================================================================================
-# Q : 
+# Q : - In Postman, how do you delete a variable after test execution is finished?
+==> In Postman, I use the unset() method to delete a variable after test execution. The method depends on the variable's scope, such as local, data, environment, or collection.
+
+For cleanup after a request executes, I write the code in the Post-response (Tests) script.
+Example 1: Delete an environment variable
+pm.environment.unset("authToken");
 
 
+This removes the authToken environment variable.
+Example 2: Delete a collection variable
+pm.collectionVariables.unset("userId");
+
+
+Example 3: Delete a global variable
+pm.globals.unset("accessToken");
+
+
+Example 4: Clean up multiple variables
+pm.environment.unset("authToken");
+pm.environment.unset("userId");
+pm.collectionVariables.unset("tempData");
+
+console.log("Test variables cleaned up");
+
+
+Important interview point
+Postman's unset() method removes the variable from its corresponding scope. It does not delete variables from every scope automatically.
+
+If I need to clean up a variable after the entire collection or test run finishes, I configure a final cleanup request or use a suitable collection-runner workflow. A request's post-response script executes after that particular request, not automatically after the whole collection finishes.
+
+One-line interview answer: I use pm.environment.unset(), pm.collectionVariables.unset(), or pm.globals.unset() depending on the variable scope, and configure cleanup at the end of the collection run when necessary. 
 
 #===================================================================================
 # Q : 

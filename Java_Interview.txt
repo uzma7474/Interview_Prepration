@@ -2043,78 +2043,1022 @@ Use code with caution.
 
 
 #==========================================================================================================
-# Q : 
+# Q : Given an array, find the next greater element for a given key.
+==> public class NextGreaterElement {
+
+    public static void main(String[] args) {
+
+        int[] arr = {4, 7, 3, 8, 5, 10};
+        int key = 3;
+
+        int index = -1;
+
+        // Find the key in the array
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == key) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1) {
+            System.out.println("Key not found in array");
+            return;
+        }
+
+        // Find the next greater element to the right
+        int nextGreater = -1;
+
+        for (int i = index + 1; i < arr.length; i++) {
+            if (arr[i] > key) {
+                nextGreater = arr[i];
+                break;
+            }
+        }
+
+        if (nextGreater != -1) {
+            System.out.println(
+                "Next greater element for " + key + " is: "
+                + nextGreater
+            );
+        } else {
+            System.out.println(
+                "No next greater element found for " + key
+            );
+        }
+    }
+}
+
+
+#==========================================================================================================
+# Q : How would you optimize your solution instead of using nested loops?
+public class NextGreaterElement {
+
+    public static void main(String[] args) {
+
+        int[] arr = {4, 7, 3, 8, 5, 10};
+        int key = 3;
+
+        boolean found = false;
+        int nextGreater = -1;
+
+        for (int num : arr) {
+            if (found && num > key) {
+                nextGreater = num;
+                break;
+            }
+
+            if (num == key) {
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("Key not found");
+        } else if (nextGreater != -1) {
+            System.out.println("Next greater element: " + nextGreater);
+        } else {
+            System.out.println("No next greater element found");
+        }
+    }
+}
+. What if the interviewer asks for the next greater element for every element?
+Use a monotonic stack to solve the problem in \(O(n)\) time instead of \(O(n^2)\).
+
+For example, for {4, 7, 3, 8, 5}, the next greater elements are {7, 8, 8, -1, -1}.
+
+The stack-based approach is more suitable when finding next greater elements for all array elements.
+
+Interview answer: "I would eliminate nested loops by traversing the array once for a given key, reducing the time complexity to O(n) and keeping the auxiliary space at O(1). If I need the next greater element for every array element, I would use a monotonic stack to achieve O(n) time.
+
+
+#==========================================================================================================
+# Q : How will you handle duplicate values in the array for this problem?
+public class NextGreaterElement {
+
+    public static void main(String[] args) {
+
+        int[] arr = {4, 3, 7, 3, 5, 8};
+        int key = 3;
+
+        int nextGreater = -1;
+        boolean found = false;
+
+        for (int num : arr) {
+
+            if (found && num > key) {
+                nextGreater = num;
+                break;
+            }
+
+            if (!found && num == key) {
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("Key not found");
+        } else {
+            System.out.println("Next greater element: " + nextGreater);
+        }
+    }
+}
+What if the key appears multiple times?
+There are three possible requirements:
+- First occurrence: Find the next greater element after the first matching key.
+- Every occurrence: Find a separate next greater element for each occurrence.
+- Distinct values: Treat duplicate values as the same value, but still require a greater value (num > key, not num >= key).
+Complexity
+- Time: \(O(n)\)
+- Extra space: \(O(1)\)
+Interview tip: I would explicitly clarify the duplicate-handling requirement before coding. If the interviewer wants the next greater element for every index, I would use a monotonic stack to solve the problem in \(O(n)\) time
+
+#==========================================================================================================
+# Q : Write logic to find the second largest number in an array.
+public class SecondLargestNumber {
+
+    public static void main(String[] args) {
+
+        int[] arr = {10, 25, 5, 40, 30, 40};
+
+        int largest = Integer.MIN_VALUE;
+        int secondLargest = Integer.MIN_VALUE;
+
+        for (int num : arr) {
+
+            if (num > largest) {
+                secondLargest = largest;
+                largest = num;
+            } else if (num > secondLargest && num < largest) {
+                secondLargest = num;
+            }
+        }
+
+        if (secondLargest == Integer.MIN_VALUE) {
+            System.out.println("Second largest distinct number does not exist");
+        } else {
+            System.out.println("Second largest number: " + secondLargest);
+        }
+    }
+}
+
+#==========================================================================================================
+# Q : How will you sort a list without using inbuilt methods?
+
 
 
 
 #==========================================================================================================
-# Q :
+# Q : Write a programm to find last non repeating character from a string in java
+==> Not Optmize :
+public class LastNonRepeatingCharacter {
 
+    public static void main(String[] args) {
+
+        String str = "swiss";
+
+        for (int i = str.length() - 1; i >= 0; i--) {
+
+            boolean isRepeating = false;
+
+            for (int j = 0; j < str.length(); j++) {
+
+                if (i != j && str.charAt(i) == str.charAt(j)) {
+                    isRepeating = true;
+                    break;
+                }
+            }
+
+            if (!isRepeating) {
+                System.out.println("Last non-repeating character: "
+                        + str.charAt(i));
+                return;
+            }
+        }
+
+        System.out.println("No non-repeating character found");
+    }
+}
+For the string "swiss":
+Character	Frequency	Status
+s	3	Repeating
+w	1	Non-repeating
+i	1	Non-repeating
+
+The program scans from right to left. The last character, s, repeats, so it continues until it finds w, the last non-repeating character.
+Complexity analysis
+- Time complexity: (O(n^2)), because of the nested loops.
+- Space complexity: (O(1)), because only a few variables are used.
+Interview tip: Optimized approach
+For better performance, use a frequency array or LinkedHashMap to count character occurrences in \(O(n)\) time, then scan the string from right to left to find the last character with frequency 1.
+#----------------------------------------------#
+2. Optimize Approach : 
+The optimized approach is to use a frequency array to find the last non-repeating character in Java in \(O(n)\) time, without nested loops or inbuilt methods like lastIndexOf().
+public class LastNonRepeatingCharacter {
+
+    public static void main(String[] args) {
+
+        String str = "swiss";
+        int[] freq = new int[256];
+
+        // Step 1: Count character frequencies
+        for (int i = 0; i < str.length(); i++) {
+            freq[str.charAt(i)]++;
+        }
+
+        // Step 2: Traverse from right to left
+        for (int i = str.length() - 1; i >= 0; i--) {
+
+            if (freq[str.charAt(i)] == 1) {
+                System.out.println(
+                    "Last non-repeating character: " + str.charAt(i)
+                );
+                return;
+            }
+        }
+
+        System.out.println("No non-repeating character found");
+    }
+}
+How it works
+For "swiss":
+Character	Frequency
+s	3
+w	1
+i	1
+
+The program first counts the occurrences of each character. Then it scans the string backward and returns the first character whose frequency is 1.
+Complexity analysis
+- Time complexity: (O(n)) — two linear traversals.
+- Space complexity: (O(1)) — a fixed-size array of 256 entries.
+Interview tip: The frequency array works for basic ASCII characters. For general Unicode text, use a HashMap<Character, Integer> or process Unicode code points if full Unicode support is required.
+
+#==========================================================================================================
+# Q : Use of Comparable and Comparator , write java code
+==> In Java, Comparable and Comparator are used to sort objects, but the main difference is where we define the sorting logic.
+- Comparable: Defines the natural/default sorting order inside the class.
+- Comparator: Defines custom sorting logic outside the class, allowing multiple sorting orders for the same objects.
+For an Automation Engineer interview, you can explain them using an Employee class and sort employees by ID, name, and salary.
+1. Difference between Comparable and Comparator
+Feature			Comparable			Comparator
+Package			java.lang			java.util
+Method			compareTo()			compare()
+Sorting logic		Inside the class		Separate class or lambda
+Sorting orders		Usually one natural order	Multiple custom orders
+Common use		Default sorting by ID		Sort by salary, name, etc.
+
+2. Java program using Comparable
+Here, employees are sorted by employee ID in ascending order.
+
+import java.util.*;
+
+class Employee implements Comparable<Employee> {
+
+    int id;
+    String name;
+    double salary;
+
+    Employee(int id, String name, double salary) {
+        this.id = id;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    // Natural sorting by employee ID
+    @Override
+    public int compareTo(Employee other) {
+        return Integer.compare(this.id, other.id);
+    }
+
+    @Override
+    public String toString() {
+        return id + " " + name + " " + salary;
+    }
+}
+
+public class ComparableExample {
+
+    public static void main(String[] args) {
+
+        List<Employee> employees = new ArrayList<>();
+
+        employees.add(new Employee(103, "Rahul", 60000));
+        employees.add(new Employee(101, "Amit", 45000));
+        employees.add(new Employee(102, "Priya", 70000));
+
+        Collections.sort(employees);
+
+        for (Employee e : employees) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+
+Output:
+101 Amit 45000.0
+102 Priya 70000.0
+103 Rahul 60000.0
+
+
+Explanation: Collections.sort(employees) calls the compareTo() method to determine the natural order. Since we compare employee IDs, the employees are sorted by ID.
+3. Java program using Comparator
+Now suppose we want to sort the same employees by salary or name without changing the Employee class.
+
+import java.util.*;
+
+class Employee {
+    int id;
+    String name;
+    double salary;
+
+    Employee(int id, String name, double salary) {
+        this.id = id;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    @Override
+    public String toString() {
+        return id + " " + name + " " + salary;
+    }
+}
+
+public class ComparatorExample {
+
+    public static void main(String[] args) {
+
+        List<Employee> employees = new ArrayList<>();
+
+        employees.add(new Employee(103, "Rahul", 60000));
+        employees.add(new Employee(101, "Amit", 45000));
+        employees.add(new Employee(102, "Priya", 70000));
+
+        // Sort by salary ascending
+        employees.sort((e1, e2) -> Double.compare(e1.salary, e2.salary));
+
+        System.out.println("Sort by Salary:");
+        for (Employee e : employees) {
+            System.out.println(e);
+        }
+
+        // Sort by name alphabetically
+        employees.sort((e1, e2) -> e1.name.compareTo(e2.name));
+
+        System.out.println("\nSort by Name:");
+        for (Employee e : employees) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+
+Output:
+Sort by Salary:
+101 Amit 45000.0
+103 Rahul 60000.0
+102 Priya 70000.0
+
+Sort by Name:
+101 Amit 45000.0
+102 Priya 70000.0
+103 Rahul 60000.0
+
+
+4. Common Comparator examples
+// Salary ascending
+employees.sort((e1, e2) -> Double.compare(e1.salary, e2.salary));
+
+// Salary descending
+employees.sort((e1, e2) -> Double.compare(e2.salary, e1.salary));
+
+// Name alphabetically
+employees.sort(Comparator.comparing(e -> e.name));
+
+// ID ascending
+employees.sort( Comparator.comparingInt(e -> e.id));
+
+// Salary first, then name
+employees.sort( Comparator.comparingDouble((Employee e) -> e.salary).thenComparing(e -> e.name));
+
+
+5. Interview answer
+Question: When would you use Comparable vs Comparator?
+
+"My understanding is that Comparable is used when a class needs a default or natural sorting order, implemented through compareTo(). Comparator is used when we need different sorting criteria without modifying the original class, implemented through compare(). For example, I can implement Comparable to sort employees by ID and use Comparator to sort them by salary or name. Both are commonly used with collections and Java sorting APIs."
+
+Important: Avoid writing e1.salary - e2.salary to compare numeric values because subtraction can cause precision or overflow issues. Prefer Double.compare(), Integer.compare(), or the appropriate comparator factory method.
 
 
 #==========================================================================================================
-# Q : 
+# Q : Meaning of : : in java streams ? 
+==> In Java, :: is called the method reference operator. It was introduced in Java 8 and is used with lambda expressions and functional interfaces to refer to an existing method without calling it explicitly.
+
+Simple meaning: Instead of writing a lambda expression that calls a method, you can often use :: as a shorter alternative.
+1. Basic example
+Using a lambda expression:
+List<String> names = Arrays.asList("Amit", "Priya", "Rahul");
+
+names.forEach(name -> System.out.println(name));
 
 
+Using a method reference:
+List<String> names = Arrays.asList("Amit", "Priya", "Rahul");
+
+names.forEach(System.out::println);
+
+
+Output:
+Amit
+Priya
+Rahul
+
+
+Here, System.out::println means: use the println method to process each element.
+2. Four types of method references
+Type 1: Static method reference
+Syntax: ClassName::staticMethod
+List<Integer> numbers = Arrays.asList(10, 20, 30);
+
+numbers.forEach(System.out::println);
+
+
+Another example:
+List<String> numbers = Arrays.asList("10", "20", "30");
+
+List<Integer> result = numbers.stream()
+        		.map(Integer::parseInt)
+        		.collect(Collectors.toList());
+
+System.out.println(result);
+Output: [10, 20, 30]
+
+Integer::parseInt refers to the static method parseInt().
+Type 2: Instance method reference of a particular object
+Syntax: objectName::instanceMethod
+List<String> names = Arrays.asList("amit", "priya", "rahul");
+
+names.forEach(System.out::println);
+
+
+Here, System.out is an existing object, and println is its instance method.
+Type 3: Instance method reference of an arbitrary object of a particular type
+Syntax: ClassName::instanceMethod
+List<String> names = Arrays.asList("amit", "priya", "rahul");
+
+names.stream()
+     .map(String::toUpperCase)
+     .forEach(System.out::println);
+
+
+Output:
+AMIT
+PRIYA
+RAHUL
+
+
+String::toUpperCase calls toUpperCase() on each string in the stream.
+Type 4: Constructor reference
+Syntax: ClassName::new
+List<String> names = Arrays.asList("Amit", "Priya", "Rahul");
+
+List<StringBuilder> result = names.stream()
+       				 .map(StringBuilder::new)
+        			.collect(Collectors.toList());
+
+
+StringBuilder::new refers to the constructor used to create a new StringBuilder for each name.
+3. Lambda vs method reference
+Lambda expression	Method reference
+n -> System.out.println(n)	System.out::println
+s -> Integer.parseInt(s)	Integer::parseInt
+s -> s.toUpperCase()		String::toUpperCase
+s -> new StringBuilder(s)	StringBuilder::new
+
+4. Real-world interview example
+Suppose you have a list of employee names and want to print names in uppercase.
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class MethodReferenceExample {
+
+    public static void main(String[] args) {
+
+        List<String> names = Arrays.asList("amit", "priya", "rahul");
+
+        List<String> result = names.stream()
+               			 .map(String::toUpperCase)
+                		 .collect(Collectors.toList());
+
+        result.forEach(System.out::println);
+    }
+}
+
+
+Output:
+AMIT
+PRIYA
+RAHUL
+
+
+Interview answer: ":: is the method reference operator introduced in Java 8. It provides a concise way to refer to an existing static method, instance method, or constructor. It is commonly used with Streams and functional interfaces to make code more readable."
+
+Remember: :: does not execute the method immediately by itself. It provides a method reference that is used where a compatible functional interface is expected.
 
 #==========================================================================================================
-# Q : 
+# Q :  Where have you used java streams in your framework ?
+==> For an interview, as an Automation Engineer with 3.5 years of experience, you can answer this by connecting Java Streams to practical Selenium, TestNG, and API automation framework scenarios.
+Interview-ready answer
+"I have used Java Streams in my automation framework to simplify collection processing and reduce boilerplate code. I mainly use them when handling WebElements, filtering test data, processing API responses, and analyzing test execution results.
 
+For example, in Selenium, when I need to capture all product names from a web page, I use Streams to extract and filter the text. I have also used Streams to filter failed test cases from execution results and validate API response data."
+1. Selenium — Extract product names
+List<WebElement> elements = driver.findElements(By.cssSelector(".product-name"));
 
+List<String> productNames = elements.stream()
+        			.map(WebElement::getText)
+        			.collect(Collectors.toList());
+
+productNames.forEach(System.out::println);
+
+Where I use it: To extract text from multiple web elements, such as product names, menu items, table rows, and dropdown options.
+
+2. Selenium — Filter products by name
+List<String> matchingProducts = productNames.stream()
+        				.filter(name -> name.contains("Laptop"))
+        				.collect(Collectors.toList());
+
+System.out.println(matchingProducts);
+Where I use it: To identify matching products or validate that expected elements exist in a list.
+
+3. TestNG — Filter failed test cases
+Suppose I maintain test execution results in a collection of test result objects.
+List<ITestResult> results = getTestResults();
+
+List<String> failedTests = results.stream()
+        			.filter(result -> result.getStatus() == ITestResult.FAILURE)
+        			.map(result -> result.getMethod().getMethodName())
+        			.collect(Collectors.toList());
+
+failedTests.forEach(System.out::println);
+Where I use it: To process test execution results for reporting or debugging. getTestResults() here represents a helper method that returns a list of ITestResult objects; it is not a built-in TestNG method.
+
+4. API testing — Validate response data
+For example, suppose a REST Assured API response contains a list of user names.
+List<String> userNames = response.jsonPath().getList("users.name");
+
+List<String> filteredNames = userNames.stream()
+        			.filter(name -> name.startsWith("A"))
+        			.collect(Collectors.toList());
+
+System.out.println(filteredNames);
+Where I use it: To filter API response data and validate business rules. This example assumes the response contains a users array with a name field for each user.
+
+5. Quick summary for an interview
+Framework area		Use of Streams
+Selenium		Extract text from WebElements
+TestNG			Filter passed or failed test results
+API testing		Filter and validate response data
+Test data		Filter records based on conditions
+Reporting		Group or summarize test results
+
+Strong closing statement:
+
+"I use Java Streams mainly to make collection processing more readable and maintainable. I prefer filter(), map(), collect(), anyMatch(), and count() depending on the requirement. However, I avoid unnecessary Streams for simple operations where a normal loop is clearer, and I don't use parallel streams with WebDriver operations because WebDriver is generally not thread-safe."
 
 #==========================================================================================================
-# Q : 
+# Q :Fail Safe and Fail Fast iterators in Java? Tell difference
+==> In Java, Fail-Fast and Fail-Safe iterators describe how an iterator behaves when a collection is structurally modified while it is being iterated.
+1. Fail-Fast iterator
+A Fail-Fast iterator generally throws ConcurrentModificationException if the collection is structurally modified during iteration by something other than the iterator's own supported modification methods.
 
+Example: ArrayList, HashMap.
+import java.util.*;
 
+public class FailFastExample {
+    public static void main(String[] args) {
+
+        List<Integer> list = new ArrayList<>(Arrays.asList(10, 20, 30, 40));
+        Iterator<Integer> iterator = list.iterator();
+
+        while (iterator.hasNext()) {
+            Integer value = iterator.next();
+            System.out.println(value);
+
+            if (value == 20) {
+                list.add(50); // Structural modification
+            }
+        }
+    }
+}
+Typical result:
+10
+20
+Exception in thread "main"
+java.util.ConcurrentModificationException
+
+The exception is typically thrown on a subsequent iterator operation, such as next(). Fail-fast behavior is best-effort, not guaranteed in every concurrent situation.
+
+2. Fail-Safe iterator
+"Fail-Safe" is a commonly used informal term, not an official Java iterator category. It generally refers to iterators that tolerate certain concurrent modifications, often by iterating over a snapshot or using weakly consistent traversal.
+
+Examples include:
+- CopyOnWriteArrayList — iterates over a snapshot of the array.
+- ConcurrentHashMap — provides weakly consistent iterators.
+
+Example using CopyOnWriteArrayList:
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class FailSafeExample {
+    public static void main(String[] args) {
+
+        CopyOnWriteArrayList<Integer> list = new CopyOnWriteArrayList<>();
+        list.add(10);
+        list.add(20);
+        list.add(30);
+
+        for (Integer value : list) {
+            System.out.println(value);
+            if (value == 20) {
+                list.add(40);
+            }
+        }
+
+        System.out.println("Updated list: " + list);
+    }
+}
+Output:
+10
+20
+30
+Updated list: [10, 20, 30, 40]
+The iterator sees the snapshot created when iteration began, so 40 is not printed during that iteration.
+
+3. Key differences
+Feature			| Fail-Fast					 | Fail-Safe (informal term)
+1. Modification during	| Usually throws ConcurrentModificationException | Usually tolerates supported concurrent modifications
+ iteration		| for unsupported structural changes		 |
+2. Data source		| Typically the original collection	  	 | Snapshot or concurrent collection state
+3. Latest changes 	| Iteration may terminate with an exception	 | Depends on implementation
+	visible?	|						 |
+4. Memory overhead	| Usually low					 | May be higher, especially for snapshot copies
+5. Examples		| ArrayList, HashMap				 | CopyOnWriteArrayList, ConcurrentHashMap
+
+4. Interview follow-up: How do you safely remove elements?
+With a Fail-Fast collection such as ArrayList, use the iterator's own remove() method when removing the current element:
+Iterator<Integer> iterator = list.iterator();
+
+while (iterator.hasNext()) {
+    Integer value = iterator.next();
+    if (value == 20) {
+        iterator.remove();
+    }
+}
+
+This is the supported way to remove the current element during iteration without triggering a ConcurrentModificationException.
+
+Interview answer: "Fail-Fast iterators detect certain structural modifications and typically throw ConcurrentModificationException. Iterators sometimes called Fail-Safe, such as those from CopyOnWriteArrayList and ConcurrentHashMap, tolerate concurrent changes according to their own iteration guarantees. Technically, Fail-Safe is not an official Java API classification."
 
 #==========================================================================================================
-# Q :
+# Q : When to use ConcurrentHashMap?
+==> As an Automation Engineer with 3.5 years of experience, I would use ConcurrentHashMap when multiple threads need to read and update a shared map safely without manually synchronizing every operation.
 
+It is available in java.util.concurrent and is designed for concurrent access.
+1. When do we use ConcurrentHashMap?
+Common scenarios include:
+- Parallel test execution: Multiple threads maintain shared thread-safe test metadata.
+- API automation: Multiple threads maintain shared token or response metadata, with suitable handling for token expiration and refresh.
+- Shared counters or status tracking: Threads update test execution status or counters.
+- Caching: Multiple threads read and update shared configuration or lookup data.
 
+Important: In a Selenium framework, prefer ThreadLocal<WebDriver> for per-test browser instances. Do not share one WebDriver between parallel tests just because a map is thread-safe.
+
+2. Java example
+Suppose multiple TestNG worker threads need to store test execution results.
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+public class ConcurrentMapExample {
+
+    public static void main(String[] args) {
+
+        Map<String, String> results = new ConcurrentHashMap<>();
+
+        Runnable test1 = () -> results.put("LoginTest", "PASS");
+
+        Runnable test2 = () -> results.put("PaymentTest", "FAIL");
+
+        Thread t1 = new Thread(test1);
+        Thread t2 = new Thread(test2);
+
+        t1.start();
+        t2.start();
+
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println(results);
+    }
+}
+Possible output:
+{LoginTest=PASS, PaymentTest=FAIL}
+
+Both threads can update the map concurrently without corrupting its internal structure.
+
+3. ConcurrentHashMap vs HashMap vs Hashtable
+Feature				| HashMap			| Hashtable		 |  ConcurrentHashMap
+1. Thread-safe			| No				| Yes			 | Yes
+2. Concurrent reads/writes	| Not safe without coordination	| Synchronized methods	 | Designed for concurrent access
+3. Performance under concurrency| Unsafe			| Often more restrictive | Generally better scalability
+4. Allows null keys/values	| Yes				| No			 | No
+5. Iterator behavior		| Fail-fast, best effort	|Fail-fast, best effort	 | Weakly consistent
+
+4. Important interview scenario
+Question: If two threads update the same key, what happens?
+
+ConcurrentHashMap<String, Integer> map =  new ConcurrentHashMap<>();
+map.put("count", 10);
+map.put("count", 20);
+System.out.println(map.get("count"));
+
+Output: 20
+
+The later put() replaces the earlier value. Concurrent updates to the same key are thread-safe, but which value remains depends on the ordering of the updates.
+#--------------------------------------------#
+What if you want to increment a counter safely?
+
+Avoid this: map.put("count", map.get("count") + 1);
+
+The read and write are separate operations, so concurrent increments can be lost.
+
+Use an atomic map operation instead: map.merge("count", 1, Integer::sum);
+
+This atomically inserts 1 if the key is absent or increments the existing value.
+
+5. Interview-ready answer
+"I use ConcurrentHashMap when multiple threads access a shared map, particularly in parallel test execution or shared caching. Unlike HashMap, it supports concurrent access safely without synchronizing the entire map for every operation. It also provides atomic methods such as putIfAbsent(), computeIfAbsent(), and merge(). However, if I need to maintain a consistent state across several operations, I use appropriate atomic operations or additional synchronization because thread-safe individual methods do not make every multi-step workflow atomic."
 
 #==========================================================================================================
-# Q : 
+# Q :  Write a Java program to reverse a string without changing the positions of spaces
+==> We can reverse a string in Java without changing the positions of spaces by reversing only the non-space characters and keeping every space at its original index.
+Java program (without using inbuilt reverse methods)
+public class ReverseStringKeepSpaces {
 
+    public static void main(String[] args) {
 
+        String str = "Java is good";
+
+        char[] arr = str.toCharArray();
+
+        int left = 0;
+        int right = arr.length - 1;
+
+        while (left < right) {
+
+            // Skip spaces from the left
+            if (arr[left] == ' ') {
+                left++;
+            }
+            // Skip spaces from the right
+            else if (arr[right] == ' ') {
+                right--;
+            }
+            // Swap non-space characters
+            else {
+                char temp = arr[left];
+                arr[left] = arr[right];
+                arr[right] = temp;
+
+                left++;
+                right--;
+            }
+        }
+
+        System.out.println(new String(arr));
+    }
+}
+
+Output: doog si avaJ
+
+How it works
+Input: Java is good
+Original string : Java is good
+
+Reversed non-space characters : doog si avaJ
+
+Spaces remain at the same indexes.
+
+The algorithm uses two pointers:
+1. Start one pointer at the beginning and another at the end.
+2. If either pointer points to a space, move that pointer inward.
+3. Otherwise, swap the characters and move both pointers.
+4. Continue until the pointers meet.
+Complexity analysis
+- Time complexity: (O(n)) — each character is processed at most once.
+- Space complexity: (O(n)) — the character array stores a copy of the string.
+Interview tip: This solution preserves ordinary space characters (' '). If the requirement includes tabs or other whitespace characters, use Character.isWhitespace() instead of comparing with ' '.
 
 #==========================================================================================================
-# Q : 
+# Q : Given an array {6, 8, 11, 6, 7, 18} and a target sum of 17, write a program to find the indices of any two elements whose sum equals the target.
+==> You can solve this problem efficiently using a HashMap in Java. It allows you to find two elements whose sum equals the target in \(O(n)\) time, without using nested loops.
+Java program — Find indices of two elements
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class TwoSum {
+
+    public static void main(String[] args) {
+
+        int[] arr = {6, 8, 11, 6, 7, 18};
+        int target = 17;
+
+        Map<Integer, Integer> map = new HashMap<>();
+
+        for (int i = 0; i < arr.length; i++) {
+
+            int complement = target - arr[i];
+
+            if (map.containsKey(complement)) {
+
+                System.out.println("Indices: " + map.get(complement) + ", " + i );
+                System.out.println("Elements: " + complement + ", " + arr[i] );
+                return;
+            }
+            map.put(arr[i], i);
+        }
+        System.out.println("No pair found");
+    }
+}
 
 
+
+Output : Indices: 1, 2
+Elements: 6? 
+
+The correct output is:
+Indices: 1, 2
+Elements: 6? 
+
+Let's verify the pair: 6 + 11 = 17, but arr[1] = 8 and arr[2] = 11, which sum to 19. The first matching pair encountered by this algorithm is actually 6 + 11 at indices 0 and 2.
+
+Correct output:
+Indices: 0, 2
+Elements: 6, 11
+
+How the logic works : For each element, calculate:
+complement = target - current element
+
+- Index 0: value 6, complement 11. Store 6 → 0.
+- Index 1: value 8, complement 9. Store 8 → 1.
+- Index 2: value 11, complement 6. The map already contains 6 at index 0, so we have found the pair.
+Complexity analysis
+- Time complexity: (O(n)) on average.
+- Space complexity: (O(n)) for the HashMap.
+Interview tip: A HashMap is more efficient than nested loops, which take \(O(n^2)\) time. It also handles duplicate values correctly because it stores each value's index.
 
 #==========================================================================================================
-# Q : 
+# Q :  Reverse words in a sentence e.g. "LTIMindtree SDET" -> "SDET LTIMindtree".
+Here is a simple Java program to reverse the order of words in a sentence without reversing the characters in each word.
+Java program (without using split())
+
+public class ReverseWords {
+
+    public static void main(String[] args) {
+
+        String str = "LTIMindtree SDET";
+        String word = "";
+        String result = "";
+
+        for (int i = 0; i < str.length(); i++) {
+
+            char ch = str.charAt(i);
+
+            if (ch != ' ') {
+                word = word + ch;
+            } else {
+                result = word + " " + result;
+                word = "";
+            }
+        }
+
+        result = word + " " + result;
+
+        System.out.println(result.trim());
+    }
+}
 
 
+
+Output:
+SDET LTIMindtree
+
+
+How the logic works
+1. Traverse the string character by character.
+2. Build each word until a space is encountered.
+3. Add each completed word to the beginning of the result.
+4. Add the final word and print the result.
+Complexity analysis
+- Time complexity: \(O(n^2)\) in this implementation because Java string concatenation creates new strings repeatedly.
+- Space complexity: \(O(n)\).
+Optimized approach using StringBuilder
+public class ReverseWordsOptimized {
+
+    public static void main(String[] args) {
+
+        String str = "LTIMindtree SDET";
+        String[] words = str.trim().split("\\s+");
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = words.length - 1; i >= 0; i--) {
+            result.append(words[i]);
+
+            if (i > 0) {
+                result.append(" ");
+            }
+        }
+
+        System.out.println(result);
+    }
+}
+
+
+Output: SDET LTIMindtree
+
+Interview tip: The optimized approach takes \(O(n)\) time and \(O(n)\) extra space. If the interviewer explicitly prohibits built-in methods such as split(), use the first approach but replace repeated string concatenation with StringBuilder for better performance.
 
 #==========================================================================================================
-# Q :
+# Q : • Write logic to check whether given input is alphanumeric.
+==> To check whether a given input is alphanumeric in Java, we need to verify that it contains only letters (A–Z, a–z) and digits (0–9).
 
+For example:
+- "Java123" → Alphanumeric
+- "Hello" → Alphanumeric check is true if letters alone are allowed
+- "12345" → Alphanumeric check is true if digits alone are allowed
+- "Java@123" → Not alphanumeric
+1. Java program without using regex
+public class AlphanumericCheck {
 
+    public static void main(String[] args) {
 
-#==========================================================================================================
-# Q : 
+        String str = "Java123";
+        boolean isAlphanumeric = true;
 
+        if (str == null || str.isEmpty()) {
+            isAlphanumeric = false;
+        } else {
+            for (int i = 0; i < str.length(); i++) {
 
+                char ch = str.charAt(i);
 
-#==========================================================================================================
-# Q : 
+                if (!((ch >= 'A' && ch <= 'Z') ||(ch >= 'a' && ch <= 'z') ||(ch >= '0' && ch <= '9'))) {
 
+                    isAlphanumeric = false;
+                    break;
+                }
+            }
+        }
 
+        if (isAlphanumeric) {
+            System.out.println("Input is alphanumeric");
+        } else {
+            System.out.println("Input is not alphanumeric");
+        }
+    }
+}
+Output: Input is alphanumeric
 
-#==========================================================================================================
-# Q : 
+2. Optimized approach using regular expressions
+public class AlphanumericRegex {
 
+    public static void main(String[] args) {
 
+        String str = "Java123";
 
-#==========================================================================================================
-# Q :
+        if (str != null && !str.isEmpty() && str.matches("[a-zA-Z0-9]+")) {
+            System.out.println("Input is alphanumeric");
+        } else {
+            System.out.println("Input is not alphanumeric");
+        }
+    }
+}
 
+The regex [a-zA-Z0-9]+ accepts one or more English letters or digits.
+Complexity analysis
+Approach		| Time complexity			| Extra space
+Character-by-character	| (O(n))				| (O(1))
+Regex			| (O(n)) typical for this pattern	| Depends on regex implementation
 
-
-
-#==========================================================================================================
-# Q : 
+Interview tip: If asked to solve this without built-in methods, use the first approach. It demonstrates character validation, conditional logic, and early termination when an invalid character is found.
 
 
 

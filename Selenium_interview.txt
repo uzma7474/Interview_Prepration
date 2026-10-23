@@ -17628,43 +17628,624 @@ In my automation framework, I mainly use mvn clean test to perform a fresh build
 
 Interview tip: Remember that Maven lifecycle phases are sequential. Running mvn package, for example, also executes the earlier default lifecycle phases, including test.
 
+#==================================================================================================
+# Q : What is the purpose of interfaces in Java? Provide examples of how you have implemented them in your test automation framework.
 
+==> In Java, an interface is a contract that defines what a class must do, without necessarily specifying how it does it. It supports abstraction, loose coupling, and polymorphism, which are important when designing a maintainable test automation framework.
+
+As an Automation Engineer with 3.5 years of experience, I would explain its purpose using examples from a Selenium, TestNG, and REST Assured framework.
+1. Why do we use interfaces in Java?
+- Abstraction: Define required behavior without exposing implementation details.
+- Loose coupling: Allow implementations to change without changing the code that uses them.
+- Polymorphism: Use the same interface reference for different implementations.
+- Maintainability: Make it easier to extend a framework with new browsers, reporting tools, or service implementations.
+- Testability: Make dependencies easier to replace with mocks or test doubles.
+
+2. Example 1: WebDriver interface in Selenium
+One of the most common real-world examples is Selenium's WebDriver interface.
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+
+public class BrowserFactory {
+
+    public static WebDriver createDriver(String browser) {
+
+        if (browser.equalsIgnoreCase("chrome")) {
+            return new ChromeDriver();
+        } else if (browser.equalsIgnoreCase("firefox")) {
+            return new FirefoxDriver();
+        }
+
+        throw new IllegalArgumentException("Unsupported browser: " + browser);
+    }
+
+    public static void main(String[] args) {
+
+        WebDriver driver = createDriver("chrome");
+
+        driver.get("https://example.com");
+        System.out.println(driver.getTitle());
+
+        driver.quit();
+    }
+}
+How this helps:
+- WebDriver is the interface.
+- ChromeDriver and FirefoxDriver are implementations.
+- The test code uses the WebDriver reference rather than depending directly on a particular browser implementation.
+- We can switch browsers through configuration while keeping most test code unchanged.
+
+3. Example 2: Creating a reusable interface for API testing
+Suppose my automation framework tests multiple API services. I can define a common interface for sending requests.
+
+public interface ApiClient {
+
+    String get(String endpoint);
+    String post(String endpoint, String requestBody);
+}
+
+A REST Assured implementation could look like this:
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+
+public class RestAssuredClient implements ApiClient {
+
+    @Override
+    public String get(String endpoint) {
+
+        Response response = RestAssured
+                .given()
+                .when()
+                .get(endpoint);
+
+        return response.asString();
+    }
+
+    @Override
+    public String post(String endpoint, String requestBody) {
+
+        Response response = RestAssured
+                .given()
+                .contentType("application/json")
+                .body(requestBody)
+                .when()
+                .post(endpoint);
+
+        return response.asString();
+    }
+}
+
+Usage:
+ApiClient client = new RestAssuredClient();
+
+String response = client.get( "https://jsonplaceholder.typicode.com/posts/1");
+
+System.out.println(response);
+
+Framework benefit: Test classes can depend on ApiClient rather than directly on RestAssuredClient. This makes it easier to introduce another implementation or a mock client.
+
+Note that this example returns response bodies as strings for simplicity. In a production framework, I would normally preserve the HTTP status, headers, and response object so that tests can validate them too.
+
+4. Example 3: Reporting interface
+A framework may need to support different reporting implementations. We can define a reporting contract:
+public interface TestReporter {
+
+    void logPass(String message);
+    void logFail(String message);
+}
+
+Example implementation:
+public class ConsoleReporter implements TestReporter {
+
+    @Override
+    public void logPass(String message) {
+        System.out.println("PASS: " + message);
+    }
+
+    @Override
+    public void logFail(String message) {
+        System.out.println("FAIL: " + message);
+    }
+}
+Usage:
+TestReporter reporter = new ConsoleReporter();
+
+reporter.logPass("Login test passed");
+reporter.logFail("Checkout test failed");
+
+Later, I could implement ExtentReporter or another reporting adapter without changing the test logic that depends on TestReporter.
+
+5. Where interfaces fit in a test automation framework
+Test classes (TestNG / Cucumber)
+
+Execute scenarios and assertions
+Depend on abstractions
+
+WebDriver
+ChromeDriver / FirefoxDriver
+
+ApiClient
+REST Assured implementation
+
+TestReporter
+Console / Extent Reports
+
+Other interfaces
+Configurable framework services
+
+6. Interview-ready answer
+" In my test automation framework, I use interfaces to achieve abstraction and loose coupling. A good example is Selenium's WebDriver interface, which allows me to use ChromeDriver or FirefoxDriver through the same reference. This makes browser selection configurable.
+
+I can also define custom interfaces for API clients and reporting services so that test classes depend on contracts instead of concrete implementations. This improves maintainability, extensibility, and testability. When I need to change an implementation, I can usually do so without modifying the test cases that depend on the interface."
+
+#====================================================================================================
+# Q : Conditional hooks vs directional hooks in Cucumber
+==> Conditional Hooks vs Directional Hooks in Cucumber
+In Cucumber, hooks are used to execute pre- and post-test setup or cleanup logic. The terms conditional hooks and directional hooks are not official standard categories in Cucumber, but in interviews they generally refer to tag-based conditional hooks and hooks that run before or after a scenario.
+1. Conditional Hooks
+Conditional hooks execute only when a scenario matches a specified tag expression. We use them when certain scenarios require specific setup or cleanup.
+
+Example:
+import io.cucumber.java.Before;
+import io.cucumber.java.After;
+
+public class Hooks {
+
+    @Before("@Smoke")
+    public void beforeSmokeScenario() {
+        System.out.println("Run smoke setup");
+    }
+
+    @After("@Regression")
+    public void afterRegressionScenario() {
+        System.out.println("Run regression cleanup");
+    }
+}
+
+Explanation:
+- @Before("@Smoke") runs before scenarios tagged @Smoke.
+- @After("@Regression") runs after scenarios tagged @Regression.
+- We can also use expressions such as @Before("@Smoke and not @Ignore").
+Use case: I use conditional hooks when only certain scenarios need login, database setup, API token generation, or browser configuration.
+
+2. Directional Hooks
+Directional hooks refer to hooks based on when they execute in the scenario lifecycle.
+Hook	Execution time	Typical use
+@Before	Before each matching scenario	Launch browser, initialize driver
+@After	After each matching scenario	Close browser, clean up
+@BeforeStep	Before each step	Step-level logging
+@AfterStep	After each step	Capture step-level diagnostics
+
+Example:
+import io.cucumber.java.Before;
+import io.cucumber.java.After;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class Hooks {
+
+    WebDriver driver;
+
+    @Before
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+    }
+
+    @After
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
+
+Use case: In my Selenium framework, I use @Before to initialize the browser and required test data, and @After to close the browser and release resources.
+Key differences
+         Conditional hooks			|	Directional hooks
+1. Control which scenarios execute a hook.	|	Describe when a hook executes.
+2. Usually use tag expressions.			|	Use lifecycle annotations.
+3. Example: @Before("@Smoke")			|	Example: @Before
+4. Useful for scenario-specific setup.		|	Useful for common setup and teardown.
+
+Interview tip: A hook can be both conditional and directional. For example, @Before("@Smoke") is a before hook that runs only for scenarios tagged @Smoke. In Cucumber, conditional hooks is a recognized usage pattern, while directional hooks is informal terminology rather than an official hook category.
+
+#====================================================================================================
+# Q : How do you pass the browser name as an argument from a Jenkins file to a Cucumber step definition?
+==> In my Selenium Java Cucumber framework, I pass the browser name from the Jenkins pipeline to Maven using a system property. I retrieve that property in my Java framework using System.getProperty() and initialize the corresponding WebDriver in my Hooks class.
+
+This approach allows me to execute the same automation suite on Chrome, Firefox, or Edge without changing the code.
+1. Pass the browser from the Jenkinsfile
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'BROWSER',
+            choices: ['chrome', 'firefox', 'edge'],
+            description: 'Select browser for execution'
+        )
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Run Cucumber Tests') {
+            steps {
+                bat "mvn clean test -Dbrowser=${params.BROWSER}"
+            }
+        }
+    }
+}
+
+Explanation: The Jenkins parameter lets us select the browser when triggering a build. Maven receives the selected browser through -Dbrowser.
+
+For a Linux Jenkins agent, I would use sh instead of bat.
+2. Retrieve the browser in the Hooks class
+package hooks;
+
+import io.cucumber.java.Before;
+import io.cucumber.java.After;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.edge.EdgeDriver;
+
+public class Hooks {
+
+    public static WebDriver driver;
+
+    @Before
+    public void setUp() {
+        String browser = System.getProperty("browser", "chrome");
+
+        switch (browser.toLowerCase()) {
+            case "chrome":
+                driver = new ChromeDriver();
+                break;
+
+            case "firefox":
+                driver = new FirefoxDriver();
+                break;
+
+            case "edge":
+                driver = new EdgeDriver();
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unsupported browser: " + browser );
+        }
+
+        driver.manage().window().maximize();
+    }
+
+    @After
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
+
+Explanation:
+- System.getProperty("browser", "chrome") reads the browser property passed by Maven.
+- If no browser is specified, Chrome is selected by default.
+- The switch statement initializes the appropriate WebDriver.
+- The @Before hook initializes the browser before each scenario, and @After closes it afterward.
+In a parallel execution framework, I would use a ThreadLocal<WebDriver> or a dependency-injection approach to avoid sharing the same driver across scenarios.
+3. Access the browser in a Cucumber step definition
+Usually, I initialize the driver in Hooks and access it through a shared driver manager or Cucumber dependency injection rather than passing the browser name separately to every step definition.
+
+For example, if using a simple shared driver manager:
+package stepdefinitions;
+
+import io.cucumber.java.en.Given;
+import org.openqa.selenium.WebDriver;
+import hooks.Hooks;
+
+public class LoginSteps {
+
+    @Given("user opens the application")
+    public void userOpensApplication() {
+        WebDriver driver = Hooks.driver;
+        driver.get("https://www.saucedemo.com/");
+    }
+}
+
+
+Here, the step definition uses the driver initialized by the Hooks class. The browser name itself does not need to be passed to each step.
+4. Execution flow
+Jenkins parameter
+
+BROWSER = firefox
+
+Jenkinsfile → Maven
+
+mvn clean test -Dbrowser=firefox
+
+Hooks.java
+
+System.getProperty("browser")
+
+FirefoxDriver initialized
+
+Cucumber step definitions use the driver
+
+5. How would you run it locally?
+mvn clean test -Dbrowser=chrome
+mvn clean test -Dbrowser=firefox
+mvn clean test -Dbrowser=edge
+
+
+Final interview summary: I pass the browser name from Jenkins as a build parameter, forward it to Maven using -Dbrowser, retrieve it using System.getProperty() in the Hooks class, and initialize the corresponding WebDriver. This makes my Cucumber automation framework configurable and reusable across browsers without modifying the test scripts.
+
+#====================================================================================================
+# Q : In Cucumber, how can you ensure that a specific piece of code runs only before the first scenario in a feature file?
+==> In Cucumber, if I want a piece of code to execute only once before the first scenario in a feature file, I use a @BeforeAll hook if the requirement is once per test run, or a conditional approach using a feature-level setup if it must run once per feature.
+
+Cucumber's standard @Before hook executes before every scenario, so it is not suitable for this requirement.
+1. Using @BeforeAll hook
+In Cucumber-JVM, @BeforeAll runs once before any scenarios in the test run, not once per feature file.
+import io.cucumber.java.BeforeAll;
+
+public class Hooks {
+
+    @BeforeAll
+    public static void beforeAllScenarios() {
+        System.out.println("Execute setup once before all scenarios");
+        // Initialize shared configuration or test resources
+    }
+}
+
+2. If the code must run only once per feature file
+Cucumber does not provide a standard @BeforeFeature hook in its Java API. One approach is to use a feature-specific tag and track whether the setup has already run.
+
+For example:
+import io.cucumber.java.Before;
+
+public class FeatureHooks {
+
+    private static boolean setupDone = false;
+
+    @Before("@LoginFeature")
+    public void setupFeature() {
+        if (!setupDone) {
+            System.out.println("Execute setup once for Login feature");
+            // Feature-specific setup
+            setupDone = true;
+        }
+    }
+}
+
+Tag the feature:
+@LoginFeature
+Feature: Login functionality
+
+  Scenario: Valid login
+    Given user opens the application
+
+  Scenario: Invalid login
+    Given user opens the application
+
+
+Important: This simple static-flag approach is safe only in a controlled, non-parallel run. If multiple features or parallel scenarios execute, use a feature-specific initialization mechanism with proper synchronization or dependency injection.
+Key differences
+Hook		Execution
+1. @Before	Before every matching scenario
+2. @BeforeAll	Once before the test run's scenarios
+3. @AfterAll	Once after the test run's scenarios
+
+My interview conclusion: If the requirement is once before all scenarios, I use @BeforeAll. If it is specifically once before the first scenario of each feature, I explain that Cucumber-JVM has no built-in @BeforeFeature hook and implement feature-scoped setup accordingly.
+
+#====================================================================================================
+# Q : How to trigger Jenkins build automatically on git push?
+==> In my automation framework, I configure Jenkins to trigger a build automatically whenever a developer pushes code to GitHub. I generally use a GitHub webhook to integrate GitHub with Jenkins, so that whenever new code is pushed, Jenkins automatically checks out the latest code and executes the Selenium automation test suite.
+Steps to configure automatic Jenkins build
+1. Configure the Git repository in Jenkins
+- Open Jenkins and create a new Freestyle project or Pipeline job.
+- Under Source Code Management, select Git.
+- Provide the GitHub repository URL and configure credentials if the repository is private.
+- Select the required branch, such as main or develop.
+2. Configure the GitHub webhook
+- Open the GitHub repository and navigate to Settings → Webhooks → Add webhook.
+- Enter the Jenkins webhook URL:
+http://<jenkins-server>:8080/github-webhook/
+
+
+- Select application/json as the content type.
+- Choose Just the push event and save the webhook.
+The Jenkins server must be reachable by GitHub. For a local Jenkins instance, I need an appropriate network-accessible URL or secure tunnel.
+
+3. Enable the trigger in Jenkins
+- Open the Jenkins job configuration.
+- Under Build Triggers, select GitHub hook trigger for GITScm polling.
+- Save the configuration.
+4. Execute the Maven automation suite
+
+In the Jenkins job's build step, I execute:
+mvn clean test
+
+
+This command cleans the previous build output and runs the configured TestNG/Cucumber tests through Maven.
+
+5. Verify the integration
+
+I push a code change to GitHub and verify that Jenkins automatically starts a new build. I then check the console output and test reports to confirm whether the automation tests passed or failed.
+How the flow works
+Developer pushes code to GitHub
+
+GitHub webhook sends push event
+
+Jenkins triggers the build
+
+Checkout code and run mvn clean test
+
+Publish TestNG/Cucumber reports
+
+
+Alternative approach
+If webhooks are not available, I can configure Poll SCM in Jenkins to check the Git repository periodically, for example:
+H/5 * * * *
+
+
+This checks approximately every five minutes, rather than triggering immediately on every push.
+Real-time project example
+In my Selenium Java automation project, I use Maven to execute the TestNG test runner integrated with Cucumber feature files. When a developer pushes changes to GitHub, the webhook triggers Jenkins, Jenkins checks out the latest code, and Maven executes the regression suite. I review the generated reports and console logs to identify failures and share the results with the team.
+
+My preferred approach is GitHub Webhooks because they trigger builds based on push events without repeatedly polling the repository.
+
+#====================================================================================================
+# Q : In Jenkins, if you have to run a test plan on a daily basis,how would you achieve that efficiently?
+==> In my automation framework, I use Jenkins scheduling with a Cron expression to execute the test plan automatically every day. I configure a Jenkins Pipeline to check out the latest code, execute the required Cucumber scenarios through Maven, and publish the test reports.
+1. Configure a daily schedule in Jenkins
+In Jenkins, I open the job configuration, navigate to Build Triggers, and select Build periodically.
+
+For example, to execute the test plan every day at 2:00 AM, I configure:
+H 2 * * *
+
+
+This schedules the job daily during the 2 AM hour, with the exact minute determined by Jenkins. I use H instead of a fixed minute to help distribute scheduled jobs and reduce load spikes.
+2. Configure it in a Jenkinsfile
+For a Pipeline-based framework, I define the schedule in the Jenkinsfile:
+pipeline {
+    agent any
+
+    triggers {
+        cron('H 2 * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Run Automation Tests') {
+            steps {
+                bat 'mvn clean test -Dcucumber.filter.tags="@Regression"'
+            }
+        }
+
+        stage('Publish Reports') {
+            steps {
+                cucumber(
+                    buildStatus: 'UNSTABLE',
+                    fileIncludePattern: '**/cucumber.json'
+                )
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: '**/target/**',
+                             allowEmptyArchive: true
+        }
+    }
+}
+
+
+This example assumes a Windows Jenkins agent, the Cucumber Reports plugin, and a configured JSON report output. For Linux, I would use sh instead of bat.
+3. How I make it efficient
+- Tag-based execution: Run only the required test plan, such as @Regression, @Smoke, or @Sanity.
+- Parallel execution: Execute independent scenarios in parallel to reduce total execution time.
+- Environment configuration: Pass the target environment and browser as Maven system properties.
+- Reporting: Publish Cucumber and TestNG reports, archive logs and screenshots, and notify the team about failures.
+- Failure analysis: Separate application defects from environment issues and flaky tests instead of blindly rerunning the entire suite.
+- Resource management: Use appropriate Jenkins agents and avoid overlapping scheduled runs if they could conflict over shared test data.
+4. Execution flow
+Daily scheduled trigger
+
+Jenkins Cron — 2 AM
+
+Checkout latest code
+
+Execute Maven + Cucumber regression tests
+
+Publish reports and notify the team
+
+
+My interview conclusion: I schedule the test plan using Jenkins Cron, use Cucumber tags to execute the required scenarios, and optimize execution through parallel testing and dedicated agents. I then publish reports and notify the team so we can identify regressions early without manual intervention.
 
 
 #====================================================================================================
-# Q :
+# Q : In your framework, if you have 100 pages, do you create 100 Page Objects?
+==> No, I would not blindly create 100 Page Objects just because the application has 100 pages. I design the framework based on the application's functionality, page structure, and reusability.
+
+In my Selenium Java framework, I follow the Page Object Model (POM) principle, where each Page Object represents a distinct page or a reusable component of the application.
+How would I design it?
+Suppose an application has 100 pages. I would categorize them as follows:
+1. Separate Page Objects: For distinct pages with their own locators and business actions, such as Login, Dashboard, Products, Cart, and Checkout.
+2. Reusable components: Common elements such as the header, navigation menu, sidebar, footer, and modal dialogs can be implemented as component objects and reused across multiple pages.
+3. Shared functionality: Common methods such as waiting, clicking, scrolling, and dropdown handling belong in reusable utility or base classes rather than being duplicated in every Page Object.
+4. Similar pages: If multiple pages share the same structure, I can use a common base page or component class and extend or compose it where appropriate.
+Example project structure
+src/test/java
+├── pages
+│   ├── LoginPage.java
+│   ├── DashboardPage.java
+│   ├── ProductsPage.java
+│   ├── CartPage.java
+│   └── CheckoutPage.java
+├── components
+│   ├── HeaderComponent.java
+│   ├── SidebarComponent.java
+│   └── ModalComponent.java
+├── base
+│   └── BasePage.java
+├── stepdefinitions
+│   └── LoginSteps.java
+└── hooks
+    └── Hooks.java
 
 
+Example: Reusing a common component
+public class HeaderComponent {
 
-#====================================================================================================
-# Q :
+    private WebDriver driver;
 
+    private By logo = By.id("app-logo");
+    private By menuButton = By.id("menu-button");
 
+    public HeaderComponent(WebDriver driver) {
+        this.driver = driver;
+    }
 
+    public void clickLogo() {
+        driver.findElement(logo).click();
+    }
 
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
+    public void openMenu() {
+        driver.findElement(menuButton).click();
+    }
+}
 
 
+A page can use the same header component without duplicating its locators and methods.
+public class DashboardPage {
 
-#====================================================================================================
-# Q :
+    private HeaderComponent header;
+
+    public DashboardPage(WebDriver driver) {
+        header = new HeaderComponent(driver);
+    }
+
+    public void openNavigationMenu() {
+        header.openMenu();
+    }
+}
 
 
+What if all 100 pages are different?
+If all 100 pages have genuinely distinct functionality, I may create 100 Page Objects. That is perfectly acceptable. The goal is not to minimize the number of classes; it is to keep the framework maintainable, reusable, and easy to extend.
 
+My interview conclusion: I follow one Page Object per distinct page or meaningful UI unit, reuse common components through composition, and avoid unnecessary duplication. I decide the design based on functionality rather than the total number of pages.
 
 #====================================================================================================
 # Q :

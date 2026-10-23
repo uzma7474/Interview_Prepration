@@ -707,7 +707,7 @@ Preparing for a Playwright/SDET interview? Don't focus only on definitions. Be r
 🔟 Explain Browser, BrowserContext and Page with a real project example.
 1️⃣1️⃣ How do you validate an API response and use its data in UI automation?
 
-14/10/2026
+
 1️⃣2️⃣ How do you intercept an API response and mock the data?
 1️⃣3️⃣ How would you automate nested iframes?
 1️⃣4️⃣ How do you handle file downloads and verify content?
@@ -851,3 +851,52 @@ HR Round:
 • How do you manage pressure or tight deadlines ?
 • Are you comfortable with relocation ?
 
+#============================================================================================
+# Deloitte – QA Interview Questions - 2026
+
+Manual Testing :
+
+ • Explain your current project and responsibilities
+ • Severity vs Priority with examples
+ • What is STLC
+ • Test case vs Test scenario
+ • Bug life cycle
+ • Negative test cases for Login
+ • Scenarios for Login, Payment, Search & Filter
+ • How to handle non-reproducible bugs
+ • How to handle bugs found in production
+ • How to decide test coverage when time is limited
+
+Automation (Selenium + Java + Rest Assured) :
+
+ • Implicit vs Explicit wait
+ • WebDriverWait and its usage
+ • Handling multiple browser windows
+ • Dynamic XPath for Amazon product ratings
+ • Types of locators & preferred ones
+ • What is POM and why it is used
+ • Handling stale element issues
+
+Java :
+
+ • Interface vs Abstract class
+ • OOPs concepts with framework examples
+ • String immutability
+ • Coding tasks:
+ • Second most repeating character
+ • Move vowels to the left, consonants in the middle, special chars to the right
+ • Reverse string without built-in methods
+ • Checked vs Unchecked exceptions
+
+API Testing (Rest Assured) :
+
+ • Common HTTP status codes
+ • GET vs POST vs PUT vs PATCH
+ • Basic Rest Assured script for request + status validation
+
+Git :
+
+ • Merge vs Rebase
+ • Pull vs Fetch
+ • Handling merge conflicts
+ • Steps to commit and push
