@@ -8,6 +8,90 @@ https://medium.com/@english87/modern-e2e-testing-with-cucumber-playwright-typesc
 1. The Classic Approach (cucumber-js): Cucumber acts as the test runner, pulling in Playwright purely as a library.
 2. The Modern Approach (playwright-bdd): This maps Gherkin feature files directly into the native Playwright Test runner, giving you access to all native Playwright features like the UI Mode, HTML reporting, and parallelization.
 
+#===============================================================================================
+Explain in detail lexical binding of this in playwright typescript cucumber
+
+
+Why this guardrail is critical
+
+In cucumber-js E2E setups, arrow functions break the lexical binding of this. Cucumber relies on regular functions to bind this to the custom "World" instance (which shares your Playwright page, browser, or context details across steps). Using an arrow function makes this evaluate to undefined or the outer scope, breaking your step definitions.
+
+Option 1: The Native ESLint Guardrail (No Plugin Required)
+
+If you are using modern ESLint (eslint.config.js / Flat Config), you can enforce this globally using the native no-restricted-syntax rule. It evaluates the abstract syntax tree (AST) to flag when an arrow function expression is passed directly into Cucumber functions (Given, When, Then, Before, After).
+Add this object inside your eslint.config.js array:
+javascript
+import { defineConfig } from "eslint/config"; // If using modern Flat Config
+
+export default [
+  {
+    files: ["**/*.steps.ts", "**/*.hooks.ts"], // Scope to your step definition and hook files
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.name=/^(Given|When|Then|Before|After|BeforeAll|AfterAll)$/] > ArrowFunctionExpression",
+          message: "Do not use arrow functions in Cucumber step definitions or hooks. Use regular 'async function()' blocks to correctly preserve 'this' binding to the World context."
+        }
+      ]
+    }
+  }
+];
+Use code with caution.
+
+Option 2: The Dedicated Plugin Guardrail
+
+If you prefer a pre-built package, you can leverage the eslint-plugin-cucumber package. It features a built-in rule called no-arrow-functions specifically tailored for this issue.
+
+1. Install the plugin:
+
+bash
+npm install eslint-plugin-cucumber --save-dev
+Use code with caution.
+
+2. Configure it in your environment:
+
+• For legacy configurations (.eslintrc.json):json
+{
+  "plugins": ["cucumber"],
+  "rules": {
+    "cucumber/no-arrow-functions": "error"
+  }
+}
+Use code with caution.
+• For modern Flat Configs (eslint.config.js):javascript
+import cucumberPlugin from "eslint-plugin-cucumber";
+
+export default [
+  {
+    plugins: {
+      cucumber: cucumberPlugin
+    },
+    rules: {
+      "cucumber/no-arrow-functions": "error"
+    }
+  }
+];
+Use code with caution.
+
+The Correct Way to Write Step Definitions
+
+Once the guardrail is in place, the linter will block arrow functions and mandate the standard function declaration syntax:
+❌ Incorrect (Fails Linter):
+typescript
+Given('I navigate to the dashboard', async () => {
+  await this.page.goto('/dashboard'); // 'this' is undefined!
+});
+Use code with caution.
+Context preservation requires typing the this block explicitly within a regular function:
+typescript
+import { Given } from '@cucumber/cucumber';
+import { CustomWorld } from '../support/world'; 
+
+//  Correct (Passes Linter)
+Given('I navigate to the dashboard', async function (this: CustomWorld) {
+  await this.page.goto('/dashboard'); 
+});
 
 
 #===============================================================================================
