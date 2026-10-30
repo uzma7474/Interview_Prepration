@@ -1,3 +1,6 @@
+https://testdino.com/blog/playwright-api-testing
+
+
 https://app.thetestingacademy.com/blog/playwright-cucumber-bdd
 
 
@@ -108,7 +111,7 @@ When using a Custom World, your page and context are attached to Cucumber's this
 Step 1: Create the Custom World (world.ts)
 
 Define your custom world interface and class, then register it using setWorldConstructor.
-typescript
+
 // features/support/world.ts
 import { setWorldConstructor, IWorldOptions, World } from "@cucumber/cucumber";
 import { Browser, BrowserContext, Page } from "@playwright/test";
@@ -546,6 +549,454 @@ Final interview summary
 “To summarize, I use a modular Playwright framework with TypeScript, Page Object Model, custom fixtures, reusable utilities, and Playwright Test Runner. I chose this architecture because it provides maintainability, reusability, type safety, parallel execution, and efficient debugging. I also integrate API testing, network mocking, reporting, and CI/CD execution. This allows me to build a scalable automation solution that supports both functional UI testing and API validation while reducing maintenance effort.”
 Interview tip: At 3.6 years of experience, be ready for follow-up questions about why you chose POM over a simple test structure, how fixtures differ from hooks, how you isolate parallel tests, and how you handle flaky tests and API mocking.
 
+#===============================================================================================================
+Q. Would you like to explore how to apply this exact data management architecture inside your Before/After hooks to securely attach authentication browser cookies straight onto your scenarios
+===> Would you like to explore how to apply this exact data management architecture inside your Before/After hooks to securely attach authentication browser cookies straight onto your scenarios?
+Applying this exact data management architecture inside your Before/After hooks allows you to handle global authentication injection safely without repeating the login UI steps for every single scenario.
+By injecting authorization state (like cookies or localStorage tokens) straight onto your dynamic this context during the Before hook, you can bypass the login page completely for subsequent tests.
+
+Step 1: Update the Shared Hook Types in world.ts
+First, add an optional property to hold an authentication cookie or token payload within your CustomWorld interface.
+typescript
+// support/world.ts
+import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
+import { BrowserContext, Page } from '@playwright/test';
+
+export interface CustomWorld extends World {
+  context?: BrowserContext;
+  page: Page;
+  authToken?: string; // 👈 Holds the session token injected via the Before hook
+}
+
+export class PlaywrightWorld extends World implements CustomWorld {
+  context?: BrowserContext;
+  page!: Page;
+  authToken?: string;
+
+  constructor(options: IWorldOptions) {
+    super(options);
+  }
+}
+
+setWorldConstructor(PlaywrightWorld);
+
+Use code with caution.
+
+Step 2: Implement the Token Injection in the Before Hook
+Instead of running a slow UI login flow for every single test scenario, you can fetch an auth token via a fast API call or read a pre-cached JSON state, then attach it to the this context before the test steps even start.
+Remember, because the hook is part of Cucumber's lifecycle execution, you must use a regular function (async function) here as well so this resolves correctly.
+typescript
+// support/hooks.ts
+import { Before, After } from '@cucumber/cucumber';
+import { chromium, ChromiumBrowser } from '@playwright/test';
+import { CustomWorld } from './world';
+
+let globalBrowser: ChromiumBrowser;
+
+Before(async function (this: CustomWorld) {
+  // 1. Initialize a clean, isolated browser context per scenario
+  if (!globalBrowser) {
+    globalBrowser = await chromium.launch({ headless: true });
+  }
+  
+  this.context = await globalBrowser.newContext();
+  this.page = await this.context.newPage();
+
+  // 2. Perform a fast API login bypass (simulate auth token retrieval)
+  // In a real framework, replace this with a native fetch/axios request to your /login endpoint
+  const simulatedToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummyToken12345";
+  
+  // 3. Save the token onto the dynamic 'this' context
+  this.authToken = simulatedToken;
+
+  // 4. Inject the cookie directly into Playwright's browser context before navigating
+  await this.context.addCookies([
+    {
+      name: 'auth_session_token',
+      value: this.authToken,
+      domain: 'example.com',
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict'
+    }
+  ]);
+  
+  console.log("🔒 Secure authentication state injected via Before hook.");
+});
+
+After(async function (this: CustomWorld) {
+  // Gracefully tear down the browser resources to clean up memory leaks
+  await this.page?.close();
+  await this.context?.close();
+});
+
+Use code with caution.
+
+Step 3: Seamless Navigation in the Step Definition File
+Because the Before hook executes prior to any step definition, your browser context is already fully authenticated. You can jump directly to a protected page (like a user dashboard) without hitting a login redirect loop.
+typescript
+// steps/dashboard.steps.ts
+import { Given } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+import { CustomWorld } from '../support/world';
+
+Given('I visit my private account dashboard', async function (this: CustomWorld) {
+  // 1. Verify that the hook successfully provisioned the security state
+  if (!this.authToken) {
+    throw new Error("Security Failure: Authentication state was not populated by the Before hook.");
+  }
+
+  // 2. Navigate straight to a secure URL. Playwright will automatically pass the injected cookie along.
+  await this.page.goto('https://example.com');
+
+  // 3. Confirm that we are bypassed directly to the dashboard, skipping the login prompt
+  const secureHeader = this.page.locator('h1.dashboard-title');
+  await expect(secureHeader).toHaveText('Welcome to Your Account');
+});
+
+Use code with caution.
+
+🛡️ Best Practices for Hook Data Management
+Conditional Injection with Gherkin Tags: If you have public pages (like a homepage or registration form) that do not require authentication, you can pass a tag expression to your hook so it only runs when needed:
+typescript
+// This hook will only run for scenarios labeled with @Authenticated
+Before({ tags: '@Authenticated' }, async function (this: CustomWorld) { ... });
+Use code with caution.
+Encapsulation Security: Storing the authToken strictly inside the this execution context guarantees that tokens are wiped out of system memory the millisecond the After hook finishes, mitigating security footprint leaks across multi-threaded runs.
+
+#====================================================================================================================
+# Q: Would you like me to show you how to generate a reusable API client attached to this so you can trigger quick setup data modifications (like seeding a database or deleting an account) directly inside these hooks?
+⇒ To build a highly efficient framework, you can attach a custom API utility client directly to the this context. This allows you to seed database records, delete test mutations, or fetch backend tokens directly within your hooks or steps using standard Playwright requests—without bringing in bulky external libraries like Axios.
+Here is the complete implementation workflow for attaching an API helper client to the this context.
+
+Step 1: Create the Reusable API Helper Class
+Create a dedicated service file that leverages Playwright's native APIRequestContext to make fast, headless HTTP network requests.
+support/apiClient.ts
+import { APIRequestContext } from '@playwright/test';
+export class ApiClient {
+private request: APIRequestContext;
+constructor(request: APIRequestContext) {
+this.request = request;
+}
+// Seeding method to instantly inject test entities into the backend
+async createTestUser(username: string, role: string) {
+const response = await this.request.post('https://api.example.com/v1/users', {
+data: { username, role }
+});
+if (!response.ok()) { throw new Error(Failed to seed test user: ${response.statusText()}); }
+const body = await response.json(); return body.userId; // Returns the generated database ID
+}
+// Teardown method to delete test data mutations
+async deleteTestUser(userId: string) {
+const response = await this.request.delete(https://api.example.com/v1/users/${userId});
+if (!response.ok()) {
+console.error(Cleanup warning: Failed to delete user ${userId}: ${response.statusText()});
+}
+}
+}
+
+Step 2: Update the CustomWorld Interface
+Register both Playwright's native request utility and your custom API client class under the global this type system.
+support/world.ts
+import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
+import { BrowserContext, Page, APIRequestContext } from '@playwright/test';
+import { ApiClient } from './apiClient';
+export interface CustomWorld extends World {
+context?: BrowserContext;
+page: Page;
+request?: APIRequestContext; // Native Playwright network wrapper
+api?: ApiClient; // 👈 Custom clean business logic API helper
+seededUserId?: string; // Tracks created IDs for deletion later
+}
+export class PlaywrightWorld extends World implements CustomWorld {
+context?: BrowserContext;
+page!: Page;
+request?: APIRequestContext;
+api?: ApiClient;
+seededUserId?: string;
+constructor(options: IWorldOptions) {
+super(options);
+}
+}
+setWorldConstructor(PlaywrightWorld);
+
+Step 3: Instantiate and Clean Up via Hooks
+Using standard functions (async function), initialize the client in the Before hook. This ensures your test environment is perfectly configured before any user interface interactions take place.
+support/hooks.ts
+import { Before, After, playwright } from '@cucumber/cucumber';
+import { chromium, ChromiumBrowser } from '@playwright/test';
+import { CustomWorld } from './world';
+import { ApiClient } from './apiClient';
+let globalBrowser: ChromiumBrowser;
+Before(async function (this: CustomWorld) {
+if (!globalBrowser) {
+globalBrowser = await chromium.launch({ headless: true });
+}
+this.context = await globalBrowser.newContext();
+this.page = await this.context.newPage();
+// 1. Initialize Playwright's built-in request context
+this.request = await this.page.context().request;
+// 2. Attach your custom API abstraction layer directly onto 'this'
+this.api = new ApiClient(this.request);
+// 3. Fast-seed a test user behind the scenes before steps run
+// Tagging it uniquely to avoid collisions in parallel execution runs
+const uniqueName = e2e_user_${Date.now()};
+this.seededUserId = await this.api.createTestUser(uniqueName, 'premium_tier');
+console.log(🌱 Seeded data setup complete. Injected User ID: ${this.seededUserId});
+});
+After(async function (this: CustomWorld) {
+// 4. Automatically scrub the environment database down on teardown
+if (this.api && this.seededUserId) {
+await this.api.deleteTestUser(this.seededUserId);
+console.log(🧹 Database cleaned up. Dropped User ID: ${this.seededUserId});
+}
+await this.page?.close();
+await this.context?.close();
+});
+
+Step 4: Access the API Client Natively Inside Steps
+Your step files can now interact with the UI via Playwright's page object while retaining instant access to the backend context helper object on this.
+steps/profile.steps.ts
+import { Given, Then } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+import { CustomWorld } from '../support/world';
+Given('I log into my newly seeded premium profile account', async function (this: CustomWorld) {
+// Directly browse to the profile view using the ID generated in our setup hook
+await this.page.goto(https://example.com/profile/${this.seededUserId});
+const badgingElement = this.page.locator('.profile-badge');
+await expect(badgingElement).toHaveText('Premium Tier');
+});
+
+💡 Framework Benefits of an Integrated Hook API Client
+Flawless Pipeline Orchestration: If the API seeding call fails during the Before hook, Cucumber skips the UI automation steps entirely and fails early, saving valuable continuous integration (CI) pipeline runtime.
+Automatic Cleanups: Keeping the deletion payload (seededUserId) coupled directly inside this guarantees that even if a UI step throws an assertion error, the After hook is still called to tear down mutations.
+No Cross-Test Contamination: By isolating seededUserId inside a scenario-bound this instance rather than global memory variables, you avoid test data leakage when running multiple browser threads in parallel.
+Would you like to review how to pass environment variables (like swapping out staging or production URLs) directly into this API client structure, or do you have any remaining questions about the lexical binding of this?
+yes
+Here is the guide on how to integrate environment variables securely into this API client structure so you can easily toggle your test runs between Staging, Dev, or Production environments, followed by an overarching summary of the this lexical binding rule to lock in the knowledge.
+
+Part 1: Integrating Environment Variables for Multi-Env Execution
+To prevent hardcoding URLs (like https://example.com), we use the built-in Node.js runtime object process.env. We can orchestrate this seamlessly by pulling in the dotenv package to handle regional configuration profiles.
+1. Install dotenv and Create Configuration Files
+Install the package into your dev dependencies:
+bash
+npm install dotenv --save-dev
+
+Use code with caution.
+Create environment configuration files at the root of your project:
+.env.staging
+APP_BASE_URL=https://staging.example.com
+API_BASE_URL=https://api-staging.example.com/v1
+.env.production
+APP_BASE_URL=https://example.com
+API_BASE_URL=https://api.example.com/v1
+2. Initialize the Environments in your Config or Hook Loader
+Before running your tests, you load the correct .env file dynamically based on a deployment flag (e.g., NODE_ENV). You can place this right at the top of your support/world.ts or a global setup module:
+typescript
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Read the targeted deployment value from the terminal command, fallback to staging
+const environment = process.env.NODE_ENV || 'staging';
+
+// Load the target configurations into memory
+dotenv.config({
+  path: path.resolve(process.cwd(), `.env.${environment}`)
+});
+
+Use code with caution.
+3. Update the API Helper Client to Read From the Environment
+Refactor the ApiClient class to dynamically construct endpoints using process.env.API_BASE_URL instead of a static string string literal:
+typescript
+// support/apiClient.ts
+import { APIRequestContext } from '@playwright/test';
+
+export class ApiClient {
+  private request: APIRequestContext;
+  private baseUrl: string;
+
+  constructor(request: APIRequestContext) {
+    this.request = request;
+    // Fallback safe value check to throw descriptive framework errors early
+    if (!process.env.API_BASE_URL) {
+      throw new Error("Configuration Error: 'API_BASE_URL' environment variable is missing.");
+    }
+    this.baseUrl = process.env.API_BASE_URL;
+  }
+
+  async createTestUser(username: string, role: string) {
+    // Dynamic URL generation depending on what environment flag was passed
+    const response = await this.request.post(`${this.baseUrl}/users`, {
+      data: { username, role }
+    });
+    
+    if (!response.ok()) {
+      throw new Error(`Failed to seed test user on ${this.baseUrl}: ${response.statusText()}`);
+    }
+    
+    const body = await response.json();
+    return body.userId;
+  }
+}
+
+Use code with caution.
+4. Execution Terminal Commands
+You can now run your test suite against any targeted region instantly from your pipeline:
+bash
+# Run against Staging
+NODE_ENV=staging npx cucumber-js
+
+# Run against Production environment safely
+NODE_ENV=production npx cucumber-js
+
+Use code with caution.
+
+Part 2: Final Summary Blueprint: The Lexical Binding Guardrail
+To close out our deep-dive architecture journey, let's look at the foundational ground rules for using this inside your Playwright TypeScript Cucumber framework:
+The Guardrail Rule: If your project uses the Classic Approach (cucumber-js), arrow functions (() => {}) are strictly forbidden inside your step definition files (.steps.ts) and system hook hooks files (.hooks.ts).
+The Root Cause: Arrow functions enforce lexical binding, locking this permanently to the module's top-level outer scope (undefined). This blocks Cucumber from executing .apply(), which means your Playwright instances (this.page) fail to inject and crash at execution time.
+The Fixed Standard: You must enforce the use of standard function blocks (async function(this: CustomWorld) {}) inside your configuration rules. This enables dynamic runtime binding, meaning Cucumber can safely attach isolated test data, API clients, cookie caches, and page controls onto the execution instance per scenario.
+
+#====================================================================================================================
+# Q. Do you have everything you need to run your first multi-environment execution block, or would you like help setting up a CI/CD GitHub Actions workflow file to run these exact parallel linting and test scripts automatically
+⇒ Here is a complete, production-ready GitHub Actions CI/CD workflow that integrates everything we have built.
+It handles caching for speed, executes the ESLint Flat Config guardrail check, sets up multi-threaded parallel browser testing via Cucumber, and uploads HTML test execution reports automatically.
+GitHub Actions Workflow File
+Create a file named .github/workflows/e2e-tests.yml in your project repository:
+.github/workflows/e2e-tests.yml
+name: Playwright Cucumber E2E Automation Pipeline
+on:
+push:
+branches: [ main, master ]
+pull_request:
+branches: [ main, master ]
+workflow_dispatch:
+inputs:
+environment:
+description: 'Target Testing Environment'
+required: true
+default: 'staging'
+type: choice
+options:
+- dev
+- staging
+- production
+jobs:
+quality-and-test:
+name: Lint, Build, and Execute Tests
+runs-on: ubuntu-latest
+timeout-minutes: 30
+steps:
+name: Checkout Code Repository uses: actions/checkout@v4
+name: Initialize Node.js Environment uses: actions/setup-node@v4 with: node-version: 20 cache: 'npm'
+name: Install Project Dependencies run: npm ci
+name: Enforce Code Quality Guardrails (ESLint) run: npm run lint
+This flags any illegal arrow functions inside step/hook definitions before booting up browsers
+name: Install Playwright Core System Binaries
+run: npx playwright install --with-deps chromium
+name: Run E2E Test Suite (Dynamic Environment Allocation)
+run: |
+Use workflow manual entry input if present; otherwise default to pull request/push staging context
+TARGET_ENV="${{ github.event.inputs.environment || 'staging' }}"
+echo "Launching test suites matrix against target environment profile: $TARGET_ENV"NODE_ENV=$TARGET_ENV npm run test
+env:
+CI: true
+name: Archive and Publish Test Reports
+if: always() # Ensures logs upload even if step assertions fail
+uses: actions/upload-artifact@v4
+with:
+name: playwright-cucumber-execution-report
+path: |
+reports/
+test-results/
+retention-days: 14
+
+Prerequisites: Aligning Your package.json Scripts
+To ensure the GitHub Actions workflow triggers the correct underlying engines seamlessly, verify that your project's package.json contains these identical command script allocations:
+json
+{
+  "name": "playwright-typescript-cucumber-framework",
+  "version": "1.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "cucumber-js"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "^10.0.0",
+    "@playwright/test": "^1.40.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^9.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}
+
+Use code with caution.
+
+🚀 What Happens Inside This Pipeline?
+Guardrail Isolation Layer: The npm run lint step evaluates your code structure before fetching heavy browser engines. If a developer accidentally checks in an arrow function inside a step definition or hook file, the ESLint Flat Config selector automatically fails the build right here, saving processing time.
+Deterministic Sandbox Container: The system provisions a standard ubuntu-latest image, downloads specific Playwright kernel dependencies, and maps your workspace cleanly.
+Environment Injection Matrix: The runner evaluates whether the pipeline was triggered automatically (defaulting to .env.staging) or manually via the GitHub Actions control board choice dropdown (allowing on-demand execution targeting .env.dev or .env.production).
+Resilient Artifact Uploads: The if: always() block protects your operational data. If a UI assertion crashes inside your tests, the framework immediately shifts to preserve screenshots, traces, and HTML summary readouts, caching them on GitHub for 14 days for fast debugging.
+
+
+
+
+#====================================================================
+Frame in Playwright : 
+In Playwright, a Frame (Frame class) represents an XML/HTML document loaded inside a page, including the main page itself and any embedded <iframe> or <frame> elements. [1, 2]
+
+Key Concepts & Structure
+Main Frame: Every Page has a main frame accessible via page.mainFrame(). All standard page-level interactions (like page.click()) happen in the main frame by default. [1, 2]
+Child Frames: Frames can contain nested sub-frames (<iframe crossorigin>, etc.). You can inspect the hierarchy using frame.childFrames() or list all frames on a page with page.frames(). [1, 2]
+Lifecycle Events: The Page dispatches three primary events to track frame state:
+page.on('frameattached'): Fired when a frame is attached to the page (only happens once per frame).
+page.on('framenavigated'): Fired when a frame commits a navigation to a new URL.
+page.on('framedetached'): Fired when a frame is detached/removed from the page (only happens once per frame). 
+How to Access and Interact with Frames
+Playwright provides two primary ways to work with frames:
+1. Using page.frameLocator() (Recommended)
+frameLocator returns a locator object that scopes all subsequent actions and assertions to the target iframe. It auto-waits for the iframe and the target element to be ready:
+typescript
+const username = page.frameLocator('.frame-class').getByLabel('User Name');
+await username.fill('John');
+
+Use code with caution.
+Nested Iframes: You can chain .frameLocator() calls to drill down into multi-level nested frames: [1]
+typescript
+const innerElement = page.frameLocator('#outer-frame').frameLocator('#inner-frame').getByRole('button');
+Use code with caution.
+2. Using page.frame() (Direct Frame Object)
+You can grab a specific Frame instance using its name attribute, URL, or a regex pattern matching its URL: [1, 2]
+typescript
+// By name attribute
+const frameByName = page.frame('frame-login');
+
+// By URL or regex
+const frameByUrl = page.frame({ url: /.*domain.*/ });
+
+if (frameByUrl) {
+  await frameByUrl.fill('#username-input', 'John');
+}
+
+Use code with caution.
+3. Properties and Methods on the Frame Object
+Once you have a Frame object, you can query or interact with it directly:
+frame.url(): Returns the current URL of the frame. [1]
+frame.name(): Returns the name attribute of the frame. [1]
+frame.parentFrame(): Returns the parent frame (or null if it's the main frame).
+frame.childFrames(): Returns an array of child Frame objects. [1]
+frame.locator(selector): Creates a locator scoped inside this specific frame. [1]
+frame.contentFrame(): (From a locator) retrieves the frame corresponding to an iframe element.
+
+Why Playwright's Approach is Different from Selenium
+Unlike Selenium, where you must explicitly switch driver focus into a frame (switchTo().frame()) and switch back out, Playwright does not require context switching. You simply scope your locators using frameLocator or target elements directly while Playwright handles the underlying frame boundaries automatically. [1, 2, 3]
+
 
 #====================================================================================================
 # Q : Tests pass locally but fail intermittently in CI/CD. How would you debug?
@@ -644,12 +1095,12 @@ If the test passes with one worker but fails with multiple workers, I investigat
 
 5. Compare local and CI environments
 I compare the following settings between local and CI environments:
-Area	:	What I investigate
-1. Browser :	Browser version and headless behavior
+Area	:		What I investigate
+1. Browser :		Browser version and headless behavior
 2. Environment :	Base URL, credentials, environment variables
 3. Performance : 	CPU, memory, network latency, and timeouts
-4. Dependencies	: Node.js version, lockfile, installed packages
-5. Test data :	Availability, permissions, and shared state
+4. Dependencies	: 	Node.js version, lockfile, installed packages
+5. Test data :		Availability, permissions, and shared state
 6. Infrastructure :	Service health, API responses, and network restrictions
 I also try to reproduce the CI conditions locally by running tests in headless mode and, when applicable, inside the same Docker image used by the pipeline.
 

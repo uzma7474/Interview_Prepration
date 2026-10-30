@@ -975,7 +975,8 @@ Deloitte | Sr. QA | Interview
 6- How do you decide which test cases to automate?
 7- Explain your Git branching strategy or version control workflow.
 8- How do you integrate API testing in your automation framework?
-9- What are common challenges you faced in automation and how did you resolve them?10- Have you worked with parallel execution or cross-browser testing tools?
+9- What are common challenges you faced in automation and how did you resolve them?
+10- Have you worked with parallel execution or cross-browser testing tools?
 
 𝗥𝗼𝘂𝗻𝗱 𝟯 - 𝗠𝗮𝗻𝗮𝗴𝗲𝗿𝗶𝗮𝗹 + 𝗛𝗥
 
