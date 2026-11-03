@@ -85,6 +85,315 @@ It also helps to keep your code loosely coupled instead of tightly coupled, whic
 
 If you want to become a coding expert or programming enthusiast, then join an IT boot camp right now to work on your skillset and acquire more knowledge on the subject. QuickStart’s web developer Bootcamp can help you earn the certifications you need to become an expert at web development.
 
+#============================================================================================================
+# Q : Can static property and static method inherited in derived class in java ?
+===> Yes, static properties (fields) and static methods are inherited by a derived class in Java. They can be accessed directly using the name of the derived class.
+They can be accessed directly using the name of the derived class.
+However, this inheritance works differently than it does for instance members. Instead of standard object-oriented polymorphism, static inheritance operates under compile-time rules called method hiding and field hiding.
+
+Direct Access Example
+
+If a derived class does not declare a static member with the same name, it inherits and can access the base class's static members directly.
+
+class Base {
+    static int count = 10;
+    static void display() {
+        System.out.println("Hello from Base");
+    }
+}
+
+class Derived extends Base {
+    // Inherits count and display() automatically
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // Accessing inherited static members using Derived class name
+        System.out.println(Derived.count); // Outputs: 10
+        Derived.display();                  // Outputs: Hello from Base
+    }
+}
+The Rules of Static Inheritance
+
+Feature			| Behavior for Instance Members	  		| Behavior for Static Members
+1. Resolution Time	| Runtime (Dynamic Binding)	  		| Compile Time (Static Binding)
+2. Redefining in Child	| Method Overriding (Polymorphic) 		| Method/Field Hiding (Non-polymorphic)
+3. Polymorphism		| Yes (Child method runs if object is a Child)	| No (Declared reference type determines what runs)
+
+
+Method Hiding vs. Overriding
+
+If you declare a static method in the derived class with the exact same signature as the one in the base class, you are hiding the base class method, not overriding it. The JVM resolves static method calls based on the reference type at compile time, not the actual runtime object.
+java
+class Base {
+    static void show() {
+        System.out.println("Base Static");
+    }
+}
+
+class Derived extends Base {
+    // Hides Base.show()
+    static void show() {
+        System.out.println("Derived Static");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Base obj = new Derived(); 
+        
+        // Even though the object is a 'Derived', the reference type is 'Base'.
+        // Because static methods use compile-time binding, the Base method runs.
+        obj.show(); // Outputs: Base Static
+    }
+}
+
+(Note: If show() were a non-static instance method, the output would be Derived Static because of runtime polymorphism).
+
+Summary Checklist
+
+• Accessibility: A derived class can use DerivedClassName.staticMember as long as the base class member isn't private.
+• No @Override: You cannot use the @Override annotation on a static method in a child class; doing so will throw a compiler error.
+• Best Practice: To avoid confusion, always access static members using the class name they belong to (e.g., Base.show()) instead of through an instance or a derived class name.
+Would you like to see how field hiding behaves differently from method hiding, or do you need an explanation of why Java binds static methods at compile time?
+
+#==================================================================================================================
+# Q : Can instance property and instance method inherited in derived class ?
+===> Yes, instance properties (fields) and instance methods are inherited by a derived class in Java. This forms the backbone of Object-Oriented Programming (OOP) and code reusability.
+Unlike static members, instance members belong to specific object instances. While instance fields can be hidden, instance methods support true runtime polymorphism (method overriding).
+
+Direct Access Example
+
+As long as the base class instance members are not marked private, the derived class inherits them completely and can use them directly.
+java
+class Animal {
+    String name = "Generic Animal"; // Instance field
+
+    void makeSound() {              // Instance method
+        System.out.println("Some generic animal sound");
+    }
+}
+
+class Dog extends Animal {
+    void display() {
+        System.out.println(name); // Directly accesses inherited instance field
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Dog myDog = new Dog();
+        myDog.display();     // Outputs: Generic Animal
+        myDog.makeSound();   // Outputs: Some generic animal sound
+    }
+}
+
+The Mechanics of Instance Inheritance
+
+Feature			| Instance Fields (Properties)     | Instance Methods
+1. Redefining in Child	| Field Hiding			   | Method Overriding
+2. Resolution Time	| Compile Time (Static Binding)	   | Runtime (Dynamic Binding)
+3. Polymorphism		| No (Fields are not polymorphic)  | Yes (True OOP polymorphism)
+
+
+1. Instance Methods: Dynamic Method Overriding
+
+If a derived class redefines an instance method with the exact same signature, it overrides the base class method. The JVM determines which method to call at runtime based on the actual object type, not the reference type.
+java
+class Animal {
+    void makeSound() {
+        System.out.println("Generic Sound");
+    }
+}
+
+class Dog extends Animal {
+    @Override // Valid for instance methods
+    void makeSound() {
+        System.out.println("Bark!");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Animal myAnimal = new Dog(); // Base reference, Derived object
+        
+        // Dynamic binding: JVM checks the object type at runtime (Dog)
+        myAnimal.makeSound(); // Outputs: Bark!
+    }
+}
+
+2. Instance Fields: Field Hiding (No Overriding)
+
+Variables in Java cannot be overridden. If you declare an instance field in the derived class with the same name as one in the base class, the child class field hides the parent class field.
+The variable accessed depends purely on the reference type at compile time.
+java
+class Animal {
+    String name = "Generic Animal";
+}
+
+class Dog extends Animal {
+    String name = "Spot"; // Hides Animal.name
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Animal myAnimal = new Dog();
+        System.out.println(myAnimal.name); // Outputs: Generic Animal (Reference is Animal)
+        
+        Dog myDog = new Dog();
+        System.out.println(myDog.name);    // Outputs: Spot (Reference is Dog)
+    }
+}
+Use code with caution.
+
+Summary Checklist
+
+• Access Modifiers Matter: private instance members are not inherited. protected and public members are fully inherited. Package-private (default) members are inherited only if the derived class is in the same package.
+• The super Keyword: If a child class hides a field or overrides a method, it can still access the parent's version using super.name or super.makeSound().
+Would you like to see how the super keyword handles accessing hidden fields and overridden methods, or do you want to explore how constructors interact with instance inheritance?
+
+#================================================================================================================
+# Q : Can static property and static method override in derived class in java ?
+===> No, static properties (fields) and static methods cannot be overridden in Java.
+If you create a static property or static method in a derived class with the exact same name and signature as one in the base class, you are hiding it, not overriding it. If you try to apply the @Override annotation to a static method in a child class, the Java compiler will throw a compilation error.
+
+Why Static Members Cannot Be Overridden
+
+Method overriding relies on runtime polymorphism (dynamic binding). When you call an instance method, the Java Virtual Machine (JVM) looks at the actual object created in memory at runtime to decide which version of the method to run.
+Static members, however, belong to the class itself, not to any individual object instance. Because of this, Java resolves static references at compile time (static binding) based strictly on the declared reference type.
+
+Example: Method Hiding vs. Overriding
+
+Here is what happens when you attempt to "override" a static method:
+java
+class SuperClass {
+    public static void printMessage() {
+        System.out.println("Static method in SuperClass");
+    }
+}
+
+class SubClass extends SuperClass {
+    // This is METHOD HIDING, not overriding. 
+    // Adding @Override here will cause a compiler error.
+    public static void printMessage() {
+        System.out.println("Static method in SubClass");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // Case 1: Reference is SuperClass, Object is SubClass
+        SuperClass obj = new SubClass();
+        obj.printMessage(); // Outputs: Static method in SuperClass
+
+        // Case 2: Explicitly using class names (Best Practice)
+        SuperClass.printMessage(); // Outputs: Static method in SuperClass
+        SubClass.printMessage();   // Outputs: Static method in SubClass
+    }
+}
+
+#----------------------------------------------------------------------------------#
+What about Static Properties (Fields)?
+
+Just like static methods, static properties cannot be overridden either. Variables in Java—whether they are static or instance variables—never participate in polymorphism. Redefining a static field in a child class simply hides the parent's field.
+java
+class Parent {
+    static int value = 100;
+}
+
+class Child extends Parent {
+    static int value = 200; // Hides Parent.value
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Parent ref = new Child();
+        // Resolved at compile time based on the reference type (Parent)
+        System.out.println(ref.value); // Outputs: 100
+    }
+}
+
+Summary Comparison
+
+Member Type	      | Can it be inherited?  | Can it be overridden?  | Mechanism
+1. Instance Method    | Yes		      | Yes		       | Dynamic Binding (Runtime)
+2. Instance Property  | Yes		      | No		       | Field Hiding (Compile time)
+3. Static Method      | Yes		      | No		       | Method Hiding (Compile time)
+4. Static Property    | Yes		      | No		       | Field Hiding (Compile time)
+
+#==================================================================================================================
+# Q : can instance property and instance method override in derived class in java ? 
+===> Instance methods can be overridden in a derived class, but instance properties (fields) cannot be overridden.
+In Java, polymorphism applies exclusively to methods. When you redefine an instance property in a derived class, you are hiding it rather than overriding it.
+
+1. Instance Methods: Yes, they can be overridden
+
+Instance methods support true runtime polymorphism (dynamic binding). When a derived class redefines an instance method with the exact same signature (name, arguments, and return type), it completely overrides the base class version.
+The Java Virtual Machine (JVM) decides which method to run based on the actual object type in memory at runtime, regardless of the reference type.
+java
+class Car {
+    void startEngine() {
+        System.out.println("Vroom... generic engine started.");
+    }
+}
+
+class ElectricCar extends Car {
+    @Override // Perfectly valid and highly recommended
+    void startEngine() {
+        System.out.println("Silent hum... electric motor active.");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // Reference type is Car, but the runtime object is ElectricCar
+        Car myVehicle = new ElectricCar();
+        
+        // Polymorphism ensures the child class method runs
+        myVehicle.startEngine(); // Outputs: Silent hum... electric motor active.
+    }
+}
+Use code with caution.
+
+2. Instance Properties: No, they cannot be overridden
+
+Variables in Java never participate in polymorphism. If you declare an instance property in a child class with the exact same name as one in the parent class, the child's property hides the parent's property.
+The variable that gets accessed is determined at compile time based entirely on the reference type.
+java
+class Car {
+    String fuelType = "Petrol";
+}
+
+class ElectricCar extends Car {
+    String fuelType = "Electricity"; // Hides Car.fuelType
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Car myVehicle = new ElectricCar();
+        
+        // Compile-time binding looks at the reference type (Car)
+        System.out.println(myVehicle.fuelType); // Outputs: Petrol
+        
+        // To see the child's property, the reference type must be ElectricCar
+        ElectricCar myTesla = new ElectricCar();
+        System.out.println(myTesla.fuelType);  // Outputs: Electricity
+    }
+}
+
+Quick Comparison Matrix
+
+Member Type	      | Can it be Overridden? | Binding Mechanism	      | How JVM Resolves It
+1. Instance Method    | Yes		      | Dynamic Binding (Runtime)     | Looks at the actual object in memory.
+2. Instance Property  | No (Hides instead)    | Static Binding (Compile time) | Looks at the declared reference type.
+
+Summary Rules for Instance Overriding
+
+• Use @Override: Always use this annotation on overridden instance methods. It forces the compiler to check that you haven't made a typo in the method signature.
+• Property Hiding is a Bad Practice:+ Redefining fields with the same name creates highly confusing code. If a derived class needs to change an inherited property, it should assign a new value to it in its constructor rather than re-declaring it.
+Would you like to see how to use the super keyword to access hidden instance properties, or would you like to know the strict rules (like access modifiers and exception handling) required for a valid method override?
+
+
 #===============================================================================================
 # Q : What are cases where you will use finally block ?
 

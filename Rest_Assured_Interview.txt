@@ -2485,7 +2485,94 @@ If I need to clean up a variable after the entire collection or test run finishe
 One-line interview answer: I use pm.environment.unset(), pm.collectionVariables.unset(), or pm.globals.unset() depending on the variable scope, and configure cleanup at the end of the collection run when necessary. 
 
 #===================================================================================
-# Q : 
+# Q : How do you validate a JSON response using Java?
+==> In REST Assured, you can validate a JSON response body using three primary approaches: Hamcrest Matchers inline, extracting values via JsonPath, or performing JSON Schema Validation.
+
+1. Inline Validation (Using Hamcrest Matchers)
+
+This is the most common approach. It allows you to assert values directly inside the validation chain (then()) without breaking the fluent API structure.
+java
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
+
+public void validateJsonInline() {
+    given()
+        .baseUri("https://api.example.com")
+    .when()
+        .get("/users/1")
+    .then()
+        .statusCode(200)
+        // 1. Simple key-value validation
+        .body("firstName", equalTo("John"))
+        // 2. Nested JSON validation (using dot notation)
+        .body("address.city", equalTo("New York"))
+        // 3. Array checking (assert array contains a specific item)
+        .body("skills", hasItem("Java"));
+}
+
+2. Extracting Values (Using JsonPath)
+
+If you need to perform complex logic, use test framework assertions (like TestNG or JUnit), or pass data to subsequent requests, you can extract the response and query it using JsonPath.
+java
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import org.testng.Assert; // Or org.junit.jupiter.api.Assertions
+
+public void validateWithJsonPath() {
+    Response response = 
+        given()
+            .baseUri("https://api.example.com")
+        .when()
+            .get("/products");
+
+    // Extract the JSON body structure
+    JsonPath jsonPath = response.jsonPath(); //
+
+    // Extract a basic String or integer
+    String category = jsonPath.getString("category"); //
+    
+    // Find the first product name where price is greater than 50 (Groovy GPath expression)
+    String expensiveItem = jsonPath.getString("products.find { it.price > 50 }.name");
+
+    // Assert using standard test frameworks
+    Assert.assertEquals(category, "electronics");
+}
+
+
+3. JSON Schema Validation
+
+To verify the complete structure, required fields, and structural data types (e.g., verifying that id is always an integer and email follows a format contract), you should validate against a JSON Schema.
+Step 1: Add the required module to your pom.xml:
+xml
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>json-schema-validator</artifactId>
+    <version>5.5.0</version> <!-- Match your rest-assured version -->
+</dependency>
+
+Step 2: Store your expected schema file (e.g., schema.json) in your project's src/test/resources path.
+Step 3: Use the matchesJsonSchemaInClasspath matcher:
+
+import static io.restassured.RestAssured.*;
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
+
+public void validateJsonSchema() {
+    given()
+        .baseUri("https://api.example.com")
+    .when()
+        .get("/users/1")
+    .then()
+        .statusCode(200)
+        // Validates that the entire response follows the structure of the schema file
+        .body(matchesJsonSchemaInClasspath("schema.json")); 
+}
+Quick Comparison
+Strategy	     | Best Used For							 | Pros
+1. Hamcrest Matchers | Verifying specific business rules and explicit field values	 | Clean, fluent API syntax; no extra variables.
+2. JsonPath	     | Complicated data filtering, loops, or cross-endpoint dependencies | Maximum control using Groovy-style collection 			     |									 | queries.
+3. Schema Validation |	Contract compliance, checking nullability, arrays, and broad     | Catches unexpected structural updates or structural 			     |	data types							 | API breaks automatically.
+
+
 
 
 

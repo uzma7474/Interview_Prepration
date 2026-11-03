@@ -4401,29 +4401,222 @@ I would also group Page Objects by feature or module as the framework grows.
 Interview conclusion
 “My approach is to design Page Objects around distinct page responsibilities and extract shared UI elements into reusable components. If the application genuinely has 100 distinct pages, I may create 100 Page Objects, but I don't create them mechanically. My goal is maintainability, reusability, and minimal duplication while keeping the framework easy to extend.”
 
+#====================================================================================================
+# Q : How do you mock 403 Forbidden API response payloads in Playwright route handlers?
+==> To mock a 403 Forbidden API response payload in Playwright, you leverage the page.route() or context.route() handler along with the route.fulfill() method. This stops the request from reaching the actual server and returns your custom status code, custom headers, and mock payload directly.
+
+1. Basic JSON Payload Mocking
+
+For standard JSON APIs, specify the exact endpoint (or glob pattern), set the status to 403, and pass your error payload inside the json option.
+javascript
+test('should display access denied message on 403 API response', async ({ page }) => {
+  // 1. Set up the route handler BEFORE triggering the network call
+  await page.route('**/api/v1/user/profile', async route => {
+    await route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      // Playwright automatically converts JavaScript objects passed to 'json' into a string
+      json: {
+        success: false,
+        error: 'Forbidden',
+        code: 'INSUFFICIENT_PERMISSIONS',
+        message: 'Your account does not have the required role to view this profile.'
+      }
+    });
+  });
+
+  // 2. Trigger the network request (e.g., via page navigation or a button click)
+  await page.goto('/profile-settings');
+
+  // 3. Assert that your frontend UI gracefully handles the mocked payload
+  await expect(page.locator('.alert-danger')).toContainText('Your account does not have the required role');
+});
+Use code with caution.
+
+2. Mocking Text, HTML, or Custom Error Pages
+
+If your backend or API gateway (like AWS API Gateway, Nginx, or Cloudflare) returns raw text or custom HTML blocks instead of JSON for a 403 error, swap the json field for the body field:
+javascript
+await page.route('**/api/v1/internal/**', async route => {
+  await route.fulfill({
+    status: 403,
+    contentType: 'text/html', // or 'text/plain'
+    body: '<html><body><h1>403 Forbidden: IP address blocked</h1></body></html>'
+  });
+});
+Use code with caution.
+
+3. Simulating Authentication Token Expiration (Dynamic 403)
+
+If you want to allow authentic user requests to pass through initially, but suddenly trigger a 403 error when a user performs an unauthorized method (like trying to POST to an admin path), inspect the route.request() properties:
+javascript
+await page.route('**/api/v1/documents/*', async route => {
+  const method = route.request().method();
+  const headers = route.request().headers();
+
+  // If a user tries to delete a file, mock a 403 permission error
+  if (method === 'DELETE') {
+    await route.fulfill({
+      status: 403,
+      json: { message: 'Write and delete actions are blocked in read-only mode.' }
+    });
+  } else {
+    // Allow GET requests to hit the real network/server normally
+    await route.continue();
+  }
+});
+Use code with caution.
+
+Pro Tip: Validating the Network Interception
+
+To ensure your frontend actually received the 403 payload exactly as expected, combine your actions with page.waitForResponse() to catch the intercepted payload event explicitly:
+javascript
+// Set up the tracker
+const responsePromise = page.waitForResponse('**/api/v1/user/profile');
+
+// Click the button that causes the API call
+await page.getByRole('button', { name: 'Fetch Profile' }).click();
+
+// Wait for the response event and check the intercepted properties
+const response = await responsePromise;
+expect(response.status()).toBe(403);
+
+const responseBody = await response.json();
+expect(responseBody.code).toBe('INSUFFICIENT_PERMISSIONS');
+Use code with caution.
+Would you like help mapping this route configuration to a mock file fixture to clean up your test specs, or do you need assistance configuring these mock overrides globally across all files in your playwright.config.ts?
+  
+#====================================================================================================
+# Q : Can you explain a real scenario where inheritance caused an issue?
+==> In Playwright TypeScript/JavaScript, a notorious real-world scenario where inheritance causes massive headaches is over-abstracting the Page Object Model (POM) using deep hierarchical inheritance.
+In Test Automation, developers often fall into the trap of matching their automation code hierarchy exactly to the visual layout of the application using extends. This leads to the Fragile Base Class problem.
+
+The Scenario: The "Dashboard Nested Component" Trap
+
+
+1. The Setup (The Visual Illusion)
+
+Imagine you are testing a complex Enterprise Dashboard application. An automation engineer designs the framework by mimicking the UI hierarchy using inheritance:
+1. BasePage: Contains the global layout (Top Navbar, Side Sidebar).
+2. DashboardPage extends BasePage: Contains components unique to the dashboard view (date filters).
+3. AnalyticsDashboard extends DashboardPage: Contains metrics, charts, and detailed analytical components.
+typescript
+// ❌ Anti-pattern: Deeply Nested Page Object Hierarchy
+class BasePage {
+    protected page: Page;
+    readonly sideMenuButton = () => this.page.locator('.sidebar-toggle');
+    
+    constructor(page: Page) { this.page = page; }
+    
+    async navigateTo(url: string) { await this.page.goto(url); }
+}
+
+class DashboardPage extends BasePage {
+    readonly dateFilter = () => this.page.locator('.date-picker');
+
+    async selectDateRange() {
+        // Relies on parent setup
+        await this.sideMenuButton().click(); 
+        await this.dateFilter().click();
+    }
+}
+
+class AnalyticsDashboard extends DashboardPage {
+    readonly exportCsvButton = () => this.page.locator('#export-csv');
+
+    async exportReport() {
+        // Inherits everything from DashboardPage AND BasePage
+        await this.selectDateRange(); 
+        await this.exportCsvButton().click();
+    }
+}
+Use code with caution.
 
+2. The Issue: The Ripple Effect (Fragile Base Class)
 
-#====================================================================================================
-# Q :
+A few months later, the frontend development team updates the application's layout. For performance reasons, they change how the application shell works:
+• They replace the .sidebar-toggle button in the main layout with a personalized user menu.
+• To fix this, an engineer changes the locator or the logic inside BasePage.sideMenuButton().
+The Fallback:
+Because AnalyticsDashboard is deeply coupled via inheritance, changing BasePage subtly modifies how selectDateRange() executes inside DashboardPage.
+• The AnalyticsDashboard test suite suddenly breaks with timeouts.
+• Because the error occurs 3 layers deep, the stack trace becomes highly confusing, masking exactly where the execution failed.
+• Furthermore, if you want to instantiate AnalyticsDashboard, Playwright must carry over all methods and locators from DashboardPage and BasePage, flooding your IDE auto-complete with dozens of irrelevant actions. This makes writing tests harder for junior team members.
 
+The Architecture Comparison
 
+Problem Dimension	Deep Inheritance (extends DashboardPage)	Composition (has-a Components)
+Coupling	Tight: A change to the top-level BasePage breaks all child and grandchild pages.	Loose: Components are decoupled modules. A change to one doesn't affect others.
+Readability	Obscured: Tracking down where a locator or function is declared requires traversing multiple files.	Explicit: You see exactly which component is being interacted with in the test.
+Flexibility	Rigid: If a new page needs the sidebar but not the date filter, it cannot easily inherit from DashboardPage.	Fluid: You mix and match exactly the building blocks a specific test needs.
 
 
-#====================================================================================================
-# Q :
+The Playwright Fix: Composition using Fixtures
 
+Instead of relying on an extends hierarchy, Playwright provides a powerful, built-in feature designed exactly to avoid inheritance: Custom Fixtures.
+By breaking the page down into separate, self-contained components and injecting them via fixtures, you decouple your architecture.
 
+1. Define Independent Components (No extends)
 
+typescript
+// component/Sidebar.ts
+export class SidebarComponent {
+    constructor(private page: Page) {}
+    readonly toggleButton = this.page.locator('.sidebar-toggle');
+    async open() { await this.toggleButton.click(); }
+}
 
-#====================================================================================================
-# Q :
+// component/DateFilter.ts
+export class DateFilterComponent {
+    constructor(private page: Page) {}
+    readonly picker = this.page.locator('.date-picker');
+    async selectToday() { await this.picker.click(); }
+}
 
+// page/AnalyticsPage.ts
+export class AnalyticsPage {
+    constructor(private page: Page) {}
+    readonly exportCsvButton = this.page.locator('#export-csv');
+    async export() { await this.exportCsvButton.click(); }
+}
 
+2. Bundle them in a Custom Playwright Fixture
 
-#====================================================================================================
-# Q :
+typescript
+// fixtures/testFixtures.ts
+import { test as base } from '@playwright/test';
+import { SidebarComponent } from '../component/Sidebar';
+import { DateFilterComponent } from '../component/DateFilter';
+import { AnalyticsPage } from '../page/AnalyticsPage';
+
+type MyFixtures = {
+    sidebar: SidebarComponent;
+    dateFilter: DateFilterComponent;
+    analyticsPage: AnalyticsPage;
+};
+
+export const test = base.extend<MyFixtures>({
+    sidebar: async ({ page }, use) => { await use(new SidebarComponent(page)); },
+    dateFilter: async ({ page }, use) => { await use(new DateFilterComponent(page)); },
+    analyticsPage: async ({ page }, use) => { await use(new AnalyticsPage(page)); },
+});
+Use code with caution.
+
+3. Use Them Explicitly in the Test
 
+Now, your test explicitly calls exactly what it needs. If the sidebar changes, it only breaks the SidebarComponent file, without creating a cascading failure across your analytics pages.
+typescript
+// specs/analytics.spec.ts
+import { test } from '../fixtures/testFixtures';
 
+test('should export analytics report successfully', async ({ sidebar, dateFilter, analyticsPage, page }) => {
+    await page.goto('/analytics');
+    
+    // Explicit, readable, and highly maintainable:
+    await sidebar.open();
+    await dateFilter.selectToday();
+    await analyticsPage.export();
+});
 
 
 #====================================================================================================
@@ -5252,43 +5445,4 @@ Interview conclusion
 
 #====================================================================================================
 # Q :
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
