@@ -18469,83 +18469,1192 @@ public class LoginTest {
         dbUtil.connectToDatabase(); // Explicitly clear, isolated use
     }
 }
+
+#====================================================================================================
+# Q : Actions class keyboard shortcuts (Ctrl+A, Enter) in Selenium?
+==> Keyboard shortcuts with the Actions class in Selenium
+Core idea
+
+For key combinations you hold a modifier down, press the other key, then release the modifier:
+
+java
+Actions actions = new Actions(driver);
+
+actions.keyDown(Keys.CONTROL)
+       .sendKeys("a")
+       .keyUp(Keys.CONTROL)
+       .perform();
+
+Always end the chain with .perform(). Without it, nothing executes.
+
+1. Ctrl+A (select all)
+java
+WebElement input = driver.findElement(By.id("search"));
+
+new Actions(driver)
+    .click(input)                    // focus the field first
+    .keyDown(Keys.CONTROL)
+    .sendKeys("a")
+    .keyUp(Keys.CONTROL)
+    .perform();
+
+Shortcut form: input.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+
+2. Enter
+java
+new Actions(driver).sendKeys(Keys.ENTER).perform();
+
+Or send it directly to an element: input.sendKeys(Keys.ENTER);
+
+3. Combined example: select all, replace text, submit
+java
+WebElement box = driver.findElement(By.id("search"));
+
+new Actions(driver)
+    .click(box)
+    .keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL)  // select existing text
+    .sendKeys("Selenium Actions")                              // overwrite it
+    .sendKeys(Keys.ENTER)                                      // submit
+    .perform();
+4. Copy and paste (Ctrl+A, Ctrl+C, Ctrl+V)
+java
+Actions actions = new Actions(driver);
+
+actions.click(source)
+       .keyDown(Keys.CONTROL).sendKeys("a").sendKeys("c").keyUp(Keys.CONTROL)
+       .click(target)
+       .keyDown(Keys.CONTROL).sendKeys("v").keyUp(Keys.CONTROL)
+       .perform();
+
+Here the Ctrl key stays held across both a and c, then is released once.
+
+5. Mac vs Windows/Linux
+
+On macOS the select-all shortcut is Cmd+A, not Ctrl+A. Make it portable:
+
+java
+Keys modifier = System.getProperty("os.name").toLowerCase().contains("mac")
+        ? Keys.COMMAND : Keys.CONTROL;
+
+new Actions(driver)
+    .keyDown(modifier).sendKeys("a").keyUp(modifier)
+    .perform();
+6. Other common keys
+Action				| Code
+1. Tab				| sendKeys(Keys.TAB)
+2. Escape			| sendKeys(Keys.ESCAPE)
+3. Backspace / Delete		| sendKeys(Keys.BACK_SPACE) / sendKeys(Keys.DELETE)
+4. Arrow keys			| sendKeys(Keys.ARROW_DOWN)
+5. Shift+Tab			| keyDown(Keys.SHIFT).sendKeys(Keys.TAB).keyUp(Keys.SHIFT)
+6. Select text with Shift+Arrow	| keyDown(Keys.SHIFT).sendKeys(Keys.ARROW_RIGHT).keyUp(Keys.SHIFT)
+
+
+Common mistakes
+1. Forgetting keyUp: the modifier stays pressed for later actions in the same session and causes odd behavior.
+
+2. Forgetting .perform(): the chain is built but never runs.
+
+3. No focus: Ctrl+A with nothing focused selects the whole page, not the input text. Click the element first.
+
+4. Uppercase letter: sendKeys("A") with Ctrl may be interpreted as Shift+Ctrl+A in some browsers. Use lowercase "a".
+
+5. Ctrl+C / Ctrl+V in headless mode: clipboard access is often blocked, so these may silently do nothing there.
+
+Interview points
+Actions.sendKeys() vs WebElement.sendKeys()? Actions sends to the currently focused element (unless you pass an element), while WebElement.sendKeys() targets that specific element and focuses it first.
+Keys.chord() vs keyDown/keyUp? chord is a compact string-based form for a single element, while keyDown/keyUp is used inside an Actions chain and lets you mix mouse and keyboard steps.
+Why perform() and not build()? build() only compiles the actions, while perform() builds and executes them.
+Alternative to clear a field: input.clear() is simpler, but on some React or Angular inputs it doesn’t trigger change events. Ctrl+A followed by Backspace works there because it simulates real typing.
+
+#====================================================================================================
+# Q : 1. Actions.sendKeys() vs WebElement.sendKeys()
+==> 1. Actions.sendKeys() vs WebElement.sendKeys()
+WebElement.sendKeys()
+java
+WebElement input = driver.findElement(By.id("search"));
+input.sendKeys("Selenium");
+
+1. Sends the keys to that specific element.
+2. The driver first focuses the element (and scrolls it into view if needed), then types.
+3. It checks that the element is interactable. If it is hidden or disabled, you get ElementNotInteractableException.
+4. Fully synchronous: the command is sent to the driver immediately.
+5. It is a single WebDriver command (Element Send Keys).
+
+Actions.sendKeys()
+java
+new Actions(driver).sendKeys("Selenium").perform();           // to the focused element
+new Actions(driver).sendKeys(input, "Selenium").perform();    // clicks input first, then types
+
+1. Without an element, keys go to whatever currently has focus (document.activeElement). If nothing is focused, they go to the <body>, and nothing useful happens.
+With an element, Selenium internally performs a click(element) and then types. That click can trigger side effects such as opening a dropdown, firing click handlers or moving the cursor position.
+
+2. It runs through the W3C Actions API (key input source), which dispatches low-level key events (keydown, keypress, keyup) like real user input.
+
+3. Nothing runs until .perform() is called.
+
+Side-by-side
+Aspect				| WebElement.sendKeys()			| Actions.sendKeys()
+1.Target			| The given element			| Focused element, or the element you pass (after a click)
+2. Focus handling		| Driver focuses it			| You must focus it yourself (or pass the element)
+3. Interactability check	| Yes, throws if not interactable	| Less strict, goes to the active element
+4. Can chain with mouse/other keys | 	No				| Yes
+5. Needs perform()		   |	No				| Yes
+6. Typical use			| Filling form fields			| Shortcuts, modifier combos, mixed keyboard + mouse flows
+
+* When to use which
+1. Typing into a text box: WebElement.sendKeys().
+2. Ctrl+A, Shift+Arrow, Tab navigation, or “click, then type, then press Enter” in one chain: Actions.
+3. Pages where the element is not interactable by the driver’s rules but the page has focus on a custom widget (canvas editors, some rich text editors): Actions.
+
+#====================================================================================================
+# Q : Keys.chord() vs keyDown/keyUp
+==> Keys.chord()
+java
+input.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+1. chord takes several keys and returns one string in which the modifier keys are “pressed” together and then all released at the end. Selenium inserts a special “null key” character (\uE000) at the end of the string, which means “release all modifiers”.
+
+2. Since it returns a String, it can be passed to WebElement.sendKeys() on a single element.
+
+3. Compact, but you can only express “hold these keys, type, release”, with no steps in between.
+java
+input.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);   // select all, then delete
+keyDown() / keyUp()
+java
+new Actions(driver)
+    .click(input)
+    .keyDown(Keys.CONTROL)
+    .sendKeys("a")
+    .sendKeys("c")
+    .keyUp(Keys.CONTROL)
+    .click(target)
+    .keyDown(Keys.CONTROL).sendKeys("v").keyUp(Keys.CONTROL)
+    .perform();
+1. Each call is an explicit action step: press, type, release.
+2. You control exactly how long a key stays held (e.g. Ctrl held across several keystrokes, or across several mouse clicks for multi-select).
+3. Can be mixed with mouse actions in one chain.
+
+Multi-select example (Ctrl+click on list items), which chord cannot do:
+
+new Actions(driver)
+    .keyDown(Keys.CONTROL)
+    .click(item1)
+    .click(item3)
+    .click(item5)
+    .keyUp(Keys.CONTROL)
+    .perform();
+
+Comparison
+1. Aspect			| Keys.chord()		| keyDown/keyUp
+2. Used with			| WebElement.sendKeys()	| Actions chain
+3. Type				| Builds a String	| Builds action steps
+4. Holding across multiple steps|	No		| Yes
+5. Mixing with mouse actions	| No			| Yes
+6. Risk of stuck modifier	| Low (auto-released)	| Higher if you forget keyUp
+7. Readability for simple combos|	Better		| More verbose
+
+Rule of thumb: use chord for a one-line combo on one element, and keyDown/keyUp when the combo spans several steps or involves the mouse.
+
+#====================================================================================================
+# Q : Why perform() and not build()?
+==> What each does
+java
+Actions actions = new Actions(driver);
+actions.moveToElement(menu).click(item);   // only collects the steps
+
+Action action = actions.build();           // compiles into an Action object, does NOT run
+action.perform();                          // executes it
+
+1. build() compiles the queued steps into a reusable Action object. Nothing happens in the browser.
+2. perform() on the Actions object does build().perform() in one go, so it compiles and executes.
+
+So this:
+
+actions.moveToElement(menu).click(item).build();   // does nothing visible
+
+silently does nothing, which is a classic bug.
+
+Which to call
+1. Normal tests: .perform() alone is enough.
+2. Using .build().perform() is redundant in Selenium 4 and harmless, but it is common in older code and Selenium 3 tutorials.
+3. build() is useful when you want to store an action and run it later or several times:
+java
+Action hoverAndClick = new Actions(driver)
+        .moveToElement(menu)
+        .click(item)
+        .build();
+
+hoverAndClick.perform();   // run now
+// ... later ...
+hoverAndClick.perform();   // run again with the same steps
+
+Caveat: the built action refers to the original elements. If the page re-renders and those elements go stale, you get StaleElementReferenceException.
+
+Also worth knowing
+1. Actions are queued, not executed immediately. That is why order matters.
+2. After perform(), the queue is cleared, so reusing the same Actions variable starts fresh.
+3. Key and pointer states persist in the driver until released. To reset everything, use actions.release().perform() or driver.resetInputState() (Selenium 4 RemoteWebDriver).
+
+#====================================================================================================
+# Q : Alternative to clear a field: clear() vs Ctrl+A + Backspace
+===> input.clear()
+java
+input.clear();
+Sets the value to empty programmatically via the driver and fires a change event, but not the key events (keydown, input, keyup) that real typing produces.
+Requires the element to be editable and interactable, otherwise it throws InvalidElementStateException.
+Fast and clean on plain HTML inputs.
+Why it fails on React, Angular and similar apps
+
+Frameworks track the field through their own state, listening for input / keyup events. If a value is cleared without those events:
+
+The UI looks empty, but the framework’s internal model (React state, Angular form control) still holds the old value.
+Validation messages do not appear, the “Submit” button stays enabled or disabled wrongly, or the old value is submitted.
+Controlled React inputs may even restore the old text on the next render.
+Ctrl+A then Backspace
+java
+input.click();
+input.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+
+or
+
+java
+new Actions(driver)
+    .click(input)
+    .keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL)
+    .sendKeys(Keys.BACK_SPACE)
+    .perform();
+Simulates what a user does, so the browser fires the full event sequence (keydown, input, keyup), and the framework updates its state.
+Works on custom inputs where clear() is blocked.
+
+On macOS, replace Keys.CONTROL with Keys.COMMAND.
+
+Other options
+Method								| Notes
+1. input.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE)	| Same idea, single call
+2. Repeated Keys.BACK_SPACE					| input.sendKeys(Keys.BACK_SPACE.toString().repeat(n)) where n = text length. Works anywhere, but is slow for long text
+3. JavaScript: arguments[0].value=''				| Last resort. Does not fire events, so it has the same problem as clear() and needs a manually dispatched input event
+4. clear() followed by typing a character and deleting it	| Hacky, but occasionally used to trigger the events
+Recommended approach
+java
+public static void clearAndType(WebElement el, String text) {
+    el.click();
+    el.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.BACK_SPACE);
+    el.sendKeys(text);
+}
+
+Use clear() by default for plain forms, and fall back to this helper when the app is a SPA and the cleared value does not stick.
+
+One-paragraph answers you can say in an interview
+1. Actions vs WebElement sendKeys: WebElement.sendKeys focuses and types into a specific element and checks interactability, while Actions.sendKeys types into whichever element has focus (or clicks the one you pass first) and is meant for chained keyboard and mouse interactions that must end with perform().
+2. chord vs keyDown/keyUp: Keys.chord builds a one-shot string that presses and auto-releases modifiers for a single WebElement.sendKeys call, whereas keyDown/keyUp are explicit steps in an Actions chain that let you hold a key across multiple actions, such as Ctrl+click multi-select.
+3. perform vs build: build() only compiles the queued actions into an Action object, and perform() builds and executes them, so without perform() nothing happens in the browser.
+Clearing fields: clear() sets the value without the key events that front-end frameworks listen to, so on React or Angular the model can stay stale, and Ctrl+A with Backspace simulates real typing and keeps the framework state in sync.
+
+#====================================================================================================
+# Q : Actions class keyboard shortcuts (Ctrl+A, Enter) in Selenium?
+===>  Keyboard shortcuts with the Actions class in Selenium
+Core idea
+For key combinations you hold a modifier down, press the other key, then release the modifier:
+
+Actions actions = new Actions(driver);
+
+actions.keyDown(Keys.CONTROL)
+       .sendKeys("a")
+       .keyUp(Keys.CONTROL)
+       .perform();
+
+Always end the chain with .perform(). Without it, nothing executes.
+
+1. Ctrl+A (select all)
+
+WebElement input = driver.findElement(By.id("search"));
+
+new Actions(driver)
+    .click(input)                    // focus the field first
+    .keyDown(Keys.CONTROL)
+    .sendKeys("a")
+    .keyUp(Keys.CONTROL)
+    .perform();
+
+Shortcut form: input.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+
+2. Enter
+
+new Actions(driver).sendKeys(Keys.ENTER).perform();
+
+Or send it directly to an element: input.sendKeys(Keys.ENTER);
+
+3. Combined example: select all, replace text, submit
+
+WebElement box = driver.findElement(By.id("search"));
+
+new Actions(driver)
+    .click(box)
+    .keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL)  // select existing text
+    .sendKeys("Selenium Actions")                              // overwrite it
+    .sendKeys(Keys.ENTER)                                      // submit
+    .perform();
+4. Copy and paste (Ctrl+A, Ctrl+C, Ctrl+V)
+
+Actions actions = new Actions(driver);
+
+actions.click(source)
+       .keyDown(Keys.CONTROL).sendKeys("a").sendKeys("c").keyUp(Keys.CONTROL)
+       .click(target)
+       .keyDown(Keys.CONTROL).sendKeys("v").keyUp(Keys.CONTROL)
+       .perform();
+
+Here the Ctrl key stays held across both a and c, then is released once.
+
+5. Mac vs Windows/Linux
+
+On macOS the select-all shortcut is Cmd+A, not Ctrl+A. Make it portable:
+
+java
+Keys modifier = System.getProperty("os.name").toLowerCase().contains("mac")
+        ? Keys.COMMAND : Keys.CONTROL;
+
+new Actions(driver)
+    .keyDown(modifier).sendKeys("a").keyUp(modifier)
+    .perform();
+6. Other common keys
+Action				| Code
+1. Tab				| sendKeys(Keys.TAB)
+2. Escape			| sendKeys(Keys.ESCAPE)
+3. Backspace / Delete		| sendKeys(Keys.BACK_SPACE) / sendKeys(Keys.DELETE)
+4. Arrow keys			| sendKeys(Keys.ARROW_DOWN)
+5. Shift+Tab			| keyDown(Keys.SHIFT).sendKeys(Keys.TAB).keyUp(Keys.SHIFT)
+6. Select text with Shift+Arrow	| keyDown(Keys.SHIFT).sendKeys(Keys.ARROW_RIGHT).keyUp(Keys.SHIFT)
+
+Common mistakes
+1. Forgetting keyUp: the modifier stays pressed for later actions in the same session and causes odd behavior.
+
+2. Forgetting .perform(): the chain is built but never runs.
+
+3. No focus: Ctrl+A with nothing focused selects the whole page, not the input text. Click the element first.
+
+4. Uppercase letter: sendKeys("A") with Ctrl may be interpreted as Shift+Ctrl+A in some browsers. Use lowercase "a".
+
+5. Ctrl+C / Ctrl+V in headless mode: clipboard access is often blocked, so these may silently do nothing there.
+
+#====================================================================================================
+# Q : Cookie consent banner popup handling in Selenium?
+==> Handling a cookie consent banner in Selenium
+First, identify what kind of banner it is, because the fix depends on that. Most banners are one of three types:
+
+1. Plain HTML overlay in the main page (simplest)
+2. Inside an iframe (very common with OneTrust, Cookiebot, Sourcepoint, TrustArc)
+3. Inside a Shadow DOM (some custom consent managers)
+
+1. Plain banner: explicit wait + click
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.*;
+import java.time.Duration;
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+try {
+    WebElement accept = wait.until(
+        ExpectedConditions.elementToBeClickable(By.id("onetrust-accept-btn-handler")));
+    accept.click();
+    // wait until the banner is gone so it doesn't intercept later clicks
+    wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("onetrust-banner-sdk")));
+} catch (TimeoutException e) {
+    System.out.println("No cookie banner appeared, continuing");
+}
+
+The try/catch matters: the banner may not appear on every run (for example, when a cookie is already set), and the test should not fail for that.
+
+2. Banner inside an iframe
+java
+try {
+    wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(
+        By.cssSelector("iframe[id^='sp_message_iframe']")));
+
+    wait.until(ExpectedConditions.elementToBeClickable(
+        By.xpath("//button[normalize-space()='Accept All']"))).click();
+} catch (TimeoutException e) {
+    System.out.println("No consent iframe");
+} finally {
+    driver.switchTo().defaultContent();   // always switch back
+}
+
+If you forget defaultContent(), every later findElement fails with NoSuchElementException.
+
+3. Banner inside Shadow DOM (Selenium 4)
+java
+WebElement host = driver.findElement(By.cssSelector("#usercentrics-root"));
+SearchContext shadow = host.getShadowRoot();
+shadow.findElement(By.cssSelector("button[data-testid='uc-accept-all-button']")).click();
+
+XPath does not work inside a shadow root. Use CSS selectors there.
+
+4. Fallback: JavaScript click
+Use this when a normal click throws ElementClickInterceptedException:
+
+((JavascriptExecutor) driver).executeScript("arguments[0].click();", accept);
+
+5. Reusable helper for a framework
+
+public static void acceptCookiesIfPresent(WebDriver driver) {
+    By[] locators = {
+        By.id("onetrust-accept-btn-handler"),
+        By.xpath("//button[contains(translate(.,'ACEPT','acept'),'accept')]"),
+        By.cssSelector("button[aria-label*='Accept']")
+    };
+    WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(4));
+    for (By by : locators) {
+        try {
+            shortWait.until(ExpectedConditions.elementToBeClickable(by)).click();
+            return;
+        } catch (TimeoutException ignored) { }
+    }
+}
+
+Call it once after driver.get(url) in your @BeforeMethod or Cucumber Before hook.
+
+6. Skip the banner entirely with a pre-set cookie
+
+Faster and more stable for suites that run many tests:
+
+java
+driver.get("https://example.com");              // domain must be loaded first
+driver.manage().addCookie(new Cookie("OptanonAlertBoxClosed", "2026-01-01T00:00:00.000Z"));
+driver.navigate().refresh();
+
+The cookie name differs per consent vendor, so inspect DevTools → Application → Cookies after you click Accept manually once.
+
+Interview points
+Why not Thread.sleep? The banner load time varies, so a fixed sleep is either too long or too short. Use an explicit wait.
+Why elementToBeClickable and not presenceOfElementLocated? The element can exist in the DOM but be covered by an animation or overlay.
+Why wait for invisibility afterwards? The fading banner can still intercept the next click.
+Why not handle it like an alert? A cookie banner is HTML, not a JavaScript dialog, so driver.switchTo().alert() will throw NoAlertPresentException.
+Handling it across many tests: put the helper in your BasePage or a hook, or pre-set the cookie, so individual tests never deal with it.
+
+#====================================================================================================
+# Q : Relative XPath using preceding-sibling & parent axes in Selenium?
+==> Relative XPath with preceding-sibling and parent axes
+Sample HTML (employees.html)
+html
+<table id="emp" border="1">
+  <tr><th>ID</th><th>Name</th><th>Role</th><th>Action</th></tr>
+  <tr><td>101</td><td>Asha</td><td>QA</td><td><button id="edit-101">Edit</button></td></tr>
+  <tr><td>102</td><td>Priya</td><td>Developer</td><td><button id="edit-102">Edit</button></td></tr>
+  <tr><td>103</td><td>Rahul</td><td>Manager</td><td><button id="edit-103">Edit</button></td></tr>
+</table>
+The XPaths
+Goal						| XPath								| Result
+1. Name of the person whose role is Developer	| //td[text()='Developer']/preceding-sibling::td[1]		| Priya
+2. ID of that person				| //td[text()='Developer']/preceding-sibling::td[2]		| 102
+3. Name, starting from the Edit button of row 103 | //button[@id='edit-103']/parent::td/preceding-sibling::td[2]| Rahul
+4. Entire row of Priya				| //td[text()='Priya']/parent::tr				| the <tr> for 102
+
+Interview point: preceding-sibling::td[1] is the nearest sibling before the current node, because reverse axes count backwards. So [1] is the immediate left cell, [2] is two cells to the left, and so on. This is the opposite of the plain //td[1] position, which counts from the left.
+
+Java code with highlighting
+java
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeDriver;
+import java.io.File;
+
+public class XPathAxesDemo {
+
+    static WebDriver driver;
+
+    // Highlights element with a yellow background and red border
+    static void highlight(WebElement el) throws InterruptedException {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript(
+            "arguments[0].style.border='3px solid red';" +
+            "arguments[0].style.backgroundColor='yellow';", el);
+        Thread.sleep(1500); // pause so you can see it
+    }
+
+    static void find(String label, String xpath) throws InterruptedException {
+        WebElement el = driver.findElement(By.xpath(xpath));
+        highlight(el);
+        System.out.println(label + " -> " + el.getText().trim());
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        driver.get(new File("employees.html").toURI().toString());
+
+        find("Name for role Developer",
+             "//td[text()='Developer']/preceding-sibling::td[1]");
+
+        find("ID for role Developer",
+             "//td[text()='Developer']/preceding-sibling::td[2]");
+
+        find("Name via Edit button (parent + preceding-sibling)",
+             "//button[@id='edit-103']/parent::td/preceding-sibling::td[2]");
+
+        find("Full row of Priya (parent::tr)",
+             "//td[text()='Priya']/parent::tr");
+
+        driver.quit();
+    }
+}
+Console output
+Name for role Developer -> Priya
+ID for role Developer -> 102
+Name via Edit button (parent + preceding-sibling) -> Rahul
+Full row of Priya (parent::tr) -> 102 Priya Developer Edit
+
+In the browser, each matched element gets a yellow background with a red border for 1.5 seconds. The cell “Priya” is highlighted first, then “102”, then “Rahul”, and finally the whole row for 102.
+
+Quick interview notes
+parent::tr is equivalent to /.., but the explicit axis is more readable.
+Prefer ancestor::tr when the target may be more than one level up, since parent goes up exactly one level.
+Use axes when the target element has no stable attribute but a neighbouring element has stable text. This is common in dynamic tables.
+For multi-row tables, scope the lookup with the row, for example //tr[td[text()='Priya']]/td[3], so it doesn’t match a same-named cell elsewhere.
+
+#====================================================================================================
+# Q : JavascriptExecutor click on hidden web elements?
+==> JavascriptExecutor click on hidden web elements
+Why a normal click fails
+
+element.click() simulates a real user, so Selenium checks that the element is displayed, enabled, not covered, and inside the viewport. If not, you get:
+
+ElementNotInteractableException (element is hidden, display:none, zero size, or visibility:hidden)
+ElementClickInterceptedException (another element, such as an overlay or sticky header, covers it)
+The JS click
+java
+JavascriptExecutor js = (JavascriptExecutor) driver;
+WebElement hidden = driver.findElement(By.id("hiddenBtn"));
+
+js.executeScript("arguments[0].click();", hidden);
+
+arguments[0] is the WebElement you pass in. The browser calls the DOM click() method directly on it, bypassing Selenium’s visibility and interactability checks. The element only needs to be present in the DOM.
+
+Full example
+html
+<button id="hiddenBtn" style="display:none" onclick="document.getElementById('msg').innerText='Clicked!'">Submit</button>
+<p id="msg"></p>
+java
+WebDriver driver = new ChromeDriver();
+driver.get(new File("hidden.html").toURI().toString());
+
+WebElement hidden = driver.findElement(By.id("hiddenBtn"));
+
+try {
+    hidden.click();                       // fails
+} catch (ElementNotInteractableException e) {
+    System.out.println("Normal click failed: " + e.getClass().getSimpleName());
+}
+
+((JavascriptExecutor) driver).executeScript("arguments[0].click();", hidden);
+System.out.println(driver.findElement(By.id("msg")).getText());   // Clicked!
+
+Output:
+
+Normal click failed: ElementNotInteractableException
+Clicked!
+Related JS techniques
+java
+// Scroll into view, then click (useful when it is only off-screen)
+js.executeScript("arguments[0].scrollIntoView({block:'center'});", el);
+js.executeScript("arguments[0].click();", el);
+
+// Make a hidden element visible, then use a normal click
+js.executeScript("arguments[0].style.display='block'; arguments[0].style.visibility='visible';", el);
+el.click();
+
+// Click by CSS selector without a WebElement
+js.executeScript("document.querySelector('#hiddenBtn').click();");
+
+// Hidden file input: set the value without clicking
+driver.findElement(By.cssSelector("input[type='file']")).sendKeys("C:\\files\\resume.pdf");
+When it is appropriate
+1. The element is covered by an overlay, cookie banner or sticky header that you cannot dismiss.
+2. Hidden file upload inputs (though sendKeys on the input is usually better).
+3. Custom checkboxes and radio buttons where the real <input> is hidden and styled via a label.
+4. A normal click is flaky due to animations.
+
+Drawbacks (important for interviews)
+Problem				| Explanation
+1. Not a real user action	| It dispatches only a click event, not the full mousedown, mouseup and hover sequence. Some handlers depend on those.
+2. Hides genuine bugs		| If a real user cannot click the button because it is hidden or covered, the test should fail. A JS click makes it pass anyway.
+3. Disabled elements		| It still fails for disabled buttons, because the browser ignores click on them.
+4. No focus or scroll		| Focus and scroll behavior is not triggered like a real click.
+5. Frameworks			| Some React or Angular widgets listen for pointer events and ignore a plain click().
+
+Click strategy used in frameworks
+java
+public static void safeClick(WebDriver driver, By by) {
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    WebElement el = wait.until(ExpectedConditions.presenceOfElementLocated(by));
+    try {
+        wait.until(ExpectedConditions.elementToBeClickable(el)).click();
+    } catch (ElementClickInterceptedException | TimeoutException e) {
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+    }
+}
+Try the normal click first and use JS only as a fallback.
+
+Interview answer
+
+“A normal Selenium click requires the element to be visible, enabled and unobstructed. When it is hidden or covered, I can use JavascriptExecutor with arguments[0].click(), which calls the DOM click directly and bypasses those checks. I use it only as a fallback, since it is not a true user action and can mask real usability bugs.
+
+#====================================================================================================
+# Q : Cucumber BDD scenario state sharing across steps?
+==> Sharing scenario state across steps in Cucumber (Java)
+The problem
+
+Step definitions can live in many classes, and Cucumber creates a fresh instance of every step class per scenario. So instance fields do not carry over between classes, and static fields leak between scenarios (and break parallel runs).
+
+java
+// BAD: static state
+public class LoginSteps {
+    public static String userName;     // shared across ALL scenarios, not thread-safe
+}
+Options at a glance
+Approach				| Thread-safe for parallel runs	| Effort	| Recommended
+1. One big step class with fields	| Yes				| Low, but messy| Only for tiny projects
+2. Static variables			| No				| Low		| No
+3. Dependency injection (PicoContainer)	| Yes				| Low		| Yes, default choice
+4. Spring / Guice / other DI		| Yes				| Medium	| If the project already uses Spring
+5. ThreadLocal context			| Yes				| Medium	| Older frameworks, parallel runs
+1. PicoContainer (most common)
+
+Dependency
+
+xml
+<dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-picocontainer</artifactId>
+    <version>7.18.0</version>
+    <scope>test</scope>
+</dependency>
+
+Shared context class (plain POJO)
+
+java
+public class ScenarioContext {
+    private final Map<String, Object> data = new HashMap<>();
+    private WebDriver driver;
+
+    public void set(String key, Object value) { data.put(key, value); }
+
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key) { return (T) data.get(key); }
+
+    public WebDriver getDriver() { return driver; }
+    public void setDriver(WebDriver driver) { this.driver = driver; }
+}
+
+Step classes receive it through the constructor
+
+java
+public class LoginSteps {
+    private final ScenarioContext context;
+
+    public LoginSteps(ScenarioContext context) {       // PicoContainer injects it
+        this.context = context;
+    }
+
+    @When("I log in as {string}")
+    public void login(String user) {
+        context.set("user", user);
+        // ... login actions using context.getDriver()
+    }
+}
+
+public class DashboardSteps {
+    private final ScenarioContext context;
+
+    public DashboardSteps(ScenarioContext context) {
+        this.context = context;
+    }
+
+    @Then("the dashboard shows the logged in user")
+    public void verifyUser() {
+        String user = context.get("user");              // value set in LoginSteps
+        // assert dashboard shows user
+    }
+}
+
+How it works: PicoContainer builds one ScenarioContext per scenario and passes the same instance to every step class that asks for it in its constructor. When the scenario ends, the container is disposed, so no state leaks into the next scenario.
+
+2. Typed context (better than a Map)
+
+A Map<String,Object> is flexible but needs casts and string keys, so typos fail at runtime. Typed fields are safer:
+
+java
+public class TestContext {
+    public WebDriver driver;
+    public String orderId;
+    public Response response;      // REST Assured response
+    public User currentUser;
+}
+Many frameworks combine both: a typed class for common items and a map for one-off values.
+
+3. Hooks using the same context
+Hooks are step-class members too, so they get the context injected:
+
+java
+public class Hooks {
+    private final ScenarioContext context;
+
+    public Hooks(ScenarioContext context) { this.context = context; }
+
+    @Before
+    public void setUp() {
+        context.setDriver(new ChromeDriver());
+    }
+
+    @After
+    public void tearDown(Scenario scenario) {
+        if (scenario.isFailed()) {
+            byte[] shot = ((TakesScreenshot) context.getDriver()).getScreenshotAs(OutputType.BYTES);
+            scenario.attach(shot, "image/png", "failure");
+        }
+        context.getDriver().quit();
+    }
+}
+This is the standard way to share the WebDriver across page objects and step classes without static fields.
+
+4. Spring alternative
+
+@Component
+@ScenarioScope            // io.cucumber.spring.ScenarioScope
+public class ScenarioContext { ... }
+
+Add cucumber-spring, annotate a configuration class with @CucumberContextConfiguration, and inject with @Autowired. @ScenarioScope gives you the same per-scenario lifecycle as PicoContainer.
+
+5. ThreadLocal approach (no DI library)
+java
+public class DriverManager {
+    private static final ThreadLocal<WebDriver> DRIVER = new ThreadLocal<>();
+    public static WebDriver get() { return DRIVER.get(); }
+    public static void set(WebDriver d) { DRIVER.set(d); }
+    public static void remove() { DRIVER.remove(); }
+}
+
+Each parallel thread gets its own driver. Call remove() in @After to avoid leaks on pooled threads.
+
+Rules and gotchas
+1. Share state through a constructor-injected object, never statics.
+2. Do not share state between scenarios. Each scenario must be independent so it can run alone or in parallel.
+3. PicoContainer requires a public constructor and the class must not be an interface or abstract.
+4. With PicoContainer, only one constructor is supported per step class.
+5. Page objects can also receive the context (or just the driver) via the constructor of the step class that creates them.
+6. Steps within a scenario run in order, so a value set in a Given is available in a later Then of the same scenario.
+7. Data across scenario outlines examples is not shared; each example row is a separate scenario with its own context.
+
+Same idea in Playwright/TypeScript (cucumber-js)
+Since you also work with Cucumber in TypeScript, the equivalent is the World object:
+
+import { setWorldConstructor, World } from '@cucumber/cucumber';
+
+export class CustomWorld extends World {
+  page!: Page;
+  orderId?: string;
+}
+setWorldConstructor(CustomWorld);
+
+// in a step
+Given('I create an order', async function (this: CustomWorld) {
+  this.orderId = '12345';
+});
+
+this in each step function is the same World instance for that scenario.
+
+Interview answer
+
+“Cucumber creates new step class instances for every scenario, so fields are not shared between step classes. I use dependency injection, typically PicoContainer, with a ScenarioContext class that holds the WebDriver and scenario data. Each step class receives it through its constructor, and PicoContainer provides the same instance per scenario and discards it afterward. That keeps scenarios isolated and safe for parallel execution, unlike static variables, which leak state between scenarios and threads.”
+
+Likely follow-up questions
+Static vs DI? Static is shared across the JVM, so it breaks parallelism and leaks state. DI is scoped to a scenario.
+How does PicoContainer know what to inject? It inspects the constructor parameter types and creates or reuses one instance of each type per scenario.
+Can two step classes see each other’s fields? No. They share a third object (the context) that both receive.
+How do you share data between a Before hook and steps? Inject the same context into the hooks class, as shown above.
+
+#====================================================================================================
+# Q : Infinite scroll web table automation & row assertion in Selenium?
+==> To automate an infinite scroll web table in Selenium, you cannot rely on traditional static pagination or simple table assertions. You must implement a loop that dynamically uses JavaScript Executor to scroll the container, tracks the row count dynamically, and stops when no new rows are loaded.
+Here is a complete, production-ready framework to handle infinite scroll table automation and row assertions in Java.
+
+1. The Strategy
+
+1. Locate the Scrollable Container: Identify whether the entire page scrolls or if the table is contained within a specific scrollable div (e.g., overflow-y: scroll).
+2. Dynamic Loop: Fetch the count of rows, scroll down, wait for new data to load, and fetch the count again.
+3. Termination Condition: Exit the loop when the row count before scrolling matches the row count after scrolling (meaning the bottom has been reached).
+4. Assert Data: Extract text from the rows to verify specific row counts or data presence.
+
+2. Complete Implementation Code
+
+java
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import java.time.Duration;
+import java.util.List;
+
+public class InfiniteScrollTableTest {
+
+    WebDriver driver;
+    WebDriverWait wait;
+    JavascriptExecutor js;
+
+    @BeforeMethod
+    public void setup() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        js = (JavascriptExecutor) driver;
+    }
+
+    @Test
+    public void testInfiniteScrollTableAndAssertRow() {
+        driver.get("https://example.com"); // Replace with your target URL
+
+        // XPaths for the table container and the rows
+        // Note: Change these based on your DOM structure
+        By tableContainerLocator = By.id("table-scroll-container"); 
+        By rowLocator = By.xpath("//div[@class='table-row']"); 
+
+        WebElement tableContainer = wait.until(ExpectedConditions.presenceOfElementLocated(tableContainerLocator));
+
+        int previousRowCount = 0;
+        int currentRowCount = 0;
+        boolean reachedBottom = false;
+
+        // --- Step 1: Scroll loop to load all data ---
+        while (!reachedBottom) {
+            // Get current row count visible in DOM
+            List<WebElement> rows = driver.findElements(rowLocator);
+            currentRowCount = rows.size();
+
+            // If the row count hasn't changed after a scroll, we've hit the bottom
+            if (currentRowCount == previousRowCount) {
+                reachedBottom = true;
+                System.out.println("Reached the end of the infinite scroll table.");
+                break;
+            }
+
+            previousRowCount = currentRowCount;
+
+            // Scroll the internal table container down to its maximum height
+            js.executeScript("arguments[0].scrollTo(0, arguments[0].scrollHeight);", tableContainer);
+
+            // Wait for new rows to append (adjust condition or sleep based on app performance)
+            try {
+                Thread.sleep(1500); // Guard rails for network latency
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // --- Step 2: Row Assertions ---
+        List<WebElement> allLoadedRows = driver.findElements(rowLocator);
+        System.out.println("Total rows loaded: " + allLoadedRows.size());
+
+        // Assertion A: Verify total row count meets expectations (e.g., expected 100 entries)
+        Assert.assertTrue(allLoadedRows.size() >= 100, "Table did not load the expected number of records!");
+
+        // Assertion B: Target specific row contents (e.g., asserting a specific User ID or Row Data exists)
+        String targetRowText = "User_ID_9542"; 
+        boolean isRowPresent = false;
+
+        for (WebElement row : allLoadedRows) {
+            if (row.getText().contains(targetRowText)) {
+                isRowPresent = true;
+                break;
+            }
+        }
+
+        Assert.assertTrue(isRowPresent, "Target row data '" + targetRowText + "' was not found in the table.");
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
 Use code with caution.
 
+3. Critical Edge Cases to Watch Out For
 
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
+• Virtual Scrolling (DOM Recycling): Many modern tables (built with React/Angular libraries like AG-Grid or React-Window) use virtual scrolling. As you scroll down, rows at the top are completely destroyed from the DOM to save memory.
+	• Fix: If your app recycles DOM elements, you cannot assert the total row count at the end. Instead, you must instantiate a Java Set<String> and add row content to the set during the loop iteration, processing data row-by-row as you scroll.
+• Window vs. Element Scroll: If the table doesn't have an internal scrollbar but the entire webpage scrolls to load rows, modify the JavaScript command to target the window:java
+js.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+Use code with caution.
+• StaleElementReferenceException: If rows update exactly while you are pulling data, you might encounter a stale element error. Always re-fetch elements inside the loop using driver.findElements() rather than reusing a previously stored list.
 
 #====================================================================================================
-# Q :
+# Q : Multi-environment config switching via Maven profiles?
+==> To switch environment configurations seamlessly during a Maven build, the standard practice uses Maven Profiles combined with Maven Resource Filtering. This allows you to maintain separate configuration properties (e.g., dev, qa, prod) and dynamically inject them into your application properties files during the build process.
+Here is the complete blueprint to implement this in a production-ready framework.
+
+1. The Strategy
+
+1. Properties Files: Place environment-specific .properties or .yaml files inside src/main/resources or src/test/resources.
+2. Resource Filtering: Let Maven parse your main config file and dynamically replace variables (${placeholder}) using properties defined inside the active profile.
+3. Execution Command: Switch environments using the -P flag (e.g., mvn clean test -Pqa).
+
+2. Complete Project Structure
+
+Organize your resources so Maven can easily swap out configuration variables or pick the appropriate file.
+text
+my-automation-framework/
+├── src/
+│   ├── test/
+│   │   ├── java/
+│   │   └── resources/
+│   │       ├── config.properties          <-- Main file containing placeholders
+│   │       ├── env-dev.properties         <-- Dev specific values
+│   │       ├── env-qa.properties          <-- QA specific values
+│   │       └── env-prod.properties        <-- Prod specific values
+└── pom.xml
+Use code with caution.
+
+3. Step-by-Step Implementation
 
 
+Step A: Configure the pom.xml
 
+Define your environments under the <profiles> block and enable <filtering> inside the <build> block so Maven can inject your profile values into the target files.
+xml
+<project xmlns="http://apache.org" ...>
+    <!-- ... dependencies ... -->
+
+    <profiles>
+        <!-- Development Profile (Set as active by default) -->
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <env.name>dev</env.name>
+                <app.url>https://example.com</app.url>
+                <db.username>dev_user</db.username>
+            </properties>
+        </profile>
+
+        <!-- QA Profile -->
+        <profile>
+            <id>qa</id>
+            <properties>
+                <env.name>qa</env.name>
+                <app.url>https://example.com</app.url>
+                <db.username>qa_user</db.username>
+            </properties>
+        </profile>
+
+        <!-- Production Profile -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <env.name>prod</env.name>
+                <app.url>https://example.com</app.url>
+                <db.username>prod_admin</db.username>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <!-- Enforcing filtering parses files for ${variable} syntax -->
+                <filtering>true</filtering> 
+            </testResource>
+        </testResources>
+    </build>
+</project>
+Use code with caution.
+
+Step B: Set Up Your Configuration Files
+
+src/test/resources/config.properties
+This file remains generic. Maven automatically replaces the placeholders during compilation based on the active profile properties.
+properties
+# Managed dynamically via Maven Profile
+environment.current=${env.name}
+base.url=${app.url}
+database.dbuser=${db.username}
+Use code with caution.
+
+4. Running the Tests
+
+Execute your suite while explicitly specifying your targeted profile with the -P parameter:
+• To run in QA:bash
+mvn clean test -Pqa
+Use code with caution.
+• To run in Production:bash
+mvn clean test -Pprod
+Use code with caution.
+• To run without flags (falls back to Dev as defined by activeByDefault):bash
+mvn clean test
+Use code with caution.
+
+Alternative Method: File-based Switching (No Filtering Required)
+
+If you prefer to keep full properties isolated in discrete configuration files (e.g., env-dev.properties, env-qa.properties) rather than dynamically injecting values into a single template, use the profile properties block to define a file pointer instead:
+xml
+<!-- In POM QA Profile -->
+<properties>
+    <env.configfile>env-qa.properties</env.configfile>
+</properties>
+Use code with caution.
+Then, read that filename dynamically in your Java code setup block:
+java
+String envFile = System.getProperty("env.configfile"); // Passed down via surefire systemPropertyVariables
 
 #====================================================================================================
-# Q :
+# Q : Extent HTML report failure screenshot attachment?
+==> To attach screenshots of test failures directly to your Extent HTML Report using Selenium Java, you need to capture the screenshot as a file or Base64 string within your test framework's failure listener or @AfterMethod hook.
+The most reliable approach is using Base64 encoding because the screenshot is embedded directly inside the HTML report itself. This prevents broken image links when sending or moving the HTML report file.
+Here is the complete implementation guide using Extent Reports version 5 (the modern standard).
 
+1. Prerequisites (Dependencies)
 
+Ensure you have the core Extent Reports dependency added to your pom.xml:
+xml
+<dependency>
+    <groupId>com.aventstack</groupId>
+    <artifactId>extentreports</artifactId>
+    <version>5.1.1</version> <!-- Use the latest version available -->
+</dependency>
+Use code with caution.
 
+2. Complete Helper Method to Capture Screenshot
 
-#====================================================================================================
-# Q :
+This utility method converts the browser's view into a Base64 string at the exact moment of failure.
+java
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
 
+public class ScreenshotUtil {
+    
+    public static String getBase64Screenshot(WebDriver driver) {
+        // Cast WebDriver to TakesScreenshot and grab Base64 string
+        return ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+    }
+}
+Use code with caution.
 
+3. Implementation in TestNG Base Setup
 
+The cleanest way to handle this without cluttering actual test files is inside a TestNG @AfterMethod hook using ITestResult to detect test failures.
+java
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.MediaEntityBuilder;
+import com.aventstack.extentreports.reporter.ExtentSparkReporter;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.testng.ITestResult;
+import org.testng.annotations.*;
 
-#====================================================================================================
-# Q :
+public class BaseTest {
+    
+    protected WebDriver driver;
+    protected static ExtentReports extent;
+    protected ExtentTest test;
 
+    @BeforeSuite
+    public void setupReport() {
+        // Initialize the HTML (Spark) Reporter
+        ExtentSparkReporter spark = new ExtentSparkReporter("target/ExtentReport.html");
+        extent = new ExtentReports();
+        extent.attachReporter(spark);
+    }
 
+    @BeforeMethod
+    public void setupDriver(ITestResult result) {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        
+        // Start logging the test case in Extent
+        test = extent.createTest(result.getMethod().getMethodName());
+    }
 
+    @AfterMethod
+    public void tearDown(ITestResult result) {
+        if (result.getStatus() == ITestResult.FAILURE) {
+            // 1. Capture the failure exception message
+            test.fail("Test Case Failed: " + result.getThrowable());
+            
+            try {
+                // 2. Extract Base64 image
+                String base64Image = ScreenshotUtil.getBase64Screenshot(driver);
+                
+                // 3. Attach directly to Extent Report log entry
+                test.fail("Failure Screenshot", 
+                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64Image).build());
+                    
+            } catch (Exception e) {
+                test.fail("Failed to capture screenshot: " + e.getMessage());
+            }
+        } else if (result.getStatus() == ITestResult.SUCCESS) {
+            test.pass("Test Case Passed");
+        } else {
+            test.skip("Test Case Skipped");
+        }
 
-#====================================================================================================
-# Q :
+        if (driver != null) {
+            driver.quit();
+        }
+    }
 
+    @AfterSuite
+    public void flushReport() {
+        // Consolidates logs and builds the actual physical HTML file
+        if (extent != null) {
+            extent.flush();
+        }
+    }
+}
+Use code with caution.
 
+4. Writing Your Test
 
+Inherit the BaseTest configurations. You do not need to write screenshot capture logic inside your test flows anymore:
+java
+import org.openqa.selenium.By;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-#====================================================================================================
-# Q :
+public class LoginTest extends BaseTest {
 
+    @Test
+    public void verifyInvalidLogin() {
+        driver.get("https://example.com");
+        
+        // Purposefully triggering a failure to test report attachment
+        boolean isDashboardDisplayed = driver.findElement(By.id("dashboard")).isDisplayed();
+        Assert.assertTrue(isDashboardDisplayed, "Dashboard is not loaded!");
+    }
+}
+Use code with caution.
 
+Alternative: Using File Paths instead of Base64
 
+If you strongly prefer file-system storage over Base64 strings (which can make the HTML file physically larger), change your reporting line to target a local directory file path:
+java
+// Capture screenshot as File using OutputType.FILE and save it via FileUtils
+String filePath = "screenshots/failure_test.png"; 
 
-#====================================================================================================
-# Q :
+// Attach via relative or absolute system path
+test.fail("Failure Screenshot", MediaEntityBuilder.createScreenCaptureFromPath(filePath).build());
 
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
 
 
 

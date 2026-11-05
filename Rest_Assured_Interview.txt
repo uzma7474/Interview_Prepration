@@ -2572,24 +2572,299 @@ Strategy	     | Best Used For							 | Pros
 2. JsonPath	     | Complicated data filtering, loops, or cross-endpoint dependencies | Maximum control using Groovy-style collection 			     |									 | queries.
 3. Schema Validation |	Contract compliance, checking nullability, arrays, and broad     | Catches unexpected structural updates or structural 			     |	data types							 | API breaks automatically.
 
+#===================================================================================
+# Q : How would you store API response data dynamically? in rest assured java
+==> In REST Assured (Java), the best way to store API response data dynamically is by extracting the response as a Map<String, Object> (for single JSON objects) or a List<Map<String, Object>> (for JSON arrays). This approach avoids the need to create rigid, predefined POJO classes when the response structure is unpredictable or highly dynamic.
+You can achieve this using REST Assured's built-in JsonPath extractor combined with a library like Jackson or Gson on your classpath.
 
+1. Storing a Dynamic JSON Object
 
+If the API returns a standard JSON object { ... } with varying keys, extract it directly into a Java Map.
+java
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import java.util.Map;
 
+public class DynamicResponseExample {
+    public void captureDynamicObject() {
+        Response response = RestAssured.get("https://example.com");
+
+        // Extract the response body dynamically into a Map
+        Map<String, Object> dynamicData = response.jsonPath().get("$"); 
+        // Note: "$" or "" represents the root elements of the JSON
+
+        // You can now iterate over keys or fetch data dynamically
+        for (String key : dynamicData.keySet()) {
+            System.out.println("Key: " + key + " -> Value: " + dynamicData.get(key));
+        }
+
+        // Access specific deep nested values dynamically if needed
+        String name = (String) dynamicData.get("name");
+    }
+}
+Use code with caution.
+
+2. Storing a Dynamic JSON Array
+
+If the API returns a list of items [ { ... }, { ... } ] where the structure inside can change, extract it into a List of maps.
+java
+import io.restassured.RestAssured;
+import java.util.List;
+import java.util.Map;
+
+public class DynamicArrayExample {
+    public void captureDynamicList() {
+        // Extract the root array into a List of Maps
+        List<Map<String, Object>> dynamicList = RestAssured.get("https://example.com")
+                .jsonPath()
+                .getList("$");
+
+        // Access elements dynamically
+        Map<String, Object> firstProduct = dynamicList.get(0);
+        System.out.println("First Product Name: " + firstProduct.get("productName"));
+    }
+}
+Use code with caution.
+
+3. Extracting Specific Nested Blocks Dynamically
+
+If only a specific part of your response is dynamic, you can isolate it by passing a GPath expression directly into jsonPath().get().
+java
+import io.restassured.RestAssured;
+import java.util.Map;
+
+public class NestedDynamicExample {
+    public void captureNestedData() {
+        // Extracting just the 'metadata' block which changes dynamically based on the request
+        Map<String, Object> metadata = RestAssured.get("https://example.com")
+                .jsonPath()
+                .get("data.profile.metadata");
+
+        System.out.println("Dynamic Metadata Type: " + metadata.get("accountType"));
+    }
+}
+Use code with caution.
+
+Alternative: Storing Raw JSON as a JsonPath Object
+
+If you don't want to cast variables to Map or List immediately, you can store the entire structural layout as a reusable JsonPath instance. This allows you to query fields on the fly using dot-notation.
+java
+import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
+
+public class ResilientJsonPathExample {
+    public void evaluateOnTheFly() {
+        // Store the response parser directly
+        JsonPath extractor = RestAssured.get("https://example.com").jsonPath();
+
+        // Dynamically query paths without pre-mapping
+        String theme = extractor.getString("settings.theme");
+        int timeout = extractor.getInt("configs.network.timeout");
+        
+        // Safely check if a dynamic key exists before handling it
+        if (extractor.get("experimental.features") != null) {
+            boolean isBetaEnabled = extractor.getBoolean("experimental.features.beta");
+        }
+    }
+}
 
 #===================================================================================
-# Q : 
+# Q : Are you planning to pass this stored data into a subsequent API request (like chaining a token or ID), or are you trying to assert values against a database? Tell me your end goal so I can show you how to structure the validation steps.
+==> Since you are chaining data from one API response into a subsequent request, the most efficient pattern is to use REST Assured's request chaining model using JsonPath.
+Here is a complete, production-ready example showing how to extract a dynamic token or ID from a login/creation endpoint and inject it straight into the headers or body of the next API call.
 
+Complete Chaining Example
 
+java
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import io.restassured.path.json.JsonPath;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+public class ApiChainingTest {
+
+    private String authToken;
+    private int generatedUserId;
+
+    @BeforeClass
+    public void setup() {
+        RestAssured.baseURI = "https://example.com";
+    }
+
+    @Test(priority = 1)
+    public void loginAndExtractDataDynamically() {
+        // 1. Define login payload
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("username", "test_user");
+        credentials.put("password", "SecurePass123!");
+
+        // 2. Execute request and extract the raw JsonPath object immediately
+        JsonPath responseParser = given()
+                .contentType(ContentType.JSON)
+                .body(credentials)
+            .when()
+                .post("/auth/login")
+            .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath();
+
+        // 3. Store the dynamic values into class variables
+        authToken = responseParser.getString("data.session.token");
+        generatedUserId = responseParser.getInt("data.user.id");
+
+        System.out.println("Extracted Token: " + authToken);
+        System.out.println("Extracted User ID: " + generatedUserId);
+    }
+
+    @Test(priority = 2, dependsOnMethods = {"loginAndExtractDataDynamically"})
+    public void useExtractedDataInSubsequentRequest() {
+        // 4. Inject the dynamically stored variables into the next request
+        given()
+            .header("Authorization", "Bearer " + authToken) // Injecting token in header
+            .pathParam("userId", generatedUserId)           // Injecting ID as path parameter
+            .contentType(ContentType.JSON)
+        .when()
+            .get("/users/{userId}/profile")
+        .then()
+            .statusCode(200)
+            .body("status", equalTo("success"));
+    }
+}
+Use code with caution.
+
+Best Practices for Dynamic API Chaining
+
+• Use dependsOnMethods (TestNG/JUnit): Always ensure the second test depends on the first. If the data-extraction API fails, the subsequent tests will skip automatically instead of throwing null pointer exceptions.
+• Keep Extraction Specific: Instead of mapping the whole response payload into a generic Java Map, use explicit GPath notation (like "data.session.token") on the jsonPath() object to pluck out only the fields you need.
+• Handle Data Types Safely: Ensure you match the original JSON type exactly when calling getters (e.g., use .getInt() for unquoted numerical IDs, .getString() for alphanumeric tokens).
 
 #===================================================================================
-# Q : 
+# Q : GraphQL API request automation in REST Assured?
+===> To automate GraphQL API requests using REST Assured, the core principle is treating the GraphQL request as a standard HTTP POST request. Since GraphQL queries and mutations are not native JSON, they must be wrapped inside a JSON payload payload body under a "query" key before being sent.
+Here is a comprehensive breakdown of how to structure your payload, followed by a complete code implementation.
 
+1. Understanding the Payload Structure
 
+Every GraphQL request sent via REST Assured must have:
+1. HTTP Method: POST
+2. Header: Content-Type: application/json
+3. JSON Body Structure:json
+{
+  "query": "query { ... } or mutation { ... }",
+  "variables": { "key": "value" }
+}
 
+2. Method 1: Using a Direct String Payload (Quick & Simple)
 
-#===================================================================================
-# Q : 
+For simple queries, you can pass the JSON-wrapped GraphQL query directly as an escaped Java string.
+java
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import org.testng.annotations.Test;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+public class GraphQLStringTest {
+
+    @Test
+    public void testGraphQLQueryString() {
+        RestAssured.baseURI = "https://trevorblades.com"; // Example Public GraphQL API
+
+        // 1. Define the wrapped GraphQL query in a valid JSON format
+        String jsonPayload = "{\"query\": \"query { country(code: \\\"BR\\\") { name capital currency } }\"}";
+
+        // 2. Automate the request using REST Assured
+        given()
+            .contentType(ContentType.JSON)
+            .body(jsonPayload)
+        .when()
+            .post("/")
+        .then()
+            .statusCode(200)
+            .body("data.country.name", equalTo("Brazil"))
+            .body("data.country.capital", equalTo("Brasília"))
+            .log().all();
+    }
+}
+
+3. Method 2: Using POJOs & Variables (Best Practice for Frameworks)
+
+Hardcoding escaped strings becomes tedious for large queries or dynamic inputs. The standard production approach is creating a reusable POJO (Plain Old Java Object) to model the payload, allowing Jackson/Gson to automatically handle JSON serialization.
+
+Step A: Create the Request POJO
+
+java
+public class GraphQLWrapper {
+    private String query;
+    private Object variables; // Can be a Map or another POJO
+
+    public GraphQLWrapper(String query, Object variables) {
+        this.query = query;
+        this.variables = variables;
+    }
+
+    // Getters and Setters
+    public String getQuery() { return query; }
+    public void setQuery(String query) { this.query = query; }
+    public Object getVariables() { return variables; }
+    public void setVariables(Object variables) { this.variables = variables; }
+}
+
+Step B: Write the Test Case with Dynamic Variables
+
+java
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
+import org.testng.annotations.Test;
+import java.util.HashMap;
+import java.util.Map;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+public class GraphQLPojoTest {
+
+    @Test
+    public void testGraphQLWithVariables() {
+        RestAssured.baseURI = "https://trevorblades.com";
+
+        // 1. Define the raw GraphQL query string using variables ($code)
+        String graphQLQuery = "query GetCountry($code: ID!) { country(code: $code) { name capital } }";
+
+        // 2. Define your variables map
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("code", "US");
+
+        // 3. Wrap them into the POJO
+        GraphQLWrapper payload = new GraphQLWrapper(graphQLQuery, variables);
+
+        // 4. Send the request (REST Assured automatically serializes the POJO)
+        given()
+            .contentType(ContentType.JSON)
+            .body(payload)
+        .when()
+            .post("/")
+        .then()
+            .statusCode(200)
+            .body("data.country.name", equalTo("United States"))
+            .log().all();
+    }
+}
+
+Key Comparison
+Feature		| String Payload Approach		| POJO / Map Approach
+1. Complexity	| Simple for tiny queries		| Slightly more setup required
+2. Readability	| Poor (Requires intensive \" escaping)	| Clean and highly readable
+3. Dynamic Data	| Requires messy string concatenation	| Easily managed via key-value Maps or Java objects
+4. Scalability	| Hard to maintain over time		| Highly recommended for corporate test automation frameworks
+
 
 
 

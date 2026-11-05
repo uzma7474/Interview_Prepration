@@ -32,6 +32,35 @@ Framework design
 21. Write a stale-element-safe click: retry up to 3 times on StaleElementReferenceException.
 22. Validate a form: submit it empty, capture all the error messages, and assert each against expected text.
 
+#=============================================================================================
+𝗜𝗧𝗖 𝗜𝗻𝗳𝗼𝘁𝗲𝗰𝗵 | 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻 𝗧𝗲𝘀𝘁𝗲𝗿 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
+
+🔹 𝗧𝗲𝘀𝘁𝗶𝗻𝗴 & 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻 𝗙𝘂𝗻𝗱𝗮𝗺𝗲𝗻𝘁𝗮𝗹𝘀
+1. Self intro & framework contributions.
+2. Encapsulation & Polymorphism applied in framework?
+3. String rotation check e.g. 'ABCD', 'CDAB' -> true.
+4. Relative XPath using preceding-sibling & parent axes in Selenium?
+5. findElement() vs findElements() exceptions in WebDriver?
+6. Hovering SVG graph elements & extracting tooltip in Selenium?
+7. Video recording & trace logs in Playwright?
+8. Deserializing nested JSON API response to Java POJO?
+9. API response header & cookie assertions in REST Assured?
+10. Cookie consent banner popup handling in Selenium?
+
+🔹 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹 𝟮
+1. Word frequency count e.g. 'cat dog cat' -> cat:2, dog:1.
+2. Actions class keyboard shortcuts (Ctrl+A, Enter) in Selenium?
+3. JavascriptExecutor click on hidden web elements?
+4. Cucumber BDD scenario state sharing across steps?
+5. Parallel cross-browser execution across Chrome, Edge, Firefox?
+6. GraphQL API request automation in REST Assured?
+7. Infinite scroll web table automation & row assertion in Selenium?
+8. Multi-environment config switching via Maven profiles?
+9. Extent HTML report failure screenshot attachment?
+
+
+
+
 #======================================================================================================
 
 Round 1 : ( Technical ) 

@@ -173,7 +173,6 @@ AfterAll(async function () {
   // Shut down browser completely
   if (globalBrowser) await globalBrowser.close();
 });
-Use code with caution.
 
 Step 3: Consume World in Step Definitions (steps.ts)
 
@@ -528,13 +527,13 @@ test('User should log in successfully', async ({ page }) => {
 
 Here, the test class handles the scenario and assertion, while LoginPage handles the page interactions. This separation makes the framework easier to maintain and extend.
 6. How I Execute the Framework
-Requirement :	Command
-1. Run all tests :	npx playwright test
+Requirement :			Command
+1. Run all tests :		npx playwright test
 2. Run a specific test file :	npx playwright test tests/login.spec.ts
-3. Run in headed mode :	npx playwright test --headed
+3. Run in headed mode :		npx playwright test --headed
 4. Run tests in parallel :	npx playwright test --workers=4
-5. Open HTML report :	npx playwright show-report
-6. Debug a test	: npx playwright test --debug
+5. Open HTML report :		npx playwright show-report
+6. Debug a test	: 		npx playwright test --debug
 
 7. Real-Project Challenges I Handle
 At my experience level, I also focus on practical challenges such as:
@@ -552,12 +551,14 @@ Interview tip: At 3.6 years of experience, be ready for follow-up questions abou
 #===============================================================================================================
 Q. Would you like to explore how to apply this exact data management architecture inside your Before/After hooks to securely attach authentication browser cookies straight onto your scenarios
 ===> Would you like to explore how to apply this exact data management architecture inside your Before/After hooks to securely attach authentication browser cookies straight onto your scenarios?
+
 Applying this exact data management architecture inside your Before/After hooks allows you to handle global authentication injection safely without repeating the login UI steps for every single scenario.
+
 By injecting authorization state (like cookies or localStorage tokens) straight onto your dynamic this context during the Before hook, you can bypass the login page completely for subsequent tests.
 
 Step 1: Update the Shared Hook Types in world.ts
 First, add an optional property to hold an authentication cookie or token payload within your CustomWorld interface.
-typescript
+
 // support/world.ts
 import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
 import { BrowserContext, Page } from '@playwright/test';
@@ -580,12 +581,12 @@ export class PlaywrightWorld extends World implements CustomWorld {
 
 setWorldConstructor(PlaywrightWorld);
 
-Use code with caution.
-
 Step 2: Implement the Token Injection in the Before Hook
+
 Instead of running a slow UI login flow for every single test scenario, you can fetch an auth token via a fast API call or read a pre-cached JSON state, then attach it to the this context before the test steps even start.
+
 Remember, because the hook is part of Cucumber's lifecycle execution, you must use a regular function (async function) here as well so this resolves correctly.
-typescript
+
 // support/hooks.ts
 import { Before, After } from '@cucumber/cucumber';
 import { chromium, ChromiumBrowser } from '@playwright/test';
@@ -631,11 +632,10 @@ After(async function (this: CustomWorld) {
   await this.context?.close();
 });
 
-Use code with caution.
-
 Step 3: Seamless Navigation in the Step Definition File
+
 Because the Before hook executes prior to any step definition, your browser context is already fully authenticated. You can jump directly to a protected page (like a user dashboard) without hitting a login redirect loop.
-typescript
+
 // steps/dashboard.steps.ts
 import { Given } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
@@ -655,7 +655,6 @@ Given('I visit my private account dashboard', async function (this: CustomWorld)
   await expect(secureHeader).toHaveText('Welcome to Your Account');
 });
 
-Use code with caution.
 
 🛡️ Best Practices for Hook Data Management
 Conditional Injection with Gherkin Tags: If you have public pages (like a homepage or registration form) that do not require authentication, you can pass a tag expression to your hook so it only runs when needed:
@@ -671,113 +670,148 @@ Encapsulation Security: Storing the authToken strictly inside the this execution
 Here is the complete implementation workflow for attaching an API helper client to the this context.
 
 Step 1: Create the Reusable API Helper Class
+
 Create a dedicated service file that leverages Playwright's native APIRequestContext to make fast, headless HTTP network requests.
+
 support/apiClient.ts
 import { APIRequestContext } from '@playwright/test';
+
 export class ApiClient {
-private request: APIRequestContext;
-constructor(request: APIRequestContext) {
-this.request = request;
-}
-// Seeding method to instantly inject test entities into the backend
-async createTestUser(username: string, role: string) {
-const response = await this.request.post('https://api.example.com/v1/users', {
-data: { username, role }
-});
-if (!response.ok()) { throw new Error(Failed to seed test user: ${response.statusText()}); }
-const body = await response.json(); return body.userId; // Returns the generated database ID
-}
-// Teardown method to delete test data mutations
-async deleteTestUser(userId: string) {
-const response = await this.request.delete(https://api.example.com/v1/users/${userId});
-if (!response.ok()) {
-console.error(Cleanup warning: Failed to delete user ${userId}: ${response.statusText()});
-}
-}
+	private request: APIRequestContext;
+
+	constructor(request: APIRequestContext) {
+		this.request = request;
+	}
+	// Seeding method to instantly inject test entities into the backend
+	async createTestUser(username: string, role: string) {
+		const response = await this.request.post('https://api.example.com/v1/users', {
+			data: { username, role }
+		});
+		if (!response.ok()) { 
+			throw new Error(Failed to seed test user: ${response.statusText()}); 
+		}
+		const body = await response.json(); 
+		return body.userId; // Returns the generated database ID
+	}
+
+	// Teardown method to delete test data mutations
+	async deleteTestUser(userId: string) {
+		const response = await this.request.delete(https://api.example.com/v1/users/${userId});
+		if (!response.ok()) {
+			console.error(Cleanup warning: Failed to delete user ${userId}: ${response.statusText()});
+		}
+	}
 }
 
 Step 2: Update the CustomWorld Interface
+
 Register both Playwright's native request utility and your custom API client class under the global this type system.
+
 support/world.ts
 import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
 import { BrowserContext, Page, APIRequestContext } from '@playwright/test';
 import { ApiClient } from './apiClient';
+
 export interface CustomWorld extends World {
-context?: BrowserContext;
-page: Page;
-request?: APIRequestContext; // Native Playwright network wrapper
-api?: ApiClient; // 👈 Custom clean business logic API helper
-seededUserId?: string; // Tracks created IDs for deletion later
+	context?: BrowserContext;
+	page: Page;
+	request?: APIRequestContext; 	// Native Playwright network wrapper
+	api?: ApiClient; 		// 👈 Custom clean business logic API helper
+	seededUserId?: string; 		// Tracks created IDs for deletion later
 }
+
 export class PlaywrightWorld extends World implements CustomWorld {
-context?: BrowserContext;
-page!: Page;
-request?: APIRequestContext;
-api?: ApiClient;
-seededUserId?: string;
-constructor(options: IWorldOptions) {
-super(options);
-}
+	context?: BrowserContext;
+	page!: Page;
+	request?: APIRequestContext;
+	api?: ApiClient;
+	seededUserId?: string;
+
+	constructor(options: IWorldOptions) {
+		super(options);
+	}
 }
 setWorldConstructor(PlaywrightWorld);
 
 Step 3: Instantiate and Clean Up via Hooks
-Using standard functions (async function), initialize the client in the Before hook. This ensures your test environment is perfectly configured before any user interface interactions take place.
+
+Using standard functions (async function), initialize the client in the Before hook. 
+This ensures your test environment is perfectly configured before any user interface interactions take place.
+
 support/hooks.ts
 import { Before, After, playwright } from '@cucumber/cucumber';
 import { chromium, ChromiumBrowser } from '@playwright/test';
 import { CustomWorld } from './world';
 import { ApiClient } from './apiClient';
+
 let globalBrowser: ChromiumBrowser;
+
 Before(async function (this: CustomWorld) {
-if (!globalBrowser) {
-globalBrowser = await chromium.launch({ headless: true });
-}
-this.context = await globalBrowser.newContext();
-this.page = await this.context.newPage();
-// 1. Initialize Playwright's built-in request context
-this.request = await this.page.context().request;
-// 2. Attach your custom API abstraction layer directly onto 'this'
-this.api = new ApiClient(this.request);
-// 3. Fast-seed a test user behind the scenes before steps run
-// Tagging it uniquely to avoid collisions in parallel execution runs
-const uniqueName = e2e_user_${Date.now()};
-this.seededUserId = await this.api.createTestUser(uniqueName, 'premium_tier');
-console.log(🌱 Seeded data setup complete. Injected User ID: ${this.seededUserId});
+	if (!globalBrowser) {
+		globalBrowser = await chromium.launch({ headless: true });
+	}
+	this.context = await globalBrowser.newContext();
+	this.page = await this.context.newPage();
+
+	// 1. Initialize Playwright's built-in request context
+	this.request = await this.page.context().request;
+
+	// 2. Attach your custom API abstraction layer directly onto 'this'
+	this.api = new ApiClient(this.request);
+
+	// 3. Fast-seed a test user behind the scenes before steps run
+	// Tagging it uniquely to avoid collisions in parallel execution runs
+	const uniqueName = e2e_user_${Date.now()};
+
+	this.seededUserId = await this.api.createTestUser(uniqueName, 'premium_tier');
+	
+	console.log(🌱 Seeded data setup complete. Injected User ID: ${this.seededUserId});
 });
+
 After(async function (this: CustomWorld) {
-// 4. Automatically scrub the environment database down on teardown
-if (this.api && this.seededUserId) {
-await this.api.deleteTestUser(this.seededUserId);
-console.log(🧹 Database cleaned up. Dropped User ID: ${this.seededUserId});
-}
-await this.page?.close();
-await this.context?.close();
+	// 4. Automatically scrub the environment database down on teardown
+	if (this.api && this.seededUserId) {
+		await this.api.deleteTestUser(this.seededUserId);
+	console.log(🧹 Database cleaned up. Dropped User ID: ${this.seededUserId});
+	}
+	await this.page?.close();
+	await this.context?.close();
 });
 
 Step 4: Access the API Client Natively Inside Steps
 Your step files can now interact with the UI via Playwright's page object while retaining instant access to the backend context helper object on this.
+
 steps/profile.steps.ts
+
 import { Given, Then } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
 import { CustomWorld } from '../support/world';
+
 Given('I log into my newly seeded premium profile account', async function (this: CustomWorld) {
-// Directly browse to the profile view using the ID generated in our setup hook
-await this.page.goto(https://example.com/profile/${this.seededUserId});
-const badgingElement = this.page.locator('.profile-badge');
-await expect(badgingElement).toHaveText('Premium Tier');
+
+	// Directly browse to the profile view using the ID generated in our setup hook
+	await this.page.goto(https://example.com/profile/${this.seededUserId});
+
+	const badgingElement = this.page.locator('.profile-badge');
+
+	await expect(badgingElement).toHaveText('Premium Tier');
 });
 
 💡 Framework Benefits of an Integrated Hook API Client
-Flawless Pipeline Orchestration: If the API seeding call fails during the Before hook, Cucumber skips the UI automation steps entirely and fails early, saving valuable continuous integration (CI) pipeline runtime.
-Automatic Cleanups: Keeping the deletion payload (seededUserId) coupled directly inside this guarantees that even if a UI step throws an assertion error, the After hook is still called to tear down mutations.
-No Cross-Test Contamination: By isolating seededUserId inside a scenario-bound this instance rather than global memory variables, you avoid test data leakage when running multiple browser threads in parallel.
-Would you like to review how to pass environment variables (like swapping out staging or production URLs) directly into this API client structure, or do you have any remaining questions about the lexical binding of this?
+1. Flawless Pipeline Orchestration: If the API seeding call fails during the Before hook, Cucumber skips the UI automation steps entirely and fails early, saving valuable continuous integration (CI) pipeline runtime.
+
+2. Automatic Cleanups: Keeping the deletion payload (seededUserId) coupled directly inside this guarantees that even if a UI step throws an assertion error, the After hook is still called to tear down mutations.
+
+3. No Cross-Test Contamination: By isolating seededUserId inside a scenario-bound this instance rather than global memory variables, you avoid test data leakage when running multiple browser threads in parallel.
+
+4. Would you like to review how to pass environment variables (like swapping out staging or production URLs) directly into this API client structure, or do you have any remaining questions about the lexical binding of this?
 yes
+
 Here is the guide on how to integrate environment variables securely into this API client structure so you can easily toggle your test runs between Staging, Dev, or Production environments, followed by an overarching summary of the this lexical binding rule to lock in the knowledge.
 
 Part 1: Integrating Environment Variables for Multi-Env Execution
 To prevent hardcoding URLs (like https://example.com), we use the built-in Node.js runtime object process.env. We can orchestrate this seamlessly by pulling in the dotenv package to handle regional configuration profiles.
+
 1. Install dotenv and Create Configuration Files
 Install the package into your dev dependencies:
 bash
@@ -791,6 +825,7 @@ API_BASE_URL=https://api-staging.example.com/v1
 .env.production
 APP_BASE_URL=https://example.com
 API_BASE_URL=https://api.example.com/v1
+
 2. Initialize the Environments in your Config or Hook Loader
 Before running your tests, you load the correct .env file dynamically based on a deployment flag (e.g., NODE_ENV). You can place this right at the top of your support/world.ts or a global setup module:
 typescript
@@ -805,10 +840,9 @@ dotenv.config({
   path: path.resolve(process.cwd(), `.env.${environment}`)
 });
 
-Use code with caution.
 3. Update the API Helper Client to Read From the Environment
 Refactor the ApiClient class to dynamically construct endpoints using process.env.API_BASE_URL instead of a static string string literal:
-typescript
+
 // support/apiClient.ts
 import { APIRequestContext } from '@playwright/test';
 
@@ -1157,11 +1191,10 @@ Approach 1: Wait until the button is enabled (my preferred approach)
 import { test, expect } from '@playwright/test';
 
 test('Button should become enabled after loading', async ({ page }) => {
+  
   await page.goto('/checkout');
 
-  const submitButton = page.getByRole('button', {
-    name: 'Submit Order',
-  });
+  const submitButton = page.getByRole('button', { name: 'Submit Order',  });
 
   // Automatically retries until the button is enabled or times out
   await expect(submitButton).toBeEnabled();
@@ -1197,9 +1230,7 @@ test('Enable button after required API calls', async ({ page }) => {
   // Wait for all three successful API responses
   await Promise.all(responsePromises);
 
-  const submitButton = page.getByRole('button', {
-    name: 'Submit Order',
-  });
+  const submitButton = page.getByRole('button', { name: 'Submit Order', });
 
   await expect(submitButton).toBeEnabled();
   await submitButton.click();
@@ -1208,6 +1239,7 @@ Important: I register the response listeners before navigation so I don't miss r
 
 Approach 3: Wait for a specific API response and then verify the UI
 When a particular API determines whether the button can be enabled, I wait for that response and assert the UI state.
+
 const permissionsResponse = page.waitForResponse(response =>
   response.url().includes('/api/permissions') &&
   response.request().method() === 'GET'
@@ -1227,11 +1259,11 @@ await expect(submitButton).toBeEnabled();
 
 This approach is useful when a user action triggers the API call.
 Which approach would I choose?
-Scenario : 	Approach
+Scenario : 					Approach
 1. Only the final button state matters : 	await expect(button).toBeEnabled()
 2. All required API calls must complete : 	Promise.all() with waitForResponse()
-3. A user action triggers an API call :	Register waitForResponse() before the action
-4. API calls are dynamic or repeated : 	Track the relevant requests or wait for a meaningful application state
+3. A user action triggers an API call :		Register waitForResponse() before the action
+4. API calls are dynamic or repeated : 		Track the relevant requests or wait for a meaningful application state
 
 My interview conclusion:
 “I prefer waiting for the expected UI state using Playwright's web-first assertions. If the requirement depends on multiple backend calls, I explicitly wait for the relevant responses using Promise.all() and then verify that the button is enabled. This avoids hard waits and makes the test more reliable in CI/CD.”
@@ -4620,37 +4652,442 @@ test('should export analytics report successfully', async ({ sidebar, dateFilter
 
 
 #====================================================================================================
-# Q :
+# Q : what is LaunchOptions in playwright typescript ?
+==> In Playwright with TypeScript, LaunchOptions is an interface/type that defines the configuration settings passed when starting a browser instance (such as Chromium, Firefox, or WebKit) via browserType.launch(), or configured globally inside playwright.config.ts.
 
+What LaunchOptions Controls
+
+It configures low-level browser process parameters rather than individual page or context settings. Common properties include:
+• headless: A boolean (true or false) to run the browser with or without a visible UI window.
+• slowMo: A number that slows down Playwright operations by a specified number of milliseconds (useful for debugging and watching test execution).
+• args: An array of strings containing additional command-line arguments to pass to the browser process (e.g., ['--disable-gpu', '--no-sandbox']).
+• executablePath: A string pointing to a custom browser executable path instead of Playwright’s bundled browser.
+• channel: A string specifying a browser distribution channel like 'chrome', 'msedge', 'chrome-beta', or 'msedge-dev'.
+• proxy: An object configuring network proxy settings (server, bypass rules, username, and password).
+• timeout: Maximum time in milliseconds to wait for the browser instance to start up.
+• env: An object specifying environment variables for the launched browser process.
+
+How to Use LaunchOptions
+
+
+1. In Playwright Test Configuration (playwright.config.ts)
+
+You can pass launchOptions inside the use block of your global config:
+typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    launchOptions: {
+      slowMo: 50,
+      headless: false,
+      args: ['--start-maximized'],
+    },
+  },
+});
+Use code with caution.
+
+2. Programmatically in a script (chromium.launch)
+
+You can pass an object typed with LaunchOptions directly when launching a browser manually:
+typescript
+import { chromium, LaunchOptions } from '@playwright/test';
+
+const options: LaunchOptions = {
+  headless: false,
+  slowMo: 100,
+  args: ['--disable-infobars'],
+};
+
+(async () => {
+  const browser = await chromium.launch(options);
+  const page = await browser.newPage();
+  await page.goto('https://example.com');
+  await browser.close();
+})();
+Use code with caution.
+If you are trying to configure a specific behavior, tell me what you want the browser to do (e.g., run headed, use a system-installed Chrome, or pass custom flags) and I can give you the exact snippet.
+
+#-----------------------------------------------#
+LaunchOptions in Playwright – Detailed Explanation with Syntax and Examples
+In Playwright, LaunchOptions is an object used to configure how a browser is launched. It allows us to control browser behavior, execution mode, browser arguments, headless or headed execution, slow motion, proxy settings, and other browser-level configurations.
+
+As an Automation Engineer working with Playwright JavaScript/TypeScript, you typically use LaunchOptions when creating a browser instance using chromium.launch(), firefox.launch(), or webkit.launch()
+
+import { chromium, LaunchOptions } from '@playwright/test';
+
+const launchOptions: LaunchOptions = {
+    headless: false,
+    slowMo: 1000
+};
+
+const browser = await chromium.launch(launchOptions);
+
+import { chromium, type LaunchOptions,
+         type BrowserContextOptions } from 'playwright';
+
+const launchOptions: LaunchOptions = {
+    headless: false,
+    slowMo: 500,
+    channel: 'chrome'
+};
+
+const contextOptions: BrowserContextOptions = {
+    viewport: {
+        width: 1920,
+        height: 1080
+    },
+    locale: 'en-US',
+    timezoneId: 'Asia/Kolkata',
+    ignoreHTTPSErrors: true
+};
+
+const browser = await chromium.launch(launchOptions);
+
+const context = await browser.newContext(contextOptions);
+
+const page = await context.newPage();
+
+await page.goto('https://www.saucedemo.com/');
+
+await browser.close();
+
+#==================================================================================================
+#  Q : Q1. What is LaunchOptions in Playwright?
+
+Answer:
+
+LaunchOptions is an object that allows us to configure browser startup behavior. We can control headless execution, slow motion, browser arguments, browser channel, proxy configuration, and browser launch timeout.
+
+I generally maintain these configurations in a centralized BrowserManager class so that I can reuse them across different test scenarios and browsers.
+
+Q2. What is the difference between headless and headed mode?
+- Headless: Browser executes without displaying the UI.
+- Headed: Browser executes with a visible UI.
+In my framework, I generally use headed mode during local debugging and headless mode during Jenkins execution.
+
+Q3. Can we use LaunchOptions for all three browsers?
+
+Yes. We can use browser-specific launch methods:
+await chromium.launch(options);
+await firefox.launch(options);
+await webkit.launch(options);
+
+
+However, certain options and browser arguments are browser-specific.
+
+Q4. What is the difference between channel: 'chrome' and chromium.launch()?
+
+chromium.launch() launches Playwright's bundled Chromium by default.
+
+chromium.launch({ channel: 'chrome' }) launches the installed Google Chrome browser.
+
+Q5. Does slowMo increase the execution time?
+
+Yes. It adds a specified delay between Playwright operations. It is mainly useful for debugging and should generally be avoided in performance-sensitive CI execution.
+
+
+#====================================================================================================
+# Q : 
+const root = path.resolve(__dirname, '..', '..');
+
+This line of code uses Node.js's built-in path module to find the absolute path of a directory two levels above the current file.
+Here is exactly how it breaks down:
+• __dirname: A global Node.js variable that returns the absolute path of the directory containing the currently executing file.
+• '..', '..': These represent relative path segments meaning "go up one directory level."
+• path.resolve(): Resolves a sequence of paths or path segments into an absolute path. It processes the arguments from left to right, prepending each subsequent path until an absolute path is constructed.
+
+How it looks in practice
+
+If the file containing this code is located at:
+/Users/username/projects/my-app/src/utils/file.ts
+path.resolve(__dirname, '..', '..') will resolve sequentially:
+1. Start at /Users/username/projects/my-app/src/utils (__dirname)
+2. Go up one level to /Users/username/projects/my-app/src ('..')
+3. Go up a second level to /Users/username/projects/my-app ('..')
+As a result, root will equal the absolute string: '/Users/username/proj
+
+
+#====================================================================================================
+# Q : Node.js Environment & Module Globals
+
+These variables are automatically available in every Node.js file (CommonJS modules) without needing to import them. They provide context about where the script is running.
+
+Variable     | Description							| Example Output
+1. __dirname  | The absolute path to the directory containing the current file.		   | /Users/project/src
+2. __filename | The absolute path to the current file itself (including the filename).   | /Users/project/src/index.js
+3. process   | A global object providing information about, and control over, 		   | process.env.NODE_ENV
+	     | the current Node.js process (e.g., environment variables, architecture,   |
+	     | exit codes).						        |
+4. module    | A reference to the object representing the current module. Used to       | module.exports = {}
+	     | export code so other files can use it.                                |
+5. exports   | A shorter shortcut reference to module.exports.						   | exports.myFunc = ...
+6. require   | A built-in function used to import modules, JSON, and local files.		        |const fs = require('fs')
+7. global    | The top-level scope object in Node.js (equivalent to window in web browsers).	| global.myGlobalVar = 5
+
+#====================================================================================================
+# Q : Explain in detail about nodejs variable process with syntax and examples
+====> In Node.js, process is a global object that provides information about, and control over, the current Node.js process. Because it is a global object, it is available in every file automatically without using require() or import.
+It acts as a bridge between your JavaScript application and the underlying operating system.
+
+Core Syntax and Properties
+
+The process object contains dozens of built-in properties, methods, and events. The most critical properties include:
+
+Property / Method	     | Description
+1. process.env	     | An object containing the user environment variables (like API keys, ports, or deployment stages).
+2. process.argv	     | An array containing the command-line arguments passed when the Node.js process was launched.
+3. process.cwd()      | A method that returns the current working directory of the Node.js process (where you ran the terminal command).
+4. process.exit()	  | A method that forces the Node.js process to terminate immediately.
+5. process.platform  | A string identifying the operating system platform (e.g., 'darwin', 'win32', 'linux').
+
+Detailed Code Examples
+
+1. Managing Configuration with Environment Variables (process.env)
+
+process.env is heavily used in production applications to keep secrets, database credentials, and configuration flags out of the source code.
+javascript
+// app.js
+// 1. Set a default port if the environment variable isn't provided
+const PORT = process.env.PORT || 3000;
+
+// 2. Fetch a sensitive API key safely
+const apiKey = process.env.SECRET_API_KEY;
+
+if (!apiKey) {
+  console.error("Error: SECRET_API_KEY is missing!");
+  process.exit(1); // Stop execution with an error code
+}
+
+console.log(`Server running on port ${PORT}`);
+#-----------------------------------------------#
+How to run it in the terminal:
+bash
+# On Linux/macOS
+PORT=8080 SECRET_API_KEY=my_secure_token node app.js
+
+# On Windows (PowerShell)
+$env:PORT=8080; $env:SECRET_API_KEY="my_secure_token"; node app.js
+#------------------------------------------------------#
+
+2. Reading Command-Line Arguments (process.argv)
+
+When you launch a script with extra flags or words, process.argv captures them.
+• process.argv[0] is always the path to the Node executable.
+• process.argv[1] is always the path to the JavaScript file being executed.
+• process.argv[2] and onwards are your custom arguments.
+
+javascript
+// greet.js
+// Capture arguments passed after the filename
+const args = process.argv.slice(2); 
+const username = args[0] || 'Guest';
+
+console.log(`Hello, ${username}!`);
+console.log("Full argument array:", process.argv);
+Use code with caution.
+How to run it in the terminal:
+bash
+node greet.js Alice
+Use code with caution.
+Output:
+text
+Hello, Alice!
+Full argument array: [
+  '/usr/local/bin/node',
+  '/Users/project/greet.js',
+  'Alice'
+]
+
+3. Graceful Termination & OS Detection (process.exit & process.platform)
+
+You can use process to write scripts that behave differently depending on the operating system, or to exit cleanly when a condition fails.
+javascript
+// os-check.js
+console.log(`This script is running on: ${process.platform}`);
+
+// Example: Restrict execution to specific operating systems
+if (process.platform === 'win32') {
+  console.log("Windows setup completed.");
+} else if (process.platform === 'darwin') {
+  console.log("macOS setup completed.");
+} else {
+  console.log("Unsupported Operating System. Exiting script.");
+  process.exit(1); // 0 means success, 1 (or non-zero) means an error occurred
+}
+
+console.log("Current working directory:", process.cwd());
+
+#====================================================================================================
+# Q : Q1. What is tsconfig.json?
+Answer:
+
+tsconfig.json is the configuration file for the TypeScript compiler. It defines the compiler options, source files, module system, JavaScript target, type-checking rules, and output directory. In my Playwright TypeScript Cucumber framework, I use it to maintain consistent TypeScript behavior across page objects, helpers, hooks, and step definitions.
+Q2. What is the difference between target and module?
+Answer:
+
+target specifies the JavaScript language version that TypeScript should generate, whereas module specifies the module system and module behavior.
+
+For example, target: ES2021 determines the JavaScript syntax, while module: node16 configures Node.js-aware module handling.
+Q3. What is the difference between include and exclude?
+Answer:
+
+include specifies which files TypeScript should discover and include in the project. exclude specifies which files should be skipped during that discovery process.
+
+For example, I include all TypeScript files using **/*.ts and exclude node_modules and dist.
+Q4. Why do you use strict: true?
+Answer:
+
+I use strict mode to identify potential type-related issues during development. It prevents implicit any types, improves null checking, and enforces better type safety. It is especially useful when working with custom Cucumber World, Page Objects, and helper classes.
+Q5. What is the difference between rootDir and outDir?
+Answer:
+
+rootDir defines the root directory of the TypeScript source files and influences the output structure. outDir specifies where the compiled JavaScript files should be generated.
+Q6. What is the difference between skipLibCheck and transpileOnly?
+Answer:
+
+skipLibCheck skips type checking of third-party declaration files while continuing to check my application code.
+
+transpileOnly, when used with ts-node, skips full type checking during TypeScript execution and focuses on transpilation. I can run npx tsc --noEmit separately to validate the entire project.
+
+Final recommendation for your Playwright Cucumber project
+For your SauceDemo automation framework, I would start with this configuration:
+
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "lib": ["ES2021", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "ts-node": {
+    "transpileOnly": true
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+} 
 
 
 
 #====================================================================================================
-# Q :
+# Q : process variable in playwright typescript javascript what it is explain in detail
+
+In NodeJS-based frameworks like Playwright (TypeScript/JavaScript), process is a global object that provides information about, and control over, the current running Node.js process.
+The most common property you will use in Playwright testing is process.env, which is used to access Environment Variables.
+
+Why is process used in Playwright?
+
+When you run your Playwright tests from your terminal (e.g., npx playwright test), your test runner runs on a Node.js process. The process object bridges the gap between your operating system/terminal configuration and your actual test code.
+It is primarily used for:
+1. Configuring Environments: Switching between Staging, UAT, or Production URLs.
+2. Handling Secrets: Injecting passwords, API keys, and authentication tokens safely without hardcoding them in the script.
+3. Controlling Test Behavior: Altering browser choices, headless mode configurations, or parallel execution metrics from the CLI.
+
+Crucial process Properties in Playwright
 
 
+1. process.env (Environment Variables)
+
+This is a standard JavaScript object containing your user environment. You can dynamically pass keys into your terminal, and Playwright reads them via process.env.KEY_NAME.
+In your playwright.config.ts:
+typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    // Falls back to staging if BASE_URL isn't explicitly set in the terminal
+    baseURL: process.env.BASE_URL || 'https://example.com',
+  },
+});
+Use code with caution.
+In your test file (example.spec.ts):
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Login with secure credentials', async ({ page }) => {
+  await page.goto('/login');
+  
+  // Reading system secrets or CLI variables securely
+  await page.fill('#username', process.env.TEST_USER!);
+  await page.fill('#password', process.env.TEST_PASSWORD!);
+  
+  await page.click('#submit');
+});
+Use code with caution.
+
+2. process.cwd() (Current Working Directory)
+
+Returns an absolute string path pointing to the folder where you initiated the npx playwright test command. This is highly useful if you need to dynamically load local file paths, file uploads, or read test assets.
+typescript
+import path from 'path';
+
+// Constructing an absolute path to a file you want to upload in a test
+const fileToUpload = path.join(process.cwd(), 'test-assets', 'sample.pdf');
+await page.setInputFiles('input[type="file"]', fileToUpload);
+Use code with caution.
+
+3. process.exit() (Terminating the Process)
+
+Forces the Node.js test process to shut down immediately. While Playwright manages its own exits gracefully, this is occasionally used in custom setup scripts or global teardown hooks to kill the run if a critical dependency fails.
+typescript
+// Exiting with status code 1 tells CI/CD pipelines that the run failed miserably
+if (!process.env.CRITICAL_API_KEY) {
+  console.error("Missing API key! Aborting.");
+  process.exit(1); 
+}
+Use code with caution.
+
+How to Pass process.env Variables to Playwright
 
 
-#====================================================================================================
-# Q :
+Method A: Direct Terminal Injections (Linux/macOS)
 
+You can prepend variables directly before your execution command:
+bash
+BASE_URL="https://example.com" TEST_USER="admin" npx playwright test
+Use code with caution.
 
+Method B: Windows PowerShell Syntax
 
+powershell
+$env:BASE_URL="https://example.com"; $env:TEST_USER="admin"; npx playwright test
+Use code with caution.
 
-#====================================================================================================
-# Q :
+Method C: Using a .env File (Highly Recommended)
 
+Instead of typing variables manually in the command line, create a file named .env in the root of your Playwright project:
+env
+BASE_URL=https://example.com
+TEST_USER=qa_automation_user
+TEST_PASSWORD=SuperSecretPassword123
+Use code with caution.
+Playwright automatically integrates with .env files out of the box. In your playwright.config.ts, you simply need to make sure the environment parser is loaded (Playwright natively uses dotenv behind the scenes if configured):
+typescript
+import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
 
+// Read from default .env file
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
+export default defineConfig({
+  // Your configuration continues here...
+});
+Use code with caution.
 
 
 
