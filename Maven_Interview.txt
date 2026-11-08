@@ -1,0 +1,1629 @@
+#====================================================================================================
+# Q : What is Maven ?
+===> Maven is a project management and build automation tool widely used by Java developers to simplify development workflows. It uses a centralized Project Object Model (POM) to manage build processes, dependencies, and project configurations efficiently.
+
+Simplifies dependency management by automatically handling libraries
+Provides a standardized project structure for better organization
+Supports build, reporting, and documentation in a single tool
+
+#====================================================================================================
+# Q : What are the aspects Maven manages?
+== > Maven provides developers ways to manage following −
+
+Builds
+Documentation
+Reporting
+Dependencies
+SCMs
+Releases
+Distribution
+mailing list
+
+
+#====================================================================================================
+# Q : What is POM?
+==> 1. POM stands for Project Object Model. It is fundamental Unit of Work in Maven. It is an XML file. It always resides in the base directory of the project as pom.xml. It contains information about the project and various configuration details used by Maven to build the project(s).
+
+2. POM stands for Project Object Model. The pom.xml file is the core configuration file of a Maven project. It defines project metadata, dependencies, plugins, and build configurations required to compile, test, package, and deploy the application.
+
+A properly structured POM file ensures consistent builds and dependency management across environments.
+
+
+#====================================================================================================
+# Q : What information does POM contain?
+==> POM contains the some of the following configuration information −
+
+1. project dependencies
+2. plugins
+3. goals
+4. build profiles
+5. project version
+6. developers
+7. mailing list
+
+#====================================================================================================
+# Q : Why pom.xml Is Used in Maven
+==> The pom.xml file is used because it acts as the single source of truth for a Maven project. It tells Maven what the project is, how it should be built, and which dependencies it needs.
+
+Key Reasons for Using pom.xml
+1. Centralized Project Configuration: All project metadata, dependencies, plugins, and build settings are defined in one file.
+
+2. Automatic Dependency Management: Maven downloads and manages required libraries (and their transitive dependencies) automatically.
+
+3. Consistent Builds Across Environments: Ensures the same build behavior on different machines, CI pipelines, and production servers.
+Standardized Build Lifecycle: Controls phases like compile, test, package, install, and deploy without custom scripts.
+Easy Version Control and Maintenance: Dependency versions and plugin configurations can be updated in one place using properties.
+Support for Multi-Module Projects: Enables parent–child POMs for managing large, modular applications.
+
+
+Major Sections of pom.xml
+1. Project Information (<project>)
+This is the root element of the POM file. It contains all project-related metadata and configuration used by Maven to manage the build process.
+
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+2. Project Coordinates
+Defines unique identifiers for your project in a Maven repository.
+
+
+<groupId>com.geeks</groupId>
+<artifactId>maven-pom-example</artifactId>
+<version>1.0-SNAPSHOT</version>
+groupId: Usually your organization’s domain in reverse.
+artifactId: Project or module name.
+version: Current version of the project.
+3. Properties Section
+Defines reusable variables to maintain consistency and simplify version updates.
+
+
+<properties>
+    <java.version>1.8</java.version>
+    <selenium.version>4.6.0</selenium.version>
+    <testng.version>7.4.0</testng.version>
+</properties>
+Using ${property.name} lets you reference these values across the file.
+
+4. Dependencies Section
+Lists all external libraries your project depends on. Maven automatically downloads them from configured repositories.
+
+
+<dependencies>
+    <dependency>
+        <groupId>org.seleniumhq.selenium</groupId>
+        <artifactId>selenium-java</artifactId>
+        <version>${selenium.version}</version>
+    </dependency>
+</dependencies>
+Each dependency includes:
+
+groupId: Library’s organization.
+artifactId: Library name.
+version: Library version.
+5. Repositories Section
+Defines remote repositories from where Maven retrieves dependencies.
+
+
+<repositories>
+    <repository>
+        <id>central</id>
+        <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+</repositories>
+If no repository is specified, Maven defaults to Maven Central.
+
+6. Build Section
+Controls how the project is compiled, packaged, and deployed.
+
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.8.1</version>
+            <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+Plugins: Define build tools such as compiler, JAR packager, or reporting tools.
+Configuration: Customizes how each plugin behaves.
+7. Profiles Section
+Allows defining environment-specific configurations such as development, testing, or production.
+
+
+<profiles>
+    <profile>
+        <id>dev</id>
+        <properties>
+            <environment>development</environment>
+            <debug>true</debug>
+        </properties>
+    </profile>
+</profiles>
+Activate profiles using:
+
+mvn clean install -Pdev
+
+8. Plugin Management Section
+Defines default versions and configurations of plugins to ensure consistency across modules.
+
+
+<pluginManagement>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.1.2</version>
+        </plugin>
+    </plugins>
+</pluginManagement>
+9. Reporting Section
+Specifies plugins used to generate reports like Javadoc or test coverage.
+
+
+<reporting>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-site-plugin</artifactId>
+            <version>3.9.1</version>
+        </plugin>
+    </plugins>
+</reporting>
+
+#====================================================================================================
+# Q : Maven Build Lifecycle
+==> Maven Build Lifecycle is a fundamental concept in Maven that defines a sequence of phases and goals to be executed for managing the entire build process, from compilation to deployment.
+
+There are three primary types of build lifecycles in Maven:
+
+1. Default Lifecycle: Handles the standard deployment process of the project, from compiling the code to packaging and installing it.
+
+2. Clean Lifecycle: Manages the cleaning process by removing artifacts from previous builds to ensure a fresh build environment.
+
+3. Site Lifecycle: Deals with generating and deploying the project's site documentation, such as project reports and other documentation.
+
+
+
+#====================================================================================================
+# Q : What is Default Lifecycle ?
+==> 1. Default Lifecycle
+The Default Lifecycle is the most commonly used lifecycle, focusing on the build process from validation to deployment. Phases in this lifecycle are as follows:
+
+1. Validate Phase: Checks the project configuration to ensure all necessary information is present and valid.
+
+2. Compile Phase: Compiles the source code of the project.
+
+3. Test Phase: Runs unit tests using a testing framework to ensure the code works as expected.
+
+4. Package Phase: Packages the compiled code into a JAR, WAR, or other artifact format.
+
+5. Verify Phase: Performs additional checks on the packaged code to ensure it is valid.
+
+6. Install Phase: Installs the packaged artifact into the local repository for use as a dependency in other projects.
+
+7. Deploy Phase: Deploys the packaged artifact to a remote repository for sharing with other developers or teams.
+
+
+#====================================================================================================
+# Q : What is Clean Lifecycle ?
+==> 2. Clean Lifecycle
+The Clean Lifecycle is designed for cleaning the project, ensuring that artifacts generated from previous builds are removed before starting the new build process. Phases in the Clean Lifecycle:
+
+1. pre-clean: Executes processes before cleaning.
+
+2. clean: Removes files generated by the previous build.
+
+3. post-clean: Executes processes after cleaning.
+
+
+#====================================================================================================
+# Q : What is Site Lifecycle ?
+==> The Site Lifecycle is responsible for generating and deploying project documentation. Phases in the Site Lifecycle:
+
+1. pre-site: Executes processes before generating site documentation.
+
+2. site: Generates the site documentation.
+
+3. post-site: Executes processes after generating site documentation.
+
+4. site-deploy: Deploys the generated site documentation to a web server.
+
+
+#====================================================================================================
+# Q : What is Maven artifact?
+==> An artifact is a file, usually a JAR that gets deployed to a Maven repository. A Maven build produces one or more artifacts, such as a compiled JAR and a "sources" JAR.
+
+Each artifact has a group ID (usually a reversed domain name, like com.example.foo), an artifact ID (just a name), and a version string. The three together uniquely identify the artifact. A project's dependencies are specified as artifacts.
+
+#====================================================================================================
+# Q : How Maven Searches for Dependencies for a Project
+==> Maven, developed by the Apache Software Foundation, is a build automation tool for Java projects that handles tasks like dependency management, building, and testing. It automatically searches and downloads required dependencies from different repositories, making project management easier.
+
+1. Checks Local Repository first
+2. Then looks into Central/Remote Repositories
+
+1. Local Repository
+Local Repository is stored on your system and contains all downloaded dependency JAR files. Maven saves dependencies here so they can be reused across multiple projects, reducing the need to download them again.
+  1. Located at C:\Users<user_name>.m2\repository (Windows)
+  2. Stores all downloaded dependency JAR files
+  3. Helps in reusing dependencies for other projects
+Settings.xml File:
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="https://maven.apache.org/SETTINGS/1.0.0" 
+          xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" 
+          xsi:schemaLocation="https://maven.apache.org/SETTINGS/1.0.0 
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+   <localRepository>${user.home}/.m2/repository</localRepository>
+   <interactiveMode>true</interactiveMode>
+   <offline>false</offline>
+   ...
+</settings>
+
+2. Central Repository
+Central Repository is a remote repository available on the internet where Maven downloads dependencies if they are not found in the local repository. It is maintained by the Apache Maven team.
+
+ 1. Maven downloads dependencies from Central Repository if not found locally
+ 2. Default URL: https://repo.maven.apache.org/
+ 3. Supports mirrors (via settings.xml) and allows uploads with proper permissions
+
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="https://maven.apache.org/SETTINGS/1.0.0" 
+          xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" 
+          xsi:schemaLocation="https://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+   ...
+   <mirrors>
+      <mirror>
+         <id>centeal repo</id>
+         <name>repo_name</name>
+         <url>maven2</url>
+         <mirrorOf>https://repo.maven.apache.org/central</mirrorOf>
+      </mirror>
+   </mirrors>
+   ...
+</settings>
+
+3. Internal Repository
+Internal Repository is a private repository maintained by an organization to store its own libraries and dependencies. It is used when external downloads are restricted or when dependencies are not available in the central repository.
+
+ 1. Stores organization-specific artifacts and missing dependencies
+ 2. Configured in settings.xml for internal use
+ 3. Maven fetches dependencies from here if not found locally or centrally, otherwise shows “cannot resolve dependency” error
+<?xml version="1.0" encoding="UTF-8"?>
+<repositories>
+   <repository>
+      <id>repo_id</id>
+      <url>//for example geeksforgeeks.com</url>
+   </repository>
+</repositories>
+
+#====================================================================================================
+# Q : Maven Dependency Scopes
+==> Maven Dependency scopes are used to specify the visibility and life cycle of a dependency in a Maven project.These scopes define the visibility and lifecycle of dependencies during compilation, testing, and runtime. Understanding dependency scopes helps in managing libraries efficiently and avoiding unnecessary dependencies in the final build.
+
+1. Compile: Default scope; dependency is available in all phases (compile, test, runtime).
+Provided: Available at compile time but not included in the final package (e.g., server-provided libraries).
+
+2. Runtime: Not needed for compilation but required during execution.
+
+3. Test: Used only for testing phase; not available in runtime or compile phases.
+
+1. Compile Scope:
+This is the default scope in the Maven. Dependencies with this scope are available in all class paths like compile, test, and runtime and are also packaged in the final artifact like JAR, WAR, and other formats.
+
+Syntax:
+<!-- compile scope -->
+    <dependency>     
+   <groupId>org.apache.commons</groupId>  
+      <artifactId>commons-lang3</artifactId>      
+  <version>3.12.0</version>   
+ </dependency>
+
+2. Provided Scope
+Dependencies with this scope are required for compiling the project code but are expected to be provided by the runtime environment. These Dependencies are not packaged with artifact.
+
+Syntax:
+
+<!-- provided scope --> 
+   <dependency>     
+   <groupId>javax.servlet</groupId>   
+     <artifactId>javax.servlet-api</artifactId>     
+   <version>4.0.1</version>    
+    <scope>provided</scope>
+    </dependency>
+
+3. Runtime Scope
+Dependencies with this scope are need for execution of the source code but are not required for compilation. These dependencies are not included in the compilation classpath but are included in the runtime classpath and also these are packaged in the final artifact.
+
+Syntax:
+
+<!-- runtime scope -->     
+<dependency>     
+    <groupId>org.postgresql</groupId>  
+       <artifactId>postgresql</artifactId>     
+    <version>42.2.24</version>      
+   <scope>runtime</scope>   
+  </dependency>
+
+4. Test Scope
+Dependencies with this scope are only needed for compiling and running tests, not for the production code.
+
+<!-- test scope -->   
+  <dependency>    
+     <groupId>junit</groupId>   
+      <artifactId>junit</artifactId>     
+    <version>4.13.2</version>     
+    <scope>test</scope>   
+  </dependency>
+
+5. System Scope :
+Dependencies with this scope are not retrieved from the Maven repository but are referenced from the local system. This scope is generally not recommended because it bypasses Maven's dependency management.
+
+Syntax:
+
+<!-- system scope -->   
+  <dependency>     
+    <groupId>com.example</groupId>     
+    <artifactId>custom-jar</artifactId>      
+   <version>1.0</version>      
+   <scope>system</scope>   
+      <systemPath>${project.basedir}/lib/custom-jar.jar</systemPath>  
+   </dependency>
+
+6. Import Scope :
+This scope is used only in Maven 2.0.9 and above. It is used in a pom's dependency Management section to allow you to import dependency management information from other POM files into the current project.
+
+Syntax:
+
+<!-- Parent POM -->
+ <dependencyManagement>    
+ <dependencies>  
+       <dependency>    
+         <groupId>org.springframework</groupId>   
+          <artifactId>spring-core</artifactId>   
+          <version>5.3.9</version>   
+      </dependency>     
+    <dependency>         
+    <groupId>org.springframework</groupId>       
+      <artifactId>spring-web</artifactId>      
+       <version>5.3.9</version>       
+  </dependency>   
+  </dependencies> 
+</dependencyManagement>
+
+#==================================================================================================
+# Q : What are Maven Plugins?
+==> Maven is actually a plugin execution framework where every task is actually done by plugins. Maven Plugins are generally used to −
+
+create jar file
+
+create war file
+
+compile code files
+
+unit testing of code
+
+create project documentation
+
+create project reports
+
+A plugin generally provides a set of goals, which can be executed using the following syntax −
+
+mvn [plugin-name]:[goal-name]
+For example, a Java project can be compiled with the maven-compiler-plugin's compile-goal by running the following command.
+
+mvn compiler:compile
+
+#================================================================================================
+# Q : Plugin Types
+Maven provided the following two types of Plugins −
+
+1. Build plugins :
+They execute during the build process and should be configured in the <build/> element of pom.xml.
+
+2. Reporting plugins :
+They execute during the site generation process and they should be configured in the <reporting/> element of the pom.xml.
+
+#====================================================================================================
+# Q : What is Maven Plugins ?
+==> Maven plugins are essential components in the Apache Maven build system, designed to extend its functionality. They perform tasks such as compilation, testing, packaging, deployment, and others.
+
+1. Maven plugins execute predefined goals like compile, test, package, and deploy.
+2. They are configured in the POM (Project Object Model) file under the <plugins> section.
+3. Plugins support customization through configurations to suit project-specific requirements.
+
+#====================================================================================================
+# Q : Types of Maven Plugins
+Maven plugins are categorized based on their role in building the project and generating reports.
+
+1. Build Plugins
+These plugins are executed during the build process, and they are defined in the <build> section in the pom.xml file. For example, the Compiler Plugin, Surefire Plugin, and Assembly Plugin.
+
+Common Build Plugins:
+
+  1. Compiler Plugin: Compiles Java source code into bytecode.
+
+  2. Surefire Plugin: Runs unit tests using frameworks like JUnit or TestNG.
+
+  3. Failsafe Plugin: Executes integration tests, typically for verifying larger system components.
+
+  4. JAR Plugin: Packages compiled code into a JAR (Java Archive) file.
+
+  5. WAR Plugin: Creates a WAR (Web Archive) file for web applications.
+
+  6. Assembly Plugin: Builds custom distributions, such as ZIP files containing project artifacts.
+
+  7. Spring Boot Maven Plugin: Packages Spring Boot applications into executable JARs or WARs.
+
+2. Reporting Plugins
+These plugins are used for generating reports about the project. These are defined in the <reporting> section in the pom.xml file. Examples include the Surefire Report Plugin for generating test reports and the Javadoc Plugin for generating API documentation.
+
+#====================================================================================================
+# Q : Maven Compiler Plugin
+==> The Maven Compiler Plugin is used to compile Java source code in a Maven project. It uses the javax.tools.JavaCompiler by default to compile both main and test source files during the build lifecycle.
+
+  1. compile goal compiles main source code (compile phase)
+  2. test-compile goal compiles test code (test-compile phase)
+  3. Uses JavaCompiler as the default compiler (since version 3.0)
+
+Example: Maven Compiler Plugin Dependency
+
+<dependencies>
+  <!-- Define dependencies required by the project -->
+  <dependency>
+    <!-- Specifies the group ID for the JUnit framework -->
+    <groupId>junit</groupId>
+     <!-- Specifies the artifact ID for the JUnit framework -->
+    <artifactId>junit</artifactId>  
+    <version>3.13.0</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+
+Troubleshooting of Maven compiler plugin
+1. By checking the Java version: Make sure the Java version you're using is compatible with the source version. Please ensure that you have the right Java version.
+
+2. By verifying the Maven version: Ensure that you are using the most recent and updated version of Maven.
+
+3. By checking Maven Plugins: Ensure that all needed plugins are installed. They must be included in the '.xml' file for your project.
+
+#====================================================================================================
+# Q : Key configuration elements of the Maven Compiler Plugin
+==> 
+1. <target>: Describes which Java version of the resulting bytecode should be utilized. for instance, Take \target>1.9</target>.
+
+2. <source>: Indicates the Java version of the source code that should be utilized. for instance, Take \source>1.9</source>.
+
+3. <fork>: Indicates if the compiler should run in a different process. As an example, take 
+<fork>true</fork>
+
+4. <encoding>: Configures the source files' character encoding.
+
+5. <compilerVersion>: It indicates the compiler version to be used
+
+#====================================================================================================
+# Q : Maven Surefire Plugin
+==> The Maven Surefire Plugin is the standard, built-in testing engine for Apache Maven, designed explicitly to execute the unit tests of an application during the test phase of the build lifecycle. It bridges the gap between your Maven build process and Java testing frameworks like JUnit and TestNG
+
+Maven Surefire Plugin is used to run unit tests in a Maven project during the testing phase of the build lifecycle. It automatically executes test cases and generates test reports after execution.
+
+1. Runs unit tests during the test phase
+
+2. Generates reports in XML (default) and plain text (.txt) formats
+
+3. Helps in analyzing test results after execution
+
+Implementation of the Maven Surefire Plugin
+
+Step 1: Add Surefire Plugin to pom.xml
+Maven proposes defining the version of the plugin we wish to use in the pom.xml file.
+
+<plugin>
+   <groupId>org.apache.maven.plugins</groupId>
+   <artifactId>maven-surefire-plugin</artifactId>
+   <version> 3.1.0- M7</version>
+</plugin>
+
+Step 2: Configure Surefire Plugin
+The Surefire plugin supports JUnit and TestNG frameworks. Its behavior is consistent across both. You can control which tests to include or exclude using <includes> and <excludes> parameters.
+
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>3.2.5</version> 
+    <configuration>
+        <!-- List of test classes to exclude from the test run -->
+        <excludes>
+            <exclude>DataTest.java</exclude> <!-- This file will be excluded from the test execution -->
+        </excludes>
+        <!-- List of test classes to include in the test run -->
+        <includes>
+            <include>DataCheck.java</include> <!-- Only this file will be included in the test execution -->
+        </includes>
+    </configuration>
+</plugin>
+Explanation:
+
+It is simple to handle such circumstances, use the <includes> and <excludes> arguments to define the plugin.
+The <include> parameter includes all the files named within it for unit testing.
+Similarly, the <exclude> argument excludes files from the testing procedure.
+
+Step 3: Run a Single Test Case
+We can run a specific test class using the command:
+
+mvn surefire:test -Dtest=TestCircle
+
+Step 4: Skipping Tests on the Surefire Plugin
+We can set the skipTests property to true in a project's POM file. This attribute will keep that project out of unit testing.
+
+#====================================================================================================
+# Q : What is Surefire Plugin ? 
+==> Surefire is the Maven plugin that runs your unit tests during the test phase of the build lifecycle. It forks a JVM (by default), runs the tests using a provider for your test framework (JUnit 4, JUnit 5, TestNG) and writes the results as reports. If any test fails, the build fails.
+
+It is bound to the test phase by default, so it runs on mvn test, mvn package, mvn install and so on, and you don’t need to declare it for basic use. You declare it when you want to configure it, or to pin a version.
+
+Surefire vs Failsafe:
+	 		  | Surefire				| Failsafe
+1. Phase		  | test				| integration-test and verify
+2. Default file patterns  | Test*, *Test, *Tests, *TestCase	| IT*, *IT, *ITCase
+3. On failure		  | Build fails immediately		| Lets post-integration-test (cleanup) run, then verify fails
+4. Used for	          | Unit tests				| Integration tests
+
+In a framework with UI/API suites, I use Failsafe for the heavier tests, so server shutdown or teardown still happens even when tests fail.
+
+Where it sits in the lifecycle
+
+validate → compile → test-compile → **test (Surefire)** → package → verify → install → deploy
+
+So the code and test code must compile before Surefire runs.
+
+Basic configuration
+xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-surefire-plugin</artifactId>
+      <version>3.2.5</version> <!-- always pin a version -->
+      <configuration>
+        <!-- settings go here -->
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
+
+I always pin the version. Maven’s default bound version can be old, and older Surefire versions don’t properly support JUnit 5.
+
+How it picks tests
+
+By default, it includes classes matching:
+
+**/Test*.java
+**/*Test.java
+**/*Tests.java
+**/*TestCase.java
+
+It excludes nested classes and abstract classes. So a class named LoginSteps.java or Runner.java is not picked up. This is a common reason for “my tests aren’t running”.
+
+You can override with includes and excludes:
+
+xml
+<configuration>
+  <includes>
+    <include>**/*Runner.java</include>
+  </includes>
+  <excludes>
+    <exclude>**/*IT.java</exclude>
+  </excludes>
+</configuration>
+
+This is how I make a Cucumber TestRunner class run, because its name doesn’t match the default patterns.
+
+Running specific tests from the command line
+bash
+mvn test -Dtest=LoginTest                    # one class
+mvn test -Dtest=LoginTest#validLogin         # one method
+mvn test -Dtest="LoginTest,CartTest"         # several classes
+mvn test -Dtest="*Smoke*"                    # pattern
+mvn test -Dtest=LoginTest -DfailIfNoTests=false
+
+Note that -Dtest overrides the include and exclude patterns.
+
+Running TestNG suites (very common in automation)
+
+Point Surefire to your suite XML:
+
+xml
+<configuration>
+  <suiteXmlFiles>
+    <suiteXmlFile>testng.xml</suiteXmlFile>
+  </suiteXmlFiles>
+</configuration>
+
+Or make it switchable from the command line (useful for Jenkins):
+
+xml
+<suiteXmlFiles>
+  <suiteXmlFile>${suiteFile}</suiteXmlFile>
+</suiteXmlFiles>
+bash
+mvn test -DsuiteFile=regression.xml
+
+If a suiteXmlFile is set, Surefire runs the suite instead of scanning for test classes.
+
+Providers (how it talks to the test framework)
+
+Surefire doesn’t run tests itself. It delegates to a provider, chosen automatically from your dependencies:
+
+surefire-junit4: JUnit 4 (and JUnit 3)
+surefire-junit-platform: JUnit 5 (Jupiter)
+surefire-testng: TestNG
+
+If both JUnit and TestNG are on the classpath, behavior can get confusing, so I keep one framework per module, or I explicitly add the provider as a plugin dependency.
+
+For JUnit 5, you need the junit-jupiter dependency and Surefire 2.22.0 or higher (I’d use 3.x).
+
+Parallel execution
+xml
+<configuration>
+  <parallel>classes</parallel>   <!-- methods, classes, both -->
+  <threadCount>4</threadCount>
+  <perCoreThreadCount>false</perCoreThreadCount>
+</configuration>
+
+For TestNG, parallelism is usually better set in the suite XML (parallel="methods" thread-count="4"). For JUnit 5, use junit-platform.properties for parallel config. When tests run in parallel, they must be thread-safe: I use ThreadLocal<WebDriver>, avoid shared static state and keep test data independent.
+
+There is also forking, which is separate from threads:
+
+xml
+<forkCount>2</forkCount>
+<reuseForks>true</reuseForks>
+forkCount: number of JVM processes (1C means one per CPU core).
+reuseForks=true: reuse each JVM for several test classes (faster). false starts a fresh JVM per class, which is slower but fully isolated.
+Passing properties and arguments to tests
+
+System properties:
+
+xml
+<configuration>
+  <systemPropertyVariables>
+    <browser>${browser}</browser>
+    <env>${env}</env>
+  </systemPropertyVariables>
+</configuration>
+bash
+mvn test -Dbrowser=chrome -Denv=qa
+
+Important: -D values on the Maven command line don’t automatically reach the forked test JVM in every setup. Passing them through systemPropertyVariables (or argLine) makes sure they arrive. Inside the test, read them with System.getProperty("browser").
+
+JVM arguments (heap size, JaCoCo agent, etc.):
+
+xml
+<argLine>-Xmx1024m -Dfile.encoding=UTF-8</argLine>
+
+If you use JaCoCo, its agent is injected through argLine. Overriding argLine without @{argLine} can break coverage:
+
+xml
+<argLine>@{argLine} -Xmx1024m</argLine>
+Rerunning failed tests (flaky test handling)
+xml
+<configuration>
+  <rerunFailingTestsCount>2</rerunFailingTestsCount>
+</configuration>
+
+If a test fails and then passes on a retry, Surefire marks it as a “flake” rather than a failure. It’s handy for UI tests, but I treat it as a bandage and fix the root cause.
+
+Controlling failures
+xml
+<testFailureIgnore>true</testFailureIgnore>
+
+Build continues even when tests fail. I use it when a later step (like publishing reports) must run, but the Jenkins job should still be marked unstable from the reports. Equivalent flag: -Dmaven.test.failure.ignore=true.
+
+xml
+<skipAfterFailureCount>1</skipAfterFailureCount>
+
+Stops running remaining tests after the first N failures.
+
+xml
+<failIfNoTests>false</failIfNoTests>
+
+Doesn’t fail if no tests match.
+
+Skipping tests
+Flag	Effect
+-DskipTests	Compiles tests but doesn’t run them
+-Dmaven.test.skip=true	Skips compiling and running tests
+-DskipITs	Skips Failsafe integration tests (if configured)
+
+The difference between the first two is a classic interview question: skipTests still compiles test code, maven.test.skip doesn’t compile it at all (so the test-jar is also not built).
+
+Reports
+
+Default output goes to target/surefire-reports/:
+
+TEST-*.xml: JUnit-style XML (what Jenkins reads)
+*.txt: plain-text summary per class
+*.dump and *.dumpstream: diagnostics if the forked JVM crashes
+
+For an HTML report:
+bash
+mvn surefire-report:report      # generates target/site/surefire-report.html
+
+or use the maven-surefire-report-plugin in the reporting section.
+
+In Jenkins, I publish the XML with junit '**/target/surefire-reports/*.xml'. For richer reports in BDD frameworks, I add Cucumber, Extent or Allure reporting on top.
+
+Useful settings in one place
+xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <version>3.2.5</version>
+  <configuration>
+    <suiteXmlFiles>
+      <suiteXmlFile>${suiteFile}</suiteXmlFile>
+    </suiteXmlFiles>
+    <systemPropertyVariables>
+      <browser>${browser}</browser>
+      <env>${env}</env>
+    </systemPropertyVariables>
+    <argLine>-Xmx1024m</argLine>
+    <rerunFailingTestsCount>1</rerunFailingTestsCount>
+    <testFailureIgnore>false</testFailureIgnore>
+    <forkCount>1</forkCount>
+    <reuseForks>true</reuseForks>
+  </configuration>
+</plugin>
+Profiles (running different suites per environment)
+xml
+<profiles>
+  <profile>
+    <id>smoke</id>
+    <properties><suiteFile>smoke.xml</suiteFile></properties>
+  </profile>
+  <profile>
+    <id>regression</id>
+    <properties><suiteFile>regression.xml</suiteFile></properties>
+  </profile>
+</profiles>
+bash
+mvn test -Psmoke
+
+Common problems and fixes
+
+1. “No tests were executed”: class names don’t match the include patterns, the JUnit 5 provider is missing, or suiteXmlFile points to the wrong path. Fix the names, add includes, or upgrade Surefire.
+2. Tests run with JUnit 4 instead of 5: Surefire version too old. Upgrade to 3.x.
+3. Properties are null in tests: not passed via systemPropertyVariables or argLine.
+4. “The forked VM terminated without properly saying goodbye”: the JVM crashed or System.exit was called. Check the .dump files, memory settings (-Xmx) and native library issues.
+5. Build passes locally but fails on Jenkins: differences in JDK version, timezone, encoding, headless display or parallel settings.
+6. Cucumber runner isn’t running: the name doesn’t match the defaults, so use <include>**/*Runner.java</include> or -Dtest=TestRunner.
+7. Out of memory: increase -Xmx, lower parallel threads or use reuseForks=false.
+
+Interview-ready summary
+
+“Surefire is the Maven plugin that executes unit tests in the test phase. It forks a JVM, uses a provider for JUnit or TestNG, and writes reports to target/surefire-reports. In my framework I configure it to run a TestNG suite file passed in with -DsuiteFile, pass browser and env through systemPropertyVariables, set argLine for memory, and use rerunFailingTestsCount for flaky UI tests. Jenkins reads the XML reports to show results. For integration tests, I’d use Failsafe, which runs in the integration-test phase and lets teardown run even if tests fail.”
+
+#=========================================================================================================================================
+1. Basics
+
+Q1. What is Maven, and why do we use it?
+Maven is a build automation and project management tool, mainly for Java. It follows “convention over configuration”: a standard project layout, a standard lifecycle and one central file (pom.xml) that describes the project. It handles dependencies, builds, testing, packaging and releases, so every developer and the CI server build the project the same way.
+
+Q2. What does Maven manage?
+Builds, dependencies, documentation, reports, SCM info and releases.
+
+Q3. Maven vs Ant?
+Ant is procedural: you write every step yourself in build.xml, there’s no standard structure and no built-in dependency management. Maven is declarative: you describe the project, and it uses a standard lifecycle, reusable plugins and automatic dependency download. Maven needs far less scripting.
+
+Q4. Maven vs Gradle?
+Maven uses XML, is simple and standardized and has a huge ecosystem. Gradle uses a Groovy or Kotlin DSL, is more flexible and usually faster thanks to incremental builds and caching. I’ve mostly used Maven, because most of our Java and test automation projects were already on it.
+
+Q5. What is the standard directory structure?
+
+project/
+├── pom.xml
+├── src/
+│   ├── main/java         # application code
+│   ├── main/resources    # config files
+│   ├── test/java         # test code
+│   └── test/resources    # test data, testng.xml, properties
+└── target/               # build output (generated)
+
+Q6. What is a POM?
+The Project Object Model, an XML file (pom.xml) at the project root. It defines the coordinates (groupId, artifactId, version), packaging, dependencies, plugins, properties, profiles and repositories.
+
+Q7. What are the minimum elements in a POM?
+modelVersion, groupId, artifactId and version. Packaging defaults to jar.
+
+Q8. What are Maven coordinates?
+groupId (organization or project group), artifactId (module name) and version, plus optionally packaging and classifier. Together they uniquely identify an artifact. Example: org.seleniumhq.selenium:selenium-java:4.x.
+
+Q9. What is an artifact?
+The file the build produces or consumes (JAR, WAR, POM and so on), identified by its coordinates and stored in repositories.
+
+Q10. What is the Super POM?
+The default parent that every POM implicitly inherits from. It supplies default settings, such as the standard directory structure, the Central repository and default plugin versions.
+
+2. Lifecycle, phases and goals
+
+Q11. What are the three built-in lifecycles?
+
+default: builds and deploys the project
+clean: removes previous build output
+site: generates project documentation
+
+Q12. Explain the default lifecycle phases.
+validate → compile → test → package → verify → install → deploy (plus others like process-resources and test-compile). Running a phase runs all the phases before it in order.
+
+Q13. What does each key phase do?
+
+compile: compiles main source
+test: runs unit tests (Surefire)
+package: creates the JAR or WAR in target/
+verify: runs integration test checks and quality gates
+install: copies the artifact into the local ~/.m2 repo
+deploy: uploads it to a remote repository
+
+Q14. Phase vs goal?
+A phase is a stage of the lifecycle. A goal is a specific task provided by a plugin, written plugin:goal (like compiler:compile or surefire:test). Goals are bound to phases, so when a phase runs, its bound goals execute.
+
+Q15. mvn clean install vs mvn clean package?
+Both clean target/ and build. package stops after creating the artifact in target/. install goes further and puts it into the local repository, so other local projects can depend on it.
+
+Q16. What happens when I run mvn clean test?
+clean deletes target/, then Maven runs the default lifecycle up to test: validate, compile, test-compile and test. Surefire runs the tests. It stops before packaging.
+
+Q17. What’s the difference between mvn test and mvn surefire:test?
+mvn test runs the whole lifecycle up to the test phase, so it compiles first. mvn surefire:test invokes only the Surefire goal and assumes everything is already compiled.
+
+Q18. How do you skip tests?
+-DskipTests compiles the tests but doesn’t run them. -Dmaven.test.skip=true doesn’t compile or run them. I use the first in most cases, because test-jars or modules that depend on the test classes still work.
+
+Q19. How do you build offline?
+mvn -o clean install. It only works if all dependencies and plugins are already in the local repo.
+
+3. Dependencies
+
+Q20. How do you add a dependency?
+
+xml
+<dependencies>
+  <dependency>
+    <groupId>org.testng</groupId>
+    <artifactId>testng</artifactId>
+    <version>7.9.0</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+
+Maven downloads it (and its transitive dependencies) from the repository.
+
+Q21. Explain dependency scopes.
+
+compile (default): on the classpath for compile, test and runtime, and packaged
+provided: needed to compile, but supplied at runtime by the container or JDK (like servlet-api)
+runtime: not needed to compile, but needed to run (like a JDBC driver)
+test: only for compiling and running tests (JUnit, TestNG, Mockito)
+system: like provided, but you point to a local JAR with systemPath. It’s discouraged.
+import: used only in dependencyManagement with a pom type to import a BOM
+
+In test automation projects, Selenium, REST Assured and TestNG are often declared with test scope when the code lives in src/test. If the framework code lives in src/main, they need compile scope.
+
+Q22. What are transitive dependencies?
+Dependencies of your dependencies. If I add A, and A needs B, Maven pulls in B automatically. This saves effort, but it can bring in conflicting versions.
+
+Q23. How does Maven resolve version conflicts?
+By “nearest definition wins”: the version closest to my project in the dependency tree is used. If two are at the same depth, the first declared wins. To avoid surprises, I declare the version I want directly in my POM or in dependencyManagement.
+
+Q24. How do you see the dependency tree?
+mvn dependency:tree. For one library, mvn dependency:tree -Dincludes=groupId:artifactId. It’s my main tool for debugging conflicts and “NoSuchMethodError” or “ClassNotFound” issues.
+
+Q25. How do you exclude a transitive dependency?
+
+xml
+<dependency>
+  <groupId>org.example</groupId>
+  <artifactId>lib</artifactId>
+  <version>1.0</version>
+  <exclusions>
+    <exclusion>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+
+A typical case is excluding an extra logging binding that clashes with SLF4J.
+
+Q26. dependencies vs dependencyManagement?
+<dependencies> actually adds dependencies to the project. <dependencyManagement> only declares versions and scopes in one place. Nothing is added until a module lists the dependency (without a version). It’s used in parent POMs of multi-module projects to keep versions consistent.
+
+Q27. What is a BOM?
+A Bill of Materials is a POM that defines compatible versions of a set of libraries. I import it in dependencyManagement with <scope>import</scope> and <type>pom</type>, so I don’t specify each version myself. Spring Boot’s BOM is a common example.
+
+Q28. What are optional dependencies?
+Marked <optional>true</optional>. They’re used by this project but are not passed on to projects that depend on it.
+
+Q29. A dependency version was updated in the POM but Maven still uses the old one. What could be wrong?
+Possible causes: a different version is winning through the “nearest wins” rule, dependencyManagement in the parent overrides it, a stale artifact is in the local repo, or the IDE hasn’t reloaded. I run mvn dependency:tree, check parent POMs, then mvn clean install -U to force-update snapshots and re-resolve.
+
+Q30. SNAPSHOT vs release versions?
+1.0-SNAPSHOT is a development version that can change, and Maven can re-download it (-U forces a check). A release version like 1.0.0 is fixed and shouldn’t change once published.
+
+4. Repositories and settings
+
+Q31. What are the Maven repository types?
+
+Local: on my machine, default ~/.m2/repository
+Central: the public repo hosted by the Maven community (repo.maven.apache.org)
+Remote: any other repo, usually a company one such as Nexus or Artifactory
+
+Maven looks in the local repo first, then remote ones, and caches downloads locally.
+
+Q32. What is settings.xml and where is it?
+It holds user and environment-specific configuration such as proxies, mirrors, server credentials and active profiles. There are two: global at ${MAVEN_HOME}/conf/settings.xml and user-level at ~/.m2/settings.xml. The user-level one overrides the global one. I keep credentials there rather than in the POM.
+
+Q33. How do you change the local repository location?
+Set <localRepository> in settings.xml, or pass -Dmaven.repo.local=/path.
+
+Q34. What is a mirror?
+A redirect for repository requests. A company usually mirrors Central to its own Nexus or Artifactory, so all downloads go through one controlled, cached place.
+
+Q35. What’s the difference between pom.xml and settings.xml?
+pom.xml is project-specific and committed with the code. settings.xml is user- or machine-specific (credentials, proxies) and isn’t committed.
+
+Q36. How do you deploy an artifact to a remote repository?
+Configure <distributionManagement> in the POM with the repository URL, put credentials for the matching server id in settings.xml, and run mvn deploy.
+
+5. Plugins
+
+Q37. What is a Maven plugin?
+Maven itself is a core engine, and all real work is done by plugins. Each plugin provides goals, such as compile, test, package and deploy. Two types: build plugins (run during the build) and reporting plugins (run during site generation).
+
+Q38. Name some commonly used plugins.
+maven-compiler-plugin, maven-surefire-plugin, maven-failsafe-plugin, maven-jar-plugin, maven-war-plugin, maven-shade-plugin (fat JARs), maven-dependency-plugin, maven-clean-plugin, maven-site-plugin, maven-release-plugin and jacoco-maven-plugin.
+
+Q39. How do you set the Java version?
+
+xml
+<properties>
+  <maven.compiler.source>17</maven.compiler.source>
+  <maven.compiler.target>17</maven.compiler.target>
+</properties>
+
+or <maven.compiler.release>17</maven.compiler.release>, or configure maven-compiler-plugin directly.
+
+Q40. What is the purpose of the Surefire plugin?
+It runs unit tests from src/test/java during the test phase, by forking a JVM and using a provider for JUnit or TestNG. By default it picks up classes matching *Test, Test*, *Tests and *TestCase. For other names, such as a Cucumber TestRunner, I configure includes. It also generates reports in target/surefire-reports.
+
+Q41. Surefire vs Failsafe?
+Surefire runs unit tests in the test phase, and a failure stops the build. Failsafe runs integration tests in integration-test and verify, so teardown (like stopping a server) still runs even when tests fail. Failsafe uses names like *IT.
+
+Q42. How do you run a TestNG suite file with Maven?
+
+xml
+<plugin>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <version>3.2.5</version>
+  <configuration>
+    <suiteXmlFiles>
+      <suiteXmlFile>${suiteFile}</suiteXmlFile>
+    </suiteXmlFiles>
+  </configuration>
+</plugin>
+bash
+mvn clean test -DsuiteFile=testng.xml
+
+Q43. How do you run Cucumber tags from the command line?
+
+bash
+mvn test -Dcucumber.filter.tags="@smoke and not @wip"
+
+For older Cucumber versions the property is -Dcucumber.options="--tags @smoke". The runner class must be picked up by Surefire.
+
+Q44. How do you pass parameters (browser, environment) to tests?
+From the command line with -Dbrowser=chrome -Denv=qa, then read them in code with System.getProperty("browser"). To make sure they reach the forked test JVM, I pass them through systemPropertyVariables in the Surefire configuration.
+
+Q45. How do you run a single test or method?
+mvn test -Dtest=LoginTest or -Dtest=LoginTest#validLogin.
+
+Q46. How do you create an executable (“fat”) JAR?
+Use maven-shade-plugin or maven-assembly-plugin, which bundle the dependencies into one JAR with a Main-Class manifest entry. Spring Boot projects use spring-boot-maven-plugin.
+
+6. Profiles, properties and multi-module projects
+
+Q47. What are Maven profiles?
+Profiles let me customize the build for different environments or purposes, for example dev, qa and prod, or smoke vs regression. A profile can change properties, dependencies, plugins and resources.
+
+xml
+<profiles>
+  <profile>
+    <id>qa</id>
+    <properties><env>qa</env></properties>
+  </profile>
+</profiles>
+
+Q48. How can profiles be activated?
+
+Command line: mvn test -Pqa
+<activeByDefault>true</activeByDefault>
+Based on a property: -Denv=qa
+Based on an OS, JDK version or file present
+Through <activeProfiles> in settings.xml
+
+Q49. What are properties in a POM?
+Variables defined in <properties> and used with ${name}. I use them for versions (${selenium.version}), encodings and the Java version, so a version is changed in one place. Built-in ones include ${project.version}, ${basedir} and ${project.build.directory}.
+
+Q50. What is a multi-module project?
+A parent POM with <packaging>pom</packaging> and a <modules> section listing child modules. The parent holds shared configuration (dependencyManagement, plugin versions), and building the parent builds all modules in the right order, based on their dependencies.
+
+Q51. Inheritance vs aggregation?
+Inheritance: a child POM uses <parent> and inherits dependencies, plugins and properties from the parent. Aggregation: a parent lists <modules> so they build together. They’re often combined but independent.
+
+Q52. What are Maven resource filtering and src/test/resources?
+Resource filtering replaces ${...} placeholders in resource files with property values during the build. src/test/resources is the place for test-only files such as testng.xml, config.properties and test data, and it’s on the test classpath.
+
+7. Troubleshooting and scenarios
+
+Q53. The build fails with “Could not resolve dependencies”. What do you check?
+Whether the coordinates and version are correct, whether the artifact exists in the repos I’m using, network, proxy and mirror settings in settings.xml, credentials for private repos and a corrupt local cache. I delete the relevant folder in ~/.m2/repository or run with -U, and use -X for debug output.
+
+Q54. Tests aren’t running with mvn test. Why?
+Class names don’t match the Surefire patterns, the test is in src/main instead of src/test, an old Surefire version doesn’t support JUnit 5, skipTests is set in the POM or a profile, or the TestNG suite file path is wrong. I fix the naming or add includes, and upgrade Surefire to 3.x.
+
+Q55. Build works locally but fails on Jenkins. What could be different?
+JDK or Maven version, missing credentials or settings.xml, different environment variables, network and proxy access, case-sensitive file paths on Linux and a polluted workspace. I use the Maven Wrapper (mvnw) to pin the Maven version, and run a clean build.
+
+Q56. What is the Maven Wrapper?
+mvnw / mvnw.cmd scripts and a .mvn/wrapper folder committed to the repo. They download and use the exact Maven version the project needs, so nobody (including CI) has to install Maven first.
+
+Q57. How do you speed up Maven builds?
+-T 1C for parallel module builds, -o offline when possible, skip unneeded steps (-DskipTests for packaging-only builds, -Dmaven.javadoc.skip=true), cache ~/.m2 on CI, split fast unit tests from slower integration tests and avoid clean when not needed.
+
+Q58. How do you find unused or undeclared dependencies?
+mvn dependency:analyze. It lists used-but-undeclared and declared-but-unused dependencies.
+
+Q59. How do you generate a new Maven project?
+
+bash
+mvn archetype:generate -DgroupId=com.example -DartifactId=my-app \
+  -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+
+An archetype is a project template, and this command creates the standard structure from it.
+
+Q60. How do you do a release with Maven?
+With maven-release-plugin: mvn release:prepare (updates versions, commits and tags in SCM) and mvn release:perform (builds the tagged version and deploys it). Many teams now use simpler CI-driven versioning instead.
+
+8. How I’d explain my Maven experience
+
+“I use Maven for dependency and build management in Java test automation projects. The pom.xml holds Selenium, TestNG, REST Assured and Cucumber dependencies, with versions in properties. I configure the Surefire plugin to run a TestNG suite file or a Cucumber runner and pass browser and environment values with -D through systemPropertyVariables. I use profiles for smoke and regression runs, and Jenkins runs mvn clean test -Pregression, then publishes the Surefire XML reports. When there are dependency conflicts, I use mvn dependency:tree and exclusions or dependencyManagement to fix them.”
+
+Quick-revision commands:
+
+Task				| Command
+1. Clean + run tests		| mvn clean test
+2. Build and install locally	| mvn clean install
+3. Skip tests			| mvn install -DskipTests
+4. Run one test			| mvn test -Dtest=LoginTest#validLogin
+5. Run profile			| mvn test -Pqa
+6. Dependency tree		| mvn dependency:tree
+7. Force update snapshots	| mvn clean install -U
+8. Debug output			| mvn test -X
+9. Parallel build		| mvn -T 1C clean install
+
+I can combine Git, Jenkins and Maven into one study sheet (Word or PDF), build a complete pom.xml for a Selenium + TestNG + Cucumber framework, or run a mock interview round on any of these.
+
+#====================================================================================================
+# Q : Difference Between “mvn verify” and “mvn test”
+
+==> In Maven, the build lifecycle consists of multiple phases. The test phase runs only unit tests to check that the code works correctly. The verify phase comes later in the lifecycle and includes running tests along with additional validations to ensure the project is consistent, complete, and ready for deployment.
+
+mvn test: Executes unit tests only.
+mvn verify: Runs tests and extra validation checks.
+
+1. mvn verify :
+The mvn verify command in Maven is used to execute the verify phase, which occurs later in the build lifecycle than the test phase. This command runs not only unit tests but also any integration tests, and it checks to ensure that the package is valid and meets quality requirements.
+command :  mvn verify
+Working of mvn verify:
+1. Compiles the code: It compiles the source code.
+
+2. Compiles the tests: It compiles the test source code.
+
+3. Runs the tests: It runs the unit tests.
+
+4. Additional checks: It performs any checks defined in the lifecycle, such as integration tests and any other checks defined by the project’s configuration.
+
+2. mvn test:
+The mvn test command runs in the test phase of the Maven build lifecycle. This phase is designed specifically to execute the unit tests that are present in the project.
+
+Working of mvn test:
+1. Compiles the code: Maven compiles the main source code.
+
+2. Compiles the tests: Maven compiles the test source code.
+
+3. Runs the tests: Maven runs the tests using a test framework such as JUnit or TestNG.
+Syntax:
+
+mvn test
+
+Feature 		  | mvn test			   	| mvn verify
+1. Purpose		  | Runs unit tests.		   	| Runs unit tests, integration tests, and additional  checks.
+2. Build Life cycle Phase | Executes up to the test phase. 	| Executes up to the verify phase.
+3. Compilation		  | Compiles main and test code.   	| Compiles main and test code.
+4. Unit Tests		  | Runs unit tests.		   	| Runs unit tests.
+5. Integration Tests	  | Does not run integration tests.	| Runs integration tests.
+6. Additional Verification| No additional verification steps	| Performs additional verification steps.
+7. Typical Use Case	  | Quick verification of code changes  | Comprehensive validation before  deployment.
+8. Plugins Used		  | maven-surefire-plugin	 	| maven-surefire-plugin, maven-failsafe-plugin
+9. Configuration Scope	  | Focuses on unit tests located in	| Includes integration tests typically in 
+			  | src/test/java		     	| src/it/java
+10. Feedback Speed	  | Faster, since it runs fewer checks  | Slower, due to more extensive checks and tests.
+11. Command		  | mvn test				| mvn verify
+
+#====================================================================================================
+#  Git Interview
+#====================================================================================================
+
+1. Basics
+
+Q1. What is Git, and why do we use it?
+Git is a distributed version control system. Every developer has the full repository and history locally, so I can commit, branch and view logs offline. It lets a team work in parallel on branches and merge safely, and I can roll back to any earlier state.
+
+Q2. Git vs GitHub?
+Git is the tool that runs locally. GitHub (like GitLab or Bitbucket) is a hosting service for Git repositories. It adds pull requests, code review, issues and CI integration.
+
+Q3. Git vs SVN?
+SVN is centralized, with one server holding the history, so most operations need network access. Git is distributed, which makes branching and merging cheap and fast. In SVN, branches are heavy copies.
+
+Q4. What are the three areas in Git?
+Working directory, staging area (index) and repository. I edit files in the working directory. git add moves changes to the staging area, and git commit records them in the repository. Staging lets me commit only part of my changes.
+
+Q5. What does .git contain?
+It holds the object database (commits, trees, blobs), refs (branches and tags), HEAD, the index and config. If I delete it, the folder is no longer a repository.
+
+Q6. What is HEAD?
+HEAD is a pointer to the commit I’m currently on, usually via the current branch. If it points directly to a commit instead of a branch, I’m in “detached HEAD” state.
+
+Q7. Which commands do you use daily?
+git status, git add, git commit, git pull --rebase, git push, git checkout -b or git switch -c, git log --oneline --graph, git diff, git stash.
+
+Q8. What is .gitignore?
+It lists the files Git should not track, such as target/, node_modules/, .idea/, logs and .env. It only affects untracked files. If a file is already tracked, I run git rm --cached <file> first.
+
+2. Everyday commands
+
+Q9. git fetch vs git pull?
+fetch downloads remote changes but doesn’t touch my working branch. pull is fetch plus a merge, or plus a rebase with --rebase. I usually fetch first and inspect with git log HEAD..origin/main, or just use git pull --rebase on my own feature branch.
+
+Q10. git clone vs git fork?
+clone is a Git command that copies a repository to my machine. A fork is a GitHub feature that creates my own server-side copy of someone else’s repo. I fork to contribute to repos where I don’t have write access, then clone my fork.
+
+Q11. How do you undo changes?
+It depends on where the change is:
+
+Unstaged: git restore <file>
+Staged: git restore --staged <file>
+Committed but not pushed: git reset
+Already pushed: git revert
+
+Q12. git reset vs git revert?
+reset moves the branch pointer back and rewrites history. I use it only on local, unpushed work. revert creates a new commit that undoes an earlier one, so history stays intact. That makes it the right choice on shared branches like main.
+
+Q13. Explain --soft, --mixed and --hard.
+All three move HEAD. --soft keeps changes staged. --mixed (the default) keeps changes in the working directory but unstaged. --hard discards changes completely, so I’m careful with it.
+
+Q14. How do you amend the last commit?
+git commit --amend changes the message or adds forgotten files. I only do it if the commit isn’t pushed. Otherwise I’d need a force push, and I’d use --force-with-lease.
+
+Q15. How do you remove a file from Git but keep it locally?
+git rm --cached <file>, then add it to .gitignore and commit.
+
+3. Branching and merging
+
+Q16. Why use branches?
+Branches isolate work like features, bug fixes and releases so main stays stable. In my team, every Jira ticket gets its own branch, for example feature/PROJ-123-login-fix. It merges to main through a pull request after review and a green CI run.
+
+Q17. Merge vs rebase?
+Merge combines two branches with a merge commit and preserves the true history. Rebase replays my commits on top of another branch, giving a linear history but new commit hashes. My rule is to rebase my own local feature branch to stay current with main, and to never rebase a branch others are using.
+
+Q18. Fast-forward vs three-way merge?
+If the target branch has no new commits since I branched, Git just moves the pointer forward (fast-forward). If both branches have diverged, Git creates a merge commit with two parents (three-way). --no-ff forces a merge commit even when a fast-forward is possible.
+
+Q19. How do you resolve a merge conflict?
+
+Run git status to see the conflicted files.
+Open each file and look at the <<<<<<<, ======= and >>>>>>> markers.
+Decide which change is correct, or combine both, and remove the markers.
+Run git add <file>.
+Finish with git commit (or git rebase --continue).
+Build and run the tests before pushing.
+
+If I get lost, git merge --abort returns me to the pre-merge state. For tricky conflicts I also talk to the person who wrote the other change.
+
+Q20. How do you avoid conflicts?
+I keep branches short-lived, pull or rebase from main often, make small focused PRs and communicate when two people touch the same files.
+
+Q21. What is git cherry-pick?
+It applies one specific commit from another branch onto my current branch. It creates a new commit with the same changes but a different hash. I use it for hotfixes, such as pulling a bug fix from develop into a release branch, or when I committed on the wrong branch.
+
+Q22. What is squashing, and when do you do it?
+Squashing combines several commits into one, using git rebase -i HEAD~n and marking commits as squash or fixup, or git merge --squash. I squash noisy “WIP” or “fix typo” commits before merging so main has clean, meaningful history.
+
+Q23. What is interactive rebase?
+git rebase -i lets me edit a list of commits. I can reorder, reword, edit, squash, fixup or drop them. It’s for cleaning up local history before opening a PR.
+
+Q24. How do you delete a branch?
+Locally: git branch -d <name> (or -D to force). Remotely: git push origin --delete <name>.
+
+Q25. How do you rename a branch?
+git branch -m old new. If it’s already pushed, I push the new name, delete the old remote branch and update the upstream.
+
+4. Stash, tags, history
+
+Q26. What is git stash?
+It saves uncommitted changes temporarily so I can switch context. A typical case is an urgent bug while I’m midway through a feature. I run git stash push -m "msg", fix the bug, then restore with git stash pop (or apply, which keeps the stash). git stash list shows what I have saved.
+
+Q27. What are tags?
+Tags mark specific commits, usually releases like v1.2.0. Lightweight tags are just pointers. Annotated tags (git tag -a v1.2.0 -m "...") store author, date and message. Tags aren’t pushed by default, so I run git push origin --tags.
+
+Q28. How do you view history?
+git log --oneline --graph --decorate --all for the overall picture. git log -p <file> shows the changes to a file, and git log --author and --since filter by person and date.
+
+Q29. What does git blame do?
+It shows who last changed each line of a file and in which commit. I use it to find the context or the ticket behind a line, not to blame people.
+
+Q30. How do you find which commit introduced a bug?
+git bisect. I mark one good commit and one bad commit, and Git binary-searches through the range. I mark each step good or bad until it points to the culprit commit. It can be automated with git bisect run <test-script>.
+
+Q31. git diff vs git log?
+diff shows the actual content changes between states (working tree, staging, commits). log shows the commit history.
+
+5. Recovery and “oh no” scenarios
+
+Q32. What is git reflog, and when did you use it?
+Reflog records where HEAD and branches have pointed locally, including after resets and rebases. When I once did a reset --hard on the wrong commit, I used git reflog to find the earlier hash and ran git reset --hard <hash> to get it back. Reflog entries expire eventually, so recovery isn’t permanent.
+
+Q33. You committed to the wrong branch. What do you do?
+If it’s not pushed: git switch correct-branch, git cherry-pick <hash>, then go back to the wrong branch and git reset --hard HEAD~1. A quicker way is to create the right branch from where I am (git branch new-branch) and reset the old one.
+
+Q34. You pushed a secret (password or API key) to the repo. What now?
+First, rotate the secret immediately, because it’s compromised the moment it’s pushed. Then remove it from history with git filter-repo or BFG, force-push and ask teammates to re-clone or rebase. Deleting it in a new commit isn’t enough. To prevent it, I use .gitignore, environment variables and pre-commit secret scanners.
+
+Q35. You accidentally committed a large file. What do you do?
+If it isn’t pushed, I amend or reset the commit. If it is, I use git filter-repo or BFG to purge it. For legitimately large binaries going forward, I use Git LFS.
+
+Q36. You need to undo a bad merge on main that’s already pushed.
+git revert -m 1 <merge-commit> creates a commit that undoes the merge without rewriting history. The -m 1 tells Git to keep the first parent (the mainline).
+
+Q37. Your push was rejected. Why?
+Usually the remote has commits I don’t have locally. I run git pull --rebase, resolve any conflicts and push again. I avoid --force. If I must force-push my own feature branch, I use --force-with-lease.
+
+6. Team workflow and advanced topics
+
+Q38. What branching strategy does your team use?
+We use a feature-branch workflow with pull requests: short-lived branches off main (or develop), mandatory code review, CI checks and a protected main. Other strategies include Git Flow (develop, release and hotfix branches), GitHub Flow (simple, deploy from main) and trunk-based development (very short branches and feature flags).
+
+Q39. What are Git hooks?
+Scripts that run on events such as pre-commit, commit-msg and pre-push. I’ve used them to run linters and unit tests and to enforce commit message formats before code leaves my machine. They live in .git/hooks, aren’t version-controlled by default, so teams share them using tools like Husky or pre-commit.
+
+Q40. What are submodules?
+They embed one Git repo inside another at a pinned commit. I’ve used them to share common code between projects. They need extra steps (git submodule update --init --recursive), so I use them sparingly.
+
+Q41. What is a bare repository?
+A repo with no working directory, containing only Git data. It’s used as a central remote that people push to and pull from. You can’t edit files in it directly.
+
+Q42. What is git remote?
+It manages connections to remote repositories. git remote -v lists them. origin is the default name for the one I cloned from. I can add another, such as upstream for the original repo when working with a fork.
+
+Q43. What does git pull --rebase change?
+Instead of creating a merge commit when my branch and the remote have diverged, it replays my local commits on top of the fetched remote commits. That keeps history linear and avoids noisy “Merge branch main into main” commits.
+
+Q44. How does Git store data internally?
+Git is a content-addressable store. It has four object types: blobs (file contents), trees (directories), commits (snapshot, parent, author, message) and tags. Each is identified by a SHA hash of its contents. Commits are snapshots, not diffs, and branches are just lightweight pointers to commits.
+
+Q45. How do you keep a fork in sync with the original repo?
+Add the original as upstream (git remote add upstream <url>), then git fetch upstream and git rebase upstream/main (or merge), and push to my fork.
+
+Q46. How do you use Git in CI/CD?
+Every push or PR triggers a pipeline (Jenkins or GitHub Actions) that builds, runs tests and reports status on the PR. main is protected, so merges need green checks and approvals. Release builds are triggered from tags.
+
+#====================================================================================================
+#  Jenkins Interview 
+#====================================================================================================
+
+1. Basics and CI/CD concepts
+
+Q1. What is Jenkins and why do we use it?
+Jenkins is an open-source automation server. It builds, tests and deploys code automatically whenever something changes, so we find integration problems early and release more often. Its plugin ecosystem lets it work with Git, Maven, Docker, Kubernetes, SonarQube and many other tools.
+
+Q2. What are CI, CD (delivery) and CD (deployment)?
+
+Continuous Integration: developers merge small changes often, and every change is built and tested automatically.
+Continuous Delivery: every change that passes the pipeline is ready to release, but a person approves the production push.
+Continuous Deployment: it goes to production automatically with no manual approval.
+
+Q3. How does Jenkins fit into DevOps?
+It’s the automation backbone. Code is pushed to Git, Jenkins builds and tests it, publishes artifacts, deploys to environments and notifies the team. It connects development and operations through automation.
+
+Q4. Jenkins vs Bamboo, GitLab CI, GitHub Actions?
+Jenkins is free, open source, self-hosted and highly customizable through plugins, but we maintain it ourselves. Bamboo is a commercial Atlassian product. GitLab CI and GitHub Actions are built into their platforms, so they need less setup. I’d pick Jenkins when I need flexibility, on-prem control or integration with many different tools.
+
+Q5. Explain the Jenkins architecture.
+A controller (formerly “master”) holds the configuration, schedules jobs, serves the UI and tracks results. Agents (formerly “slaves”) are machines or containers that actually run the builds. Good practice is to run builds on agents and keep the controller light.
+
+Q6. What are the build result statuses?
+Success (blue or green), unstable (yellow, such as when tests fail but the build compiled), failure (red), aborted (grey, stopped manually or by timeout) and not built.
+
+Q7. What are the types of Jenkins jobs?
+Freestyle, Pipeline, Multibranch Pipeline, Maven project, Folder and Organization folder (which scans a whole GitHub or Bitbucket org). In my projects we use Pipeline and Multibranch Pipeline almost exclusively.
+
+2. Pipelines and Jenkinsfile
+
+Q8. What is a Jenkinsfile and why use it?
+It’s a text file in the repo that defines the pipeline as code. Because it’s version-controlled, the pipeline gets code review, history and rollback, and every branch can have its own pipeline. This is “Pipeline as Code”.
+
+Q9. Declarative vs Scripted pipeline?
+Declarative has a structured pipeline { } block with fixed sections (agent, stages, post and so on). It’s easier to read and validate, and it’s the recommended default. Scripted is plain Groovy inside node { }, which is more flexible but easier to get wrong. I use Declarative and drop into a script { } block when I need real logic.
+
+Q10. Show a basic Declarative pipeline.
+
+groovy
+pipeline {
+  agent any
+  tools { maven 'Maven3'; jdk 'JDK17' }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Build')    { steps { sh 'mvn clean package -DskipTests' } }
+    stage('Test')     { steps { sh 'mvn test' } }
+    stage('Deploy')   { steps { sh './deploy.sh' } }
+  }
+  post {
+    always  { junit '**/target/surefire-reports/*.xml' }
+    failure { mail to: 'team@company.com', subject: "Build failed: ${env.JOB_NAME}", body: "${env.BUILD_URL}" }
+  }
+}
+
+Q11. What is the post section?
+It runs after the stages. Conditions include always, success, failure, unstable, changed, fixed and cleanup. I use it for publishing test reports, notifications and workspace cleanup.
+
+Q12. How do you run stages in parallel?
+
+groovy
+stage('Tests') {
+  parallel {
+    stage('Unit')        { steps { sh 'mvn test' } }
+    stage('Integration') { steps { sh 'mvn verify -Pit' } }
+  }
+}
+
+It cuts total build time. I add failFast true when I want everything to stop as soon as one branch fails.
+
+Q13. How do you use environment variables?
+Built-ins like BUILD_NUMBER, JOB_NAME, WORKSPACE and GIT_COMMIT are available automatically. I define my own in an environment { } block, either at pipeline level or inside a stage. In shell steps I reference them as $VAR, and in Groovy as env.VAR.
+
+Q14. What are pipeline parameters?
+They let a person or an upstream job provide inputs when triggering a build.
+
+groovy
+parameters {
+  choice(name: 'ENV', choices: ['dev','qa','prod'])
+  string(name: 'BRANCH', defaultValue: 'main')
+  booleanParam(name: 'RUN_REGRESSION', defaultValue: true)
+}
+
+I use them for choosing the target environment or toggling test suites.
+
+Q15. What is a multibranch pipeline?
+Jenkins scans a repo and automatically creates a pipeline job for each branch or PR that contains a Jenkinsfile. It removes jobs when branches are deleted. It’s ideal for feature-branch workflows.
+
+Q16. What is a Jenkins shared library?
+Reusable pipeline code kept in its own Git repo, so many pipelines don’t duplicate logic. It has vars/ (global steps), src/ (Groovy classes) and resources/ (static files). A Jenkinsfile loads it with @Library('my-lib') _. Our team has shared steps for build, Docker publish and Slack notification, so each project’s Jenkinsfile stays short.
+
+Q17. How do you add manual approval to a pipeline?
+
+groovy
+stage('Approve Prod') {
+  steps { input message: 'Deploy to production?', submitter: 'release-managers' }
+}
+
+I wrap it in a timeout so the pipeline doesn’t wait forever.
+
+Q18. How do you handle retries and failures?
+retry(3) { ... } for flaky steps like network downloads, timeout(time: 10, unit: 'MINUTES') { ... } for hangs, try/catch in script blocks, and catchError or post for cleanup and notifications.
+
+Q19. What does when do?
+It runs a stage conditionally, for example only on a specific branch (when { branch 'main' }), on a tag, or when a parameter is true or an expression holds.
+
+Q20. What is a Jenkins pipeline stash/unstash?
+stash saves files from one agent, and unstash restores them on another within the same build. It’s useful when the build and test stages run on different agents.
+
+3. Triggers and integration
+
+Q21. What are the ways to trigger a build?
+
+Webhook from GitHub or GitLab on push or PR (preferred, since it’s instant)
+Poll SCM (H/5 * * * *)
+Scheduled cron-style (H 2 * * *)
+Upstream job completion
+Manual or remote trigger via API or token
+
+I prefer webhooks over polling because polling wastes resources and adds delay.
+
+Q22. How do you integrate Jenkins with Git?
+Install the Git plugin, add credentials (SSH key or token), use checkout scm or git url: ..., branch: ..., and configure a webhook so pushes trigger builds.
+
+Q23. How do you integrate Jenkins with Maven or Gradle for Java?
+Configure the JDK and Maven under Manage Jenkins → Tools. Then in the pipeline, use tools { maven 'Maven3' } and run mvn clean install. I publish JUnit reports and archive the JAR or WAR with archiveArtifacts.
+
+Q24. How do you run automated tests in Jenkins?
+The pipeline runs the test command (mvn test, TestNG suite, Cucumber runner and so on). I publish results with the JUnit plugin, publish HTML reports (Extent, Allure or Cucumber reports) and fail or mark the build unstable on test failures. For UI tests, I run them on agents with browsers or in Docker (Selenium Grid).
+
+Q25. How do you integrate SonarQube?
+Run mvn sonar:sonar inside withSonarQubeEnv('sonar-server'), then add a waitForQualityGate step so the pipeline fails if the quality gate fails.
+
+Q26. How do you integrate Docker?
+Build the image in a stage (docker build -t app:${BUILD_NUMBER} .), log in to the registry using stored credentials, push it, and deploy by pulling it on the target. Alternatively, I use a Docker agent (agent { docker { image 'maven:3.9-eclipse-temurin-17' } }), so the build environment is clean and reproducible.
+
+Q27. How do you deploy to multiple environments?
+One parameterized pipeline or separate stages for dev, QA, staging and prod. The same artifact is promoted through the environments, never rebuilt. Lower environments deploy automatically, and production needs an approval gate.
+
+Q28. How do you integrate Jenkins with Kubernetes?
+Two ways: use the Kubernetes plugin so build agents run as dynamic pods that are created per build and destroyed afterwards, and deploy to a cluster using kubectl or Helm from the pipeline with credentials from the Jenkins store.
+
+4. Agents, scaling and performance
+
+Q29. What are agents and executors?
+An agent is a machine or container that runs builds. An executor is a slot on it, so one executor runs one build at a time. I use labels (agent { label 'linux-java17' }) to route jobs to suitable agents.
+
+Q30. How does Jenkins handle distributed builds?
+The controller assigns jobs to agents based on labels and availability. This lets many builds run in parallel, isolates environments (Windows, Linux, browser nodes) and keeps load off the controller.
+
+Q31. How do you scale Jenkins for many concurrent builds?
+Add more agents (static or cloud-based), use dynamic agents on Kubernetes or EC2 so capacity grows and shrinks on demand, run stages in parallel, keep the controller free from builds, cache dependencies (like the Maven .m2 folder) and clean up old builds with log rotation.
+
+Q32. Why shouldn’t builds run on the controller?
+Builds can use heavy CPU and memory, which slows or crashes the controller. It’s also a security risk because build code could access the controller’s configuration and credentials. I set the controller’s executors to 0.
+
+Q33. Why are builds slow? How do you speed them up?
+Common causes are waiting for executors, big checkouts, downloading dependencies each time, sequential tests and heavy plugins. Fixes are parallel stages, shallow clones (depth: 1), dependency caching, more or better agents, running only affected tests where possible and removing unnecessary steps.
+
+5. Security and credentials
+
+Q34. How do you manage credentials securely?
+I store secrets in the Jenkins Credentials store (username/password, secret text, SSH key, certificates) and use them with withCredentials([...]) or credentials('id') in the environment block. Jenkins masks them in the logs. Secrets never go in the Jenkinsfile or the repo. For bigger setups, I integrate with a vault such as HashiCorp Vault or AWS Secrets Manager.
+
+Q35. How do you secure Jenkins itself?
+Enable security with a proper authentication source (LDAP/AD/SSO), use role-based access control (the Role Strategy plugin or matrix-based security), turn off anonymous access, use HTTPS, keep Jenkins and plugins updated, limit script approvals and restrict who can configure jobs and credentials.
+
+Q36. How does role-based access control work?
+Define roles such as admin, developer and viewer, assign permissions to each (job read/build/configure, credentials view and so on), and map users or groups to roles. Developers can build their own project jobs but can’t change global settings.
+
+Q37. What is script approval and the Groovy sandbox?
+Pipeline scripts run in a sandbox that only allows approved methods. If a script uses something not on the allow-list, an admin has to approve it under “In-process Script Approval”. It prevents arbitrary dangerous code from running on the controller.
+
+6. Administration and troubleshooting
+
+Q38. How do you back up and restore Jenkins?
+Back up JENKINS_HOME (jobs, config.xml, credentials, plugins list and secrets), using the ThinBackup plugin or scheduled file or volume snapshots. I keep job definitions as code (Jenkinsfile or Job DSL or JCasC) so they can be recreated. To restore, I install Jenkins and plugins and restore JENKINS_HOME.
+
+Q39. How do you upgrade Jenkins and plugins safely?
+Back up first, test the upgrade in a staging Jenkins, read the plugin and core release notes, upgrade plugins in small batches, prefer LTS releases and keep a rollback plan. Plugin upgrades are a common source of breakage, so I don’t rush to the newest versions.
+
+Q40. What is Jenkins Configuration as Code (JCasC)?
+A YAML-based way to define the Jenkins configuration (security, agents, tools, credentials references) so the whole setup is reproducible and version-controlled instead of clicked together in the UI.
+
+Q41. A build fails. How do you troubleshoot?
+
+Open the Console Output and find the first real error, not just the last line.
+Check whether it’s code, test, environment or infrastructure related: missing tools, wrong JDK, no disk space, network or permission problems.
+Compare with the last successful build (what changed in commits, config or plugins).
+Reproduce it locally or on the agent.
+Add echo or debug output, or use “Replay” in Pipeline to try a modified script.
+
+Q42. Builds are stuck in the queue. What do you check?
+Whether agents are online, whether executors are all busy, whether a label doesn’t match any node, whether there’s a disk space or resource problem on the agent, and whether the job is waiting on a lock or a throttle setting. Then I add executors or agents.
+
+Q43. The Jenkins controller goes down. What now?
+No new builds can start until it’s back. I restore the service or restore from a backup. To reduce this risk, I’d use backups, infrastructure as code and, for high availability, run Jenkins on Kubernetes with persistent storage or an active/passive setup.
+
+Q44. A deployment pipeline fails with “credentials not found”. What do you check?
+That the credential ID in the Jenkinsfile matches the one in Jenkins exactly, that the credential is in the right scope (global vs folder-level) and visible to this job, and that the type matches how it’s used (secret text vs username/password). Then I rerun.
+
+Q45. How do you handle disk space issues?
+Configure “Discard old builds” (keep the last N builds or days), archive only necessary artifacts, clean workspaces after builds (cleanWs()), and monitor disk usage on the controller and agents.
+
+Q46. How do you keep builds reproducible?
+Use clean workspaces or containerized agents, pin tool and dependency versions, avoid relying on state left behind by earlier builds and keep everything in the Jenkinsfile.
+
+7. Scenario questions
+
+Q47. Design a CI/CD pipeline for a Java Spring Boot app.
+Checkout → build (Maven) → unit tests → SonarQube analysis and quality gate → package → build and push Docker image → deploy to dev → automated API and UI tests → approval → deploy to QA/staging → production. Notifications go to Slack or email, and reports are published at each stage.
+
+Q48. How would you set up CI/CD for microservices?
+One repo and one Jenkinsfile per service, a multibranch pipeline for each, a shared library for common steps and independent builds triggered by webhooks. Each service is versioned, containerized and deployed to Kubernetes separately, with integration tests run against a shared environment.
+
+Q49. How do you handle circular dependencies between jobs?
+I redesign the flow so jobs depend in one direction only. I either merge the jobs into one pipeline with stages or break the cycle by extracting the shared piece into an upstream job.
+
+Q50. A flaky test fails the pipeline randomly. What do you do?
+First find the root cause, such as timing, shared test data or environment issues, rather than just rerunning. Short term, I use retry on that test stage or a rerun-failed-tests option in the test framework and mark it for fixing. I track flaky tests so they don’t hide real failures.
+
+How I’d answer “tell me about your Jenkins experience”
+
+“In my projects I created Declarative pipelines in Jenkinsfiles for Java builds. They pull from Git on webhook triggers, build with Maven, run unit and API tests in parallel, publish reports, build Docker images and deploy to dev and QA, with an approval for production. I used shared libraries for common steps, stored secrets in the Jenkins Credentials store, ran builds on labeled agents and debugged failures using the console output and replay.”
+
+
+
+
+#====================================================================================================
+
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+
+#====================================================================================================
+# Q :
+
+
+
+#====================================================================================================
+# Q :
