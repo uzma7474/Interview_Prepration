@@ -5087,13 +5087,109 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 export default defineConfig({
   // Your configuration continues here...
 });
-Use code with caution.
-
-
-
 
 #====================================================================================================
-# Q :
+# Q : Write code to find Broken Links in playwright typescript
+==> Here’s a solid broken-link checker for Playwright with TypeScript. It collects every <a href> on a page, normalizes and de-duplicates them, then validates each one using Playwright’s APIRequestContext (no page navigation needed, so it’s much faster).
+
+tests/brokenLinks.spec.ts
+
+typescript
+import { test, expect, APIRequestContext } from '@playwright/test';
+
+interface LinkResult {
+  url: string;
+  status: number | string;
+  ok: boolean;
+}
+
+const BASE_URL = 'https://www.example.com';
+
+// Skip non-HTTP schemes
+const isCheckable = (href: string): boolean =>
+  !!href &&
+  !href.startsWith('#') &&
+  !href.startsWith('mailto:') &&
+  !href.startsWith('tel:') &&
+  !href.startsWith('javascript:');
+
+async function checkLink(request: APIRequestContext, url: string): Promise<LinkResult> {
+  try {
+    // HEAD is lighter; fall back to GET if server rejects HEAD
+    let response = await request.head(url, { timeout: 15000, maxRedirects: 5 });
+    if (response.status() === 405 || response.status() === 501) {
+      response = await request.get(url, { timeout: 15000, maxRedirects: 5 });
+    }
+    return { url, status: response.status(), ok: response.status() < 400 };
+  } catch (error) {
+    return { url, status: (error as Error).message, ok: false };
+  }
+}
+
+test('Find broken links on the page', async ({ page, request }) => {
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+
+  // 1. Collect all hrefs (resolved to absolute URLs by the browser)
+  const hrefs: string[] = await page.$$eval('a[href]', (anchors) =>
+    anchors.map((a) => (a as HTMLAnchorElement).href)
+  );
+
+  // 2. Filter + de-duplicate
+  const uniqueLinks = [...new Set(hrefs.filter(isCheckable))];
+  console.log(`Total unique links found: ${uniqueLinks.length}`);
+
+  // 3. Check in parallel batches to avoid hammering the server
+  const batchSize = 10;
+  const results: LinkResult[] = [];
+
+  for (let i = 0; i < uniqueLinks.length; i += batchSize) {
+    const batch = uniqueLinks.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map((url) => checkLink(request, url)));
+    results.push(...batchResults);
+  }
+
+  // 4. Report
+  const brokenLinks = results.filter((r) => !r.ok);
+  const validLinks = results.filter((r) => r.ok);
+
+  console.log(`Valid links  : ${validLinks.length}`);
+  console.log(`Broken links : ${brokenLinks.length}`);
+  brokenLinks.forEach((l) => console.log(`BROKEN -> ${l.url} [${l.status}]`));
+
+  // 5. Fail the test if any link is broken
+  expect(brokenLinks, `Broken links found:\n${JSON.stringify(brokenLinks, null, 2)}`).toHaveLength(0);
+});
+
+Run it:
+
+bash
+npx playwright test tests/brokenLinks.spec.ts
+
+How it works (good to explain in an interview):
+
+page.$$eval('a[href]', ...) runs inside the browser and returns anchor.href, which is already an absolute URL, so you don’t need to resolve relative paths yourself.
+Set removes duplicates so each URL is only checked once.
+request.head() uses Playwright’s APIRequestContext to hit the URL without loading the page in a browser, which is far faster than page.goto() per link. If a server doesn’t support HEAD (405/501), it falls back to GET.
+Status >= 400 is treated as broken (404, 500, etc.). Network errors like DNS failures or timeouts are caught and also reported as broken.
+Batching with Promise.all gives parallelism without flooding the server or triggering rate limits (429).
+
+Common follow-up points interviewers ask:
+
+Why not page.goto() for each link? It’s slow and heavy, since it renders the whole page. request is an HTTP-only call.
+Internal links only? Add a filter: new URL(url).origin === new URL(BASE_URL).origin.
+Multiple pages? Wrap the logic in a function and loop over a list of page URLs, or crawl recursively with a visited Set.
+Broken images? Same approach with page.$$eval('img[src]', ...), or check naturalWidth === 0 in the browser.
+Some sites return 403/429 to bots (LinkedIn, for example). Treat these as warnings, or add a custom User-Agent header via request.head(url, { headers: {...} }).
+Reporting: use test.step() per link or attach the broken list with testInfo.attach('broken-links.json', { body: JSON.stringify(brokenLinks), contentType: 'application/json' }).
+
+Bonus: soft assertions so every broken link is listed (not just the first):
+
+typescript
+for (const link of results) {
+  expect.soft(link.ok, `${link.url} returned ${link.status}`).toBeTruthy();
+}
+
+This way the report shows all failures in one run instead of stopping at the first.
 
 
 

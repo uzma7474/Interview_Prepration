@@ -19656,19 +19656,472 @@ String filePath = "screenshots/failure_test.png";
 test.fail("Failure Screenshot", MediaEntityBuilder.createScreenCaptureFromPath(filePath).build());
 
 
+#====================================================================================================
+# Q : Hovering SVG graph elements & extracting tooltip in Selenium?
+==> Interview Answer (3.6 Years of Experience – Selenium Java, TestNG, Cucumber)
+
+In Selenium, hovering over SVG graph elements and extracting tooltips can be challenging because SVG elements are not always accessible like normal HTML elements.
+
+I handle this using XPath/CSS locators, Actions class, JavaScriptExecutor when required, and explicit waits.
+
+Let me explain how I approach this in my automation framework.
+1. Understanding SVG elements
+Suppose an application displays a bar chart or line chart using SVG. When I hover over a particular graph element, a tooltip appears with information such as sales, revenue, percentage, or date.
+
+Example HTML structure:
+<svg>
+    <g class="highcharts-series">
+        <rect class="highcharts-point"
+              x="100"
+              y="50"
+              width="20"
+              height="100"/>
+    </g>
+</svg>
+
+<div class="highcharts-tooltip">
+    <span>Sales: 5000</span>
+</div>
 
 
+Here:
+- svg represents the graph.
+- rect represents a bar in the chart.
+- highcharts-tooltip contains the tooltip information.
+
+2. Locate SVG elements using XPath
+For SVG elements, I generally use XPath with local-name() when namespace-related locator issues occur.
+
+WebElement graphElement = driver.findElement( By.xpath("//*[local-name()='svg']//*[local-name()='rect']"));
+
+
+Alternatively, if the chart library exposes stable classes:
+WebElement graphElement = driver.findElement(By.cssSelector("rect.highcharts-point"));
+
+
+3. Hover over SVG elements using Actions class
+I use Selenium's Actions class to move the mouse pointer over the required graph element.
+Actions actions = new Actions(driver);
+
+actions.moveToElement(graphElement).perform();
+
+
+If the SVG element requires a specific position, I can use offset-based movement:
+actions.moveToElement(graphElement, 5, 5).perform();
+
+
+4. Extract tooltip information
+After hovering, I wait until the tooltip becomes visible and extract its text.
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+WebElement tooltip = wait.until( ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".highcharts-tooltip")));
+
+String tooltipText = tooltip.getText();
+
+System.out.println("Tooltip: " + tooltipText);
+
+
+5. Complete Selenium Java example : Here is how I combine all these steps into a reusable method.
+
+import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.*;
+import java.time.Duration;
+import java.util.List;
+
+public class SVGGraphTest {
+
+    WebDriver driver;
+
+    public SVGGraphTest(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public void extractGraphTooltips() {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        List<WebElement> graphElements = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector("rect.highcharts-point")) );
+
+        Actions actions = new Actions(driver);
+
+        for (WebElement element : graphElements) {
+
+            actions.moveToElement(element).perform();
+
+            WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated( By.cssSelector(".highcharts-tooltip")));
+
+            String tooltipText = tooltip.getText();
+
+            System.out.println("Graph Tooltip: " + tooltipText );
+        }
+    }
+}
+
+Important: The example assumes a Highcharts-style HTML tooltip. Some chart libraries render tooltips inside SVG elements, while others use dynamically generated HTML. I inspect the DOM after hovering and adjust the tooltip locator accordingly.
+
+6. What if Actions class does not work?
+This is a common interview follow-up question.
+
+Sometimes moveToElement() does not trigger the tooltip because:
+- SVG elements have complex coordinate systems.
+- The graph has overlapping elements.
+- The tooltip appears only at a particular coordinate.
+- The chart uses custom JavaScript mouse events.
+In such cases, I try the following approaches.
+
+Approach 1: Move to a specific coordinate
+
+actions.moveToElement(graphElement, 10, 10).perform();
+
+Approach 2: JavaScript mouse events
+
+JavascriptExecutor js = (JavascriptExecutor) driver;
+
+js.executeScript(
+    "arguments[0].dispatchEvent(" +
+    "new MouseEvent('mouseover', {bubbles:true}));",
+    graphElement
+);
+
+Note: JavaScript-dispatched events may not reproduce genuine browser pointer movement. If the chart depends on pointer coordinates, I prefer Selenium Actions or coordinate-based interaction.
+
+7. Interview follow-up questions
+Interview question				|	Expected answer
+1. Can Selenium directly interact with SVG? ->	Yes, using XPath, CSS selectors and Actions.
+2. Why use local-name()?  ->			To handle SVG namespace-related XPath issues.
+3. How do you extract dynamic tooltips?	->	Hover over the graph element and use explicit waits.
+4. What if tooltip is not visible?	->	Inspect the DOM, verify hover coordinates and check event handling.
+5. Can JavaScriptExecutor hover over SVG?	->	It can dispatch mouse events, but genuine pointer interaction is preferable.
+6. How do you validate all graph values?	->	Iterate through graph points, extract tooltips and compare against expected data.
+
+8. Real-world framework approach
+In my Selenium framework, I would create a reusable GraphUtility class that handles:
+1. Identifying SVG graph elements.
+2. Hovering over individual graph points.
+3. Waiting for dynamic tooltips.
+4. Extracting tooltip values.
+5. Comparing actual values against expected test data.
+6. Logging failures with screenshots.
+My final interview answer: I use Selenium Actions to hover over SVG elements, XPath or CSS selectors to identify graph points, and WebDriverWait to handle dynamically generated tooltips. If normal hover does not work, I inspect the SVG structure and use coordinate-based interactions. This approach allows me to automate and validate dynamic charts without depending on fixed waits.
+
+Interview tip: Remember these three important concepts:
+- local-name() → Locate SVG elements.
+- Actions.moveToElement() → Hover over graph points.
+- WebDriverWait → Wait for dynamic tooltips.
 
 #====================================================================================================
-# Q :
+# Q : Handling SVG Elements in Selenium WebDriver
+==> In Selenium automation, SVG (Scalable Vector Graphics) elements are commonly used for graphs, charts, icons, dashboards, pie charts, bar charts, and interactive visualizations.
+
+Unlike normal HTML elements, SVG elements belong to a different XML namespace. Because of this, Selenium sometimes cannot locate SVG elements using normal XPath expressions.
+
+Two commonly used XPath approaches are:
+1. //*[name()='svg']
+2. //*[local-name()='svg']
+
+Let's understand both approaches, why they are required, their differences, and how to use them in a Selenium Java automation framework.
+
+1. What is an SVG element?
+SVG stands for Scalable Vector Graphics.
+
+It is an XML-based format used to create vector graphics inside HTML pages.
+
+For example, consider this HTML:
+<html>
+<body>
+
+    <svg width="300" height="200">
+
+        <circle cx="100" cy="100" r="50"  fill="blue"/>
+
+        <rect x="170" y="50"  width="80" height="100" fill="red"/>
+
+        <line x1="10" y1="10"  x2="200" y2="150" stroke="black"/>
+
+    </svg>
+
+</body>
+</html>
+
+Here, we have four important SVG-related elements:
+Element		| Purpose
+1. svg		| Root SVG container
+2. circle	| Creates a circle
+3. rect		| Creates a rectangle
+4 line		| Creates a line
+
+Selenium can interact with these elements, but XPath namespace handling is important.
+
+2. Why normal XPath sometimes fails with SVG?
+Consider the following XPath:
+driver.findElement(By.xpath("//svg"));
+
+You might expect Selenium to locate the SVG element.
+
+However, SVG elements belong to the SVG namespace:
+http://www.w3.org/2000/svg
+
+Normal HTML elements and SVG elements have different namespace identities.
+
+Depending on the browser, document structure, and XPath implementation, a simple XPath such as //svg may not locate the SVG element as expected.
+
+To handle this, we use XPath functions such as name() and local-name().
+
+3. Approach 1: Using name()
+   Syntax: //*[name()='svg']
+
+Let's break it down.
+Expression	|	Explanation
+//*		|	Selects all elements in the document
+name()		|	Returns the qualified name of the current element
+='svg'		|	Checks whether the element's name is exactly svg
+
+Java implementation:
+WebElement svgElement = driver.findElement( By.xpath("//*[name()='svg']"));
+
+How does it work?
+1. Selenium evaluates the XPath.
+2. //* searches all elements.
+3. name() retrieves the element's qualified name.
+4. It compares the result with svg.
+5. If the name matches, Selenium returns the element.
+
+Locating child SVG elements using name()
+Suppose the HTML is:
+<svg>
+    <circle id="circle1"/>
+    <rect id="rectangle1"/>
+    <path id="path1"/>
+</svg>
 
 
+1. Locate the circle:
+WebElement circle = driver.findElement(By.xpath("//*[name()='svg']/*[name()='circle']"));
+
+2. Locate the rectangle:
+WebElement rectangle = driver.findElement(By.xpath("//*[name()='svg']/*[name()='rect']"));
+
+3. Locate the path:
+WebElement path = driver.findElement(By.xpath("//*[name()='svg']/*[name()='path']"));
+
+4. Approach 2: Using local-name()
+   Syntax: //*[local-name()='svg']
+
+This is another commonly used approach for locating SVG elements.
+
+local-name() returns the local name of an element without its namespace prefix.
+
+For example, consider:
+<svg:svg xmlns:svg="http://www.w3.org/2000/svg">
+    <svg:circle id="circle1"/>
+</svg:svg>
 
 
-#====================================================================================================
-# Q :
+Here:
+- Qualified name: svg:svg
+- Local name: svg
+Therefore: //*[local-name()='svg']
+
+can match the element regardless of its namespace prefix.
+
+Java implementation:
+WebElement svgElement = driver.findElement(By.xpath("//*[local-name()='svg']"));
+
+Locating child SVG elements using local-name()
+1. Locate the circle:
+WebElement circle = driver.findElement(By.xpath("//*[local-name()='svg']" + "/*[local-name()='circle']"));
+
+2. Locate all rectangles:
+List<WebElement> rectangles = driver.findElements(By.xpath("//*[local-name()='svg']" + "//*[local-name()='rect']"));
+
+3. Locate a specific path:
+WebElement path = driver.findElement( By.xpath("//*[local-name()='svg']" + "//*[local-name()='path']"));
+
+5. Difference between name() and local-name()
+This is an important interview question.
+name()					| local-name()
+1. Returns the qualified name.		| Returns the local name without the namespace prefix.
+2. Namespace prefix may be included.	| Namespace prefix is excluded.
+3. Can be sensitive to prefixes.		| Works independently of the namespace prefix.
+4. Example: svg:svg			| Example: svg
+
+Interview recommendation :
+I generally prefer: //*[local-name()='svg']
+
+Because it is more flexible when dealing with namespace prefixes.
+
+Important distinction: 
+	For an unprefixed SVG element in an HTML document, both expressions generally return svg. The practical advantage of local-name() becomes clearer when namespace prefixes are present.
+
+6. Locating different SVG elements in Selenium
+Let's consider a practical example of a dashboard containing a graph.
+
+HTML structure:
+<svg id="salesChart">
+
+    <g class="chart-series">
+
+        <rect class="bar" id="bar1"/>
+        <rect class="bar" id="bar2"/>
+
+        <circle class="point" id="point1"/>
+        <circle class="point" id="point2"/>
+
+        <path class="line" id="salesLine"/>
+
+    </g>
+
+</svg>
 
 
+Here are some useful XPath locators:
+Requirement			| XPath
+1. Locate SVG			| //*[local-name()='svg']
+2. Locate all circles		| //*[local-name()='circle']
+3. Locate all rectangles	| //*[local-name()='rect']
+4. Locate all paths		| //*[local-name()='path']
+5. Locate all groups		| //*[local-name()='g']
+6. Locate SVG by ID		| //*[local-name()='svg' and @id='salesChart']
+7. Locate circle by ID		| //*[local-name()='circle' and @id='point1']
+
+7. How to click an SVG element?
+SVG elements can be interacted with using Selenium WebDriver.
+
+WebElement circle = driver.findElement( By.xpath("//*[local-name()='circle' and @id='point1']"));
+
+circle.click();
+
+
+Alternatively, using Actions:
+Actions actions = new Actions(driver);
+
+actions.moveToElement(circle).click().perform();
+
+If the element is not interactable, first check whether it is visible, enabled, covered by another element, or outside the viewport.
+
+8. How to hover over SVG elements and extract tooltips?
+This is particularly useful when automating dashboard graphs.
+
+Suppose hovering over a circle displays a tooltip.
+
+Example HTML:
+<svg>
+    <circle id="point1"
+            cx="100"
+            cy="50"
+            r="5"/>
+</svg>
+
+<div class="tooltip">
+    Revenue: 5000
+</div>
+
+
+Selenium code:
+WebDriverWait wait = new WebDriverWait( driver, Duration.ofSeconds(10));
+
+WebElement point = driver.findElement(By.xpath("//*[local-name()='circle' and @id='point1']"));
+
+// Hover over SVG point
+Actions actions = new Actions(driver);
+
+actions.moveToElement(point).perform();
+
+// Wait for tooltip
+WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".tooltip")));
+
+// Extract tooltip text
+String actualValue = tooltip.getText();
+
+System.out.println(actualValue);
+
+Expected output: Revenue: 5000
+
+
+9. Real-world interview scenario
+Interviewer: You have a dashboard containing a bar chart with 10 bars. How would you hover over each bar and extract the tooltip values?
+
+My answer:
+
+First, I inspect the DOM and identify the SVG elements representing individual bars. Then I use findElements() with local-name() to retrieve all the rectangles.
+
+I iterate through the elements, hover over each bar using Actions, wait for the tooltip to appear, and extract its text.
+
+Example:
+public void extractBarTooltips() {
+
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+    List<WebElement> bars = driver.findElements( By.xpath("//*[local-name()='svg']" + "//*[local-name()='rect']") );
+
+    Actions actions = new Actions(driver);
+
+    for (int i = 0; i < bars.size(); i++) {
+
+        // Re-fetch the element to reduce stale element issues
+        List<WebElement> currentBars = driver.findElements(By.xpath("//*[local-name()='svg']" + "//*[local-name()='rect']"));
+
+        WebElement bar = currentBars.get(i);
+
+        actions.moveToElement(bar).perform();
+
+        WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".tooltip")) );
+
+        System.out.println(
+            "Bar " + (i + 1) + ": " + tooltip.getText()
+        );
+    }
+}
+
+
+Note: In a real framework, I would use a chart-specific locator rather than selecting every rect, because SVG charts may contain background rectangles, grid elements, and decorative shapes. I would also wait for the tooltip value to update for each bar, not just remain visible.
+
+10. Important interview questions
+Q1. Why do we use local-name() in Selenium? 
+
+Because SVG elements belong to a separate XML namespace. local-name() helps locate elements without depending on their namespace prefix.
+
+Q2. Can we use CSS selectors for SVG elements?
+
+Yes. For example: driver.findElement(By.cssSelector("svg circle"));
+
+
+CSS selectors work with SVG elements in HTML documents. XPath is particularly useful when namespace-independent matching or complex element relationships are required.
+
+Q3. What is the difference between //* and //?
+- // selects matching descendant nodes.
+- //* selects all descendant elements.
+For example: //*[local-name()='svg']
+
+selects all elements whose local name is svg.
+
+Q4. Can we use getText() on SVG elements?
+
+Yes, if the SVG element contains accessible text, such as an SVG <text> element. However, graphical elements such as <circle>, <rect>, and <path> usually do not contain readable text. For those, we inspect attributes or hover tooltips.
+
+Q5. How do you extract SVG attributes?
+
+Using getAttribute():
+String x = circle.getAttribute("cx");
+String y = circle.getAttribute("cy");
+String radius = circle.getAttribute("r");
+
+
+These values can help identify the graph element's position and dimensions.
+
+Quick revision: Remember these XPath expressions
+XPath				| Purpose
+1. //*[name()='svg']		| Locate SVG
+2. //*[local-name()='svg']	| Locate SVG independent of namespace prefix
+3. //*[local-name()='circle']	| Locate circles
+4. //*[local-name()='rect']	| Locate rectangles
+5. //*[local-name()='path']	| Locate paths
+6. //*[local-name()='text']	| Locate SVG text
+7. //*[local-name()='svg']//*[local-name()='circle']	| Locate circles inside SVG
+
+My recommendation for interviews: Understand why SVG requires namespace-aware XPath, the difference between name() and local-name(), and how to combine SVG locators with Actions and WebDriverWait. These are the most important practical concepts for Selenium automation involving charts and dashboards.
 
 #====================================================================================================
 # Q :
