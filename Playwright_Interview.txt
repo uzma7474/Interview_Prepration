@@ -5191,214 +5191,3315 @@ for (const link of results) {
 
 This way the report shows all failures in one run instead of stopping at the first.
 
+#====================================================================================================
+# Q :  Suppose you have 200 test case and 49 test failed , how would you collect the data of only failed test cases
+==> In Playwright, there are a few layers to this, and I’d pick based on whether I need the data during the run, after the run, or for re-running the failures.
 
+1. Built-in reporters (my first choice)
+
+Playwright’s JSON reporter writes every result with its status, so I can filter out only the failures:
+
+ts
+// playwright.config.ts
+reporter: [
+  ['html'],
+  ['json', { outputFile: 'test-results/results.json' }],
+],
+
+Then a small script reads the JSON and extracts only the failed ones:
+
+ts
+import fs from 'fs';
+
+const data = JSON.parse(fs.readFileSync('test-results/results.json', 'utf-8'));
+const failed: any[] = [];
+
+function walk(suite: any) {
+  suite.specs?.forEach((spec: any) => {
+    spec.tests.forEach((t: any) => {
+      const last = t.results[t.results.length - 1];
+      if (last.status === 'failed' || last.status === 'timedOut') {
+        failed.push({
+          title: spec.title,
+          file: spec.file,
+          error: last.error?.message,
+          retries: t.results.length - 1,
+        });
+      }
+    });
+  });
+  suite.suites?.forEach(walk);
+}
+data.suites.forEach(walk);
+
+fs.writeFileSync('failed-tests.json', JSON.stringify(failed, null, 2));
+console.log(`Failed: ${failed.length}`);
+
+So out of 200 tests, I’d get a clean JSON of the 49 failures with test name, file, and error message.
+
+2. Custom reporter (best for real-time collection)
+
+If I want to collect failures while the run is in progress, I’d implement a custom reporter using the Reporter interface and its onTestEnd hook:
+
+ts
+// failed-reporter.ts
+import { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import fs from 'fs';
+
+class FailedReporter implements Reporter {
+  failed: any[] = [];
+
+  onTestEnd(test: TestCase, result: TestResult) {
+    if (result.status === 'failed' || result.status === 'timedOut') {
+      this.failed.push({
+        title: test.title,
+        file: test.location.file,
+        error: result.error?.message,
+        duration: result.duration,
+      });
+    }
+  }
+
+  onEnd() {
+    fs.writeFileSync('failed-tests.json', JSON.stringify(this.failed, null, 2));
+  }
+}
+export default FailedReporter;
+ts
+reporter: [['./failed-reporter.ts']]
+
+3. Re-running only the failed tests
+
+Playwright has this built in. It saves last-run info in test-results/.last-run.json, so I can do:
+
+bash
+npx playwright test --last-failed
+
+This re-runs only the 49 failed tests, which is handy for confirming whether they’re real bugs or flaky.
+
+4. Attach evidence for the failed tests
+
+To make the failure data actually useful for debugging, I’d configure:
+
+ts
+use: {
+  screenshot: 'only-on-failure',
+  video: 'retain-on-failure',
+  trace: 'retain-on-failure',
+},
+retries: 1,
+
+That way every failed test comes with a screenshot, video, and trace, and I can open the trace with npx playwright show-trace.
+
+5. In CI
+
+In the pipeline, I’d publish the JSON/HTML report as an artifact, and use if: failure() / if: always() steps to upload failed-tests.json and traces. I can also use it to auto-create defects in Jira or send a Slack summary with only the failed test names and errors.
+
+One important point: when retries are enabled, I always check the last result of each test, not the first. A test that failed once and passed on retry is flaky, not failed, and I’d report it in a separate category.
+
+So in short: JSON reporter or a custom reporter to collect the data, --last-failed to re-run, and screenshots/traces for debugging.”
+
+Likely follow-up: “How do you differentiate flaky from genuinely failed tests?” Answer: Playwright marks them flaky in the results when a test fails and then passes on retry (test.outcome() === 'flaky'), so I separate them in the report and investigate them independently.”
+
+#====================================================================================================
+# Q : How do you differentiate flaky from genuinely failed tests?”
+==> In Playwright, I rely on retries plus the outcome Playwright assigns to each test. I don’t judge from a single run.
+
+1. Enable retries
+
+ts
+// playwright.config.ts
+retries: process.env.CI ? 2 : 1,
+
+Without retries, every failure looks the same. With retries, Playwright can tell me what actually happened across attempts.
+
+2. Use Playwright’s built-in outcome classification
+
+Each test ends up with one of four outcomes:
+
+expected: passed on the first attempt
+unexpected: failed on every attempt, so it’s a genuine failure
+flaky: failed at least once, then passed on a retry
+skipped: not executed
+
+The HTML report shows flaky tests under a separate “Flaky” tab, and the console summary also prints something like 3 flaky, 46 failed, 151 passed.
+
+3. Detect it in a custom reporter
+
+ts
+onTestEnd(test: TestCase, result: TestResult) {
+  const outcome = test.outcome();   // 'expected' | 'unexpected' | 'flaky' | 'skipped'
+
+  if (outcome === 'flaky') {
+    this.flaky.push({ title: test.title, attempts: test.results.length });
+  } else if (outcome === 'unexpected') {
+    this.failed.push({ title: test.title, error: result.error?.message });
+  }
+}
+
+One thing to note: onTestEnd fires after every attempt, so I’d make the final classification at the last retry, or collect in onEnd by iterating suites, so I don’t count the same test twice.
+
+4. Fail on flaky tests if needed
+
+ts
+failOnFlakyTests: true
+
+This makes the run fail when any test is flaky, so flakiness doesn’t hide behind a green build.
+
+5. Confirm with repeat runs
+
+To verify a suspected flaky test locally, I run it many times:
+
+bash
+npx playwright test login.spec.ts --repeat-each=20
+Fails 20 out of 20 → genuine bug (or broken locator or environment)
+Fails 3 out of 20 → flaky
+Passes consistently now but failed earlier → possibly environment or data related
+
+I also run it in headed mode and with --workers=1. If it passes alone but fails in parallel, that points to test dependency or shared data issues.
+
+6. Analyze the root cause using traces
+
+I enable trace: 'on-first-retry' and compare the failed attempt with the passing one in the trace viewer. Common flaky causes I’ve seen:
+
+Hard waits (waitForTimeout) instead of auto-waiting or web-first assertions
+Race conditions with network calls, fixed by waitForResponse or expect(locator).toBeVisible()
+Shared test data or tests depending on each other’s state
+Unstable locators (dynamic IDs or index-based selectors)
+Animations or overlays blocking clicks
+Slow or unstable test environment
+
+7. Handle them differently
+
+Genuine failures: raise a defect with the screenshot, trace and error
+Flaky tests: tag them (for example @flaky), track them separately, fix the root cause, and not just bump the retry count. I’d only quarantine one temporarily with test.fixme(), with a ticket linked, so it doesn’t block the pipeline.
+
+The key point is that retries are a diagnostic tool, not a fix. If I rely on retries to make tests green, I’m hiding the problem rather than solving it.”
+
+Possible next follow-up: “What’s the difference between trace: 'on-first-retry' and 'retain-on-failure'?” Short answer: on-first-retry records a trace only when a test is retried, which saves disk and runtime. retain-on-failure records every run but keeps the trace only for failed ones, which is heavier but gives you the trace even with retries off.
+
+#====================================================================================================
+# Q : What’s the difference between trace: 'on-first-retry' and 'retain-on-failure'?”
+==> Both options control when Playwright keeps a trace, but they differ in when recording happens and what gets saved.
+
+trace: 'on-first-retry'
+
+The first attempt of a test runs with no tracing.
+Only if that test fails and Playwright retries it does it record a trace, for the first retry.
+The trace is kept for that retry attempt, whether it passes or fails.
+It needs retries to be at least 1. With retries set to 0, you never get a trace.
+
+trace: 'retain-on-failure'
+
+Every test is recorded on every attempt, including the first.
+When the attempt ends, Playwright keeps the trace only if the test failed and discards it if it passed.
+It works even with retries: 0.
+ts
+use: {
+  trace: 'on-first-retry',        // lightweight, CI-friendly
+  // trace: 'retain-on-failure',  // heavier, but trace for every failure
+},
+
+Key differences
+				| on-first-retry				| retain-on-failure
+1. Recorded on first attempt	| No					| Yes
+2. Needs retries enabled		| Yes					| No
+3. Performance overhead		| Low, since only retried tests are traced	| Higher, since all tests are traced
+4. Trace of the original failure	| No, you get the retry’s trace instead	| Yes, the actual failed attempt
+5. Disk usage			| Small					| Larger during the run, but only failures are kept
+
+When I use which
+
+on-first-retry is my default for large suites in CI. With 200 tests, tracing everything slows the run and uses a lot of storage, and tracing only retries gives me debugging data for the failures at minimal cost. It’s also the Playwright-recommended default.
+retain-on-failure is what I use when:
+I’m debugging locally and want the trace of the exact failing run
+retries are disabled
+the failure is hard to reproduce, so a retry might pass and I’d lose the evidence of what went wrong the first time
+I have a smaller suite where the overhead doesn’t matter
+
+One trade-off worth mentioning
+
+With on-first-retry, if a test is flaky and passes on the retry, I get a trace of a passing run, which is less useful for finding the cause. With retain-on-failure, I always get the trace of the failing attempt, which is what I actually need for flaky tests. So for investigating flakiness I temporarily switch to retain-on-failure, or use 'on-all-retries', which records every retry attempt.
+
+There’s also trace: 'on', which records and keeps everything. I avoid it in regular runs because of the size and slowdown.”
+
+Possible next follow-up: “How do you open and analyze a trace?” Short answer: npx playwright show-trace trace.zip or the HTML report’s trace link. The viewer shows a timeline with DOM snapshots before and after each action, the network calls, console logs, and the source code line for each step, so you can see exactly where and why it failed.
+
+#====================================================================================================
+# Q : How do you open and analyze a trace?
+==> I’d open it in one of three ways, depending on where the test ran.
+
+1. Ways to open a trace
+
+bash
+# a) Directly from the CLI
+npx playwright show-trace test-results/login-spec-chromium/trace.zip
+
+# b) From the HTML report (click the trace icon/attachment under the failed test)
+npx playwright show-report
+
+# c) Drag and drop trace.zip into https://trace.playwright.dev
+On CI, I download the trace from the pipeline artifacts and open it locally with show-trace.
+The trace.playwright.dev viewer runs entirely in the browser, so nothing is uploaded to a server.
+Traces sit in test-results/<test-folder>/. Retry attempts get their own folder with a -retry1 suffix, so I make sure I’m opening the right attempt.
+
+2. What the viewer shows
+
+Actions panel (left): every step (click, fill, expect, goto) with its duration. Failed steps are highlighted in red.
+Timeline (top): a filmstrip of screenshots over time. I can hover or drag to scrub through the run.
+Snapshot area (centre): a live DOM snapshot with three tabs: Before, Action (shows where the click or fill happened), and After.
+Bottom tabs:
+Call: locator used, timeout, wait time, and the exact error
+Log: actionability checks, for example “waiting for element to be visible, enabled and stable” or “element intercepts pointer events”
+Errors: the assertion or timeout message with the code frame
+Console: browser console errors and warnings
+Network: every request with status, timing, headers and response body
+Source: the test code with the failing line highlighted
+Attachments: screenshots, videos and anything I attached
+
+3. How I analyze a failure
+
+Start at the red step. I read the error in the Errors tab, such as a timeout or expect(locator).toHaveText mismatch.
+Check the Before/After snapshots. Was the element actually on the page? Was a popup, overlay or loader covering it? Was the page in the state I expected?
+Read the Log tab. It tells me why the action stalled, for example element not visible, not enabled, or intercepts pointer events.
+Check the Network tab. A 500 or 401 on an API call, a failed or slow request, or a wrong response payload often explains a UI failure. Then it’s an application or environment issue, not a test issue.
+Check the Console tab. JavaScript errors point to a front-end bug.
+Use the locator picker. If the locator is wrong or ambiguous (strict mode violation), I pick the element in the snapshot and Playwright suggests a better locator. I can then copy it straight into the test.
+Compare with a passing run. For flaky tests, I open the failing trace and the passing trace side by side and look at timing and network differences. That usually reveals a race condition or a missing wait.
+
+4. Example from practice
+
+A test failed with a timeout on click('#submit'). In the trace, the Log tab said ‘<div class="loader"> intercepts pointer events’, and the Network tab showed the API behind the loader taking 8 seconds. So the root cause was a slow backend call with no proper wait in the test. I fixed it by waiting for the response with waitForResponse and asserting the loader was hidden, instead of increasing the timeout.
+
+5. Other related tools
+
+npx playwright test --ui (UI mode) has the same trace viewer built in with watch mode and time-travel debugging, which I use while writing tests locally.
+npx playwright test --debug opens the Inspector for step-by-step debugging.
+npx playwright codegen helps me with locators.
+
+I treat the trace as my first stop for any CI failure, because it usually answers ‘what happened’ without needing to reproduce the failure locally.”
+
+Possible next follow-up: “What is the difference between UI mode, debug mode and the trace viewer?” Short answer: the trace viewer is a post-mortem of a recorded run, --debug is a live step-through with the Inspector, and UI mode combines both with test selection, watch mode and a time-travel view for local development.
 
 
 #====================================================================================================
-# Q :
+# Q : What is the difference between UI mode, debug mode and the trace viewer?
+==> All three help with debugging, but they work at different points: the trace viewer looks at a run after it finished, debug mode controls a run while it’s happening, and UI mode is a full local workspace that combines both ideas.
 
+1. Trace viewer (post-mortem)
 
+bash
+npx playwright show-trace trace.zip
+Works on a recorded run. The test has already finished, so I can’t change or pause anything.
+Shows the timeline, DOM snapshots before and after each action, network, console, logs and source.
+Portable: I can open a trace.zip that came from CI, from a teammate, or from a customer environment, without the app or the test code running.
+Best for: investigating failures that happened somewhere else, mainly CI.
+
+2. Debug mode (live, step-by-step)
+
+bash
+npx playwright test login.spec.ts --debug
+# or in code
+await page.pause();
+Runs the test headed, with a single worker, no timeouts, and the Playwright Inspector attached.
+I can step over each action, pause, resume, and edit or pick locators live. The Inspector highlights the element that a locator matches on the real page.
+I can also use page.pause() to stop at an exact line.
+Best for: reproducing a failure and fixing it interactively, or working out the right locator against the live app.
+
+3. UI mode (interactive workspace)
+
+bash
+npx playwright test --ui
+Shows the full list of tests in a sidebar, where I can filter by file, tag, project or status, and run any single test or group.
+Has watch mode: when I save a test file, it re-runs automatically.
+Has the trace viewer built in, with time-travel snapshots, network, console and source for every run, plus a pick locator tool.
+Best for: writing and maintaining tests locally and quickly iterating over a set of failures.
+
+Side-by-side
+
+				    	| Trace viewer		| Debug mode	| UI mode
+1. When it’s used				| After the run	    	| During the run	| Before, during and after, locally
+2. Controls execution (pause, step)	  		| No						 | Yes				| Partly: re-run and watch, but no line-by-line stepping
+3. Needs the app and test code running	| No			| Yes		| Yes
+4. Works with CI artifacts		| Yes			| No		| No
+5. Time-travel through DOM snapshots	| Yes			| No		| Yes
+6. Live editing of locators		| Pick locator only	| Yes, in the Inspector |	Pick locator
+
+How I use them together
+
+A test fails in CI. I download the trace and open it in the trace viewer to see what happened.
+I try to reproduce it locally in UI mode, with watch on, and re-run just that test.
+If I need to inspect the live page or find a better locator, I switch to --debug and step through it in the Inspector.
+Once it’s fixed, I run the single test with --repeat-each and then the whole suite to confirm.
+
+So in short: the trace viewer answers ‘what happened’, debug mode lets me ‘step through it live’, and UI mode is my day-to-day environment for writing and iterating.”
+
+#====================================================================================================
+# Q : How do you handle flaky tests caused by dynamic elements or waits in Playwright?
+==> My approach is to fix the root cause with Playwright’s built-in waiting and stable locators, not to add sleeps or raise timeouts. I’d look at four areas: locators, waits, assertions and test design.
+
+1. Use stable locators for dynamic elements
+
+Dynamic IDs, auto-generated class names and index-based XPath are the biggest source of flakiness, so I avoid them.
+
+ts
+// Fragile
+await page.locator('#btn-83921').click();
+await page.locator('//div[3]/button[2]').click();
+
+// Stable
+await page.getByRole('button', { name: 'Submit' }).click();
+await page.getByTestId('submit-order').click();
+await page.getByLabel('Email').fill('user@test.com');
+Preference order: getByRole, getByLabel, getByTestId, then CSS as a last resort.
+I ask developers to add data-testid attributes where the UI has no stable hook.
+For lists or repeated elements, I filter by content instead of position:
+ts
+await page.getByRole('row').filter({ hasText: 'Order #1042' })
+  .getByRole('button', { name: 'View' }).click();
+
+2. Rely on auto-waiting
+
+Before every action (click, fill, check), Playwright automatically waits for the element to be attached, visible, stable (not animating), enabled, and able to receive events (not covered by an overlay). So I don’t add manual waits before actions.
+
+3. Use web-first assertions, not one-time checks
+
+ts
+// Flaky: checks once, no retry
+expect(await page.locator('.status').textContent()).toBe('Done');
+expect(await page.locator('.toast').isVisible()).toBe(true);
+
+// Reliable: retries until it passes or times out
+await expect(page.locator('.status')).toHaveText('Done');
+await expect(page.locator('.toast')).toBeVisible();
+
+Web-first assertions (toBeVisible, toHaveText, toHaveCount, toHaveURL) keep retrying until the condition is met. Reading a value first and then asserting on it is a common cause of flakiness.
+
+For values that need polling, such as a backend status, I use:
+
+ts
+await expect.poll(async () => {
+  const res = await request.get('/api/orders/42');
+  return (await res.json()).status;
+}, { timeout: 15000 }).toBe('COMPLETED');
+
+4. Wait on specific conditions, never on time
+
+ts
+// Bad
+await page.waitForTimeout(5000);
+
+// Good: wait for the actual event
+const responsePromise = page.waitForResponse(
+  r => r.url().includes('/api/search') && r.status() === 200
+);
+await page.getByRole('button', { name: 'Search' }).click();
+await responsePromise;
+
+await expect(page.locator('.spinner')).toBeHidden();
+await page.waitForURL('**/dashboard');
+await page.waitForLoadState('networkidle'); // only when really needed
+
+Note that I register waitForResponse before the action that triggers it, otherwise the response can arrive before I start listening, which creates a race condition.
+
+5. Handle specific dynamic-element scenarios
+
+Loaders and overlays: assert the spinner is hidden before interacting with what’s behind it.
+Animations: Playwright waits for stability, and for CSS animations I can set animations: 'disabled' in screenshot options or disable transitions in the test environment.
+Elements that re-render: locators are lazy and re-queried each time, so I don’t store ElementHandle objects. That avoids stale element errors.
+Dynamic lists or tables: wait for the expected count with toHaveCount, then act.
+Iframes: use frameLocator, not switching contexts.
+New tabs or popups: use const popupPromise = page.waitForEvent('popup') before the click.
+Toasts that disappear quickly: assert immediately after the action with a web-first assertion, and not after other steps.
+
+6. Mock or control unstable dependencies
+
+If a flaky test depends on a slow or inconsistent third-party API, I use page.route() to mock it:
+
+ts
+await page.route('**/api/recommendations', route =>
+  route.fulfill({ status: 200, json: { items: [] } })
+);
+
+This makes the test deterministic. I keep a few unmocked end-to-end tests as well, so real integration is still covered.
+
+7. Improve test design
+
+Keep each test independent, with its own data and its own login. I use storageState to reuse authentication safely without sharing browser state.
+Create test data through the API, not through long UI flows.
+Avoid depending on execution order or on shared data between parallel workers.
+Use unique data per run, for example a timestamp or UUID in usernames.
+
+8. Detect and track flakiness
+
+Retries (retries: 2 in CI) plus the flaky outcome in the report show which tests are unstable.
+--repeat-each=20 confirms whether a fix really worked.
+Trace viewer (on-first-retry or retain-on-failure) shows what was on the screen and in the network when it failed.
+I tag unstable tests, fix the root cause, and use test.fixme() with a ticket only as a short-term quarantine.
+
+One thing I avoid: increasing the global timeout to hide a flaky test. It makes failures slower and doesn’t fix anything. I’d only raise a timeout for a specific step that is legitimately slow, for example { timeout: 30000 } on one assertion for a report-generation step.
+
+Quick example from my experience: a search results test failed about 1 in 10 runs. The trace showed the assertion ran while the old results were still displayed, before the new API response arrived. I replaced the waitForTimeout(3000) with a waitForResponse on the search API and a toHaveCount assertion on the results list, and it passed 50 out of 50 times with --repeat-each.”
+
+Possible next follow-up: “How do you handle authentication or login across multiple tests in Playwright?” Short answer: log in once in a setup project or globalSetup, save the session with storageState, and reuse it in the other tests. That avoids repeating the UI login and makes tests faster and more stable.
+
+#====================================================================================================
+# Q : How do you handle authentication or login across multiple tests in Playwright?
+==> My approach is to log in once, save the authenticated session, and reuse it everywhere. That removes repeated UI logins, which are slow and a common source of flakiness, while each test still gets its own fresh browser context.
+
+1. Core idea: storageState
+
+After login, Playwright can save cookies and localStorage to a JSON file. Other tests load that file into a new context, so they start already logged in.
+
+2. Setup project (my preferred approach)
+
+ts
+// tests/auth.setup.ts
+import { test as setup, expect } from '@playwright/test';
+
+const authFile = 'playwright/.auth/user.json';
+
+setup('authenticate', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Username').fill(process.env.USER_NAME!);
+  await page.getByLabel('Password').fill(process.env.USER_PASSWORD!);
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  await expect(page).toHaveURL(/dashboard/);
+  await page.context().storageState({ path: authFile });
+});
+ts
+// playwright.config.ts
+projects: [
+  { name: 'setup', testMatch: /auth\.setup\.ts/ },
+  {
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      storageState: 'playwright/.auth/user.json',
+    },
+    dependencies: ['setup'],
+  },
+],
+
+The setup project runs first, saves the session, and every test in the chromium project starts authenticated. Because it’s a normal project, it also shows up in the HTML report and traces, which makes login failures easy to debug. I prefer this over globalSetup for that reason.
+
+3. Never commit the auth file
+
+# .gitignore
+playwright/.auth
+
+The file contains live session tokens. Credentials come from environment variables or CI secrets, never hardcoded.
+
+4. Multiple roles (admin, user, read-only)
+
+ts
+// auth.setup.ts
+setup('login as admin', async ({ page }) => { /* ... */ await page.context().storageState({ path: 'playwright/.auth/admin.json' }); });
+setup('login as user',  async ({ page }) => { /* ... */ await page.context().storageState({ path: 'playwright/.auth/user.json' }); });
+ts
+// in a spec file
+test.describe('admin features', () => {
+  test.use({ storageState: 'playwright/.auth/admin.json' });
+  test('can delete users', async ({ page }) => { /* ... */ });
+});
+
+test.describe('guest checks', () => {
+  test.use({ storageState: { cookies: [], origins: [] } }); // not logged in
+  test('redirects to login', async ({ page }) => { /* ... */ });
+});
+
+For tests that need two roles at once, such as admin approving a user’s request, I create two contexts with different storageState files in the same test.
+
+5. API login for speed
+
+If the app has a login endpoint, I authenticate through the API instead of the UI:
+
+ts
+setup('authenticate via API', async ({ request }) => {
+  const res = await request.post('/api/auth/login', {
+    data: { username: process.env.USER_NAME, password: process.env.USER_PASSWORD },
+  });
+  expect(res.ok()).toBeTruthy();
+  await request.storageState({ path: authFile });
+});
+
+This is faster and avoids UI flakiness. I keep one separate UI test that covers the actual login page.
+
+6. Token-based apps (JWT in headers or localStorage)
+
+If the token is stored in localStorage or cookies, storageState already captures it.
+If the app needs an Authorization header, I fetch the token via API in a setup step or fixture and send it with extraHTTPHeaders, or attach it in an API request context.
+For sessionStorage, which storageState does not save, I inject it with page.addInitScript or context.addInitScript.
+
+7. Fixtures for more control
+
+For per-worker accounts, I use a worker-scoped fixture that logs in once per worker with a unique account, which avoids collisions when tests mutate user data in parallel:
+
+ts
+export const test = base.extend<{}, { workerStorageState: string }>({
+  storageState: ({ workerStorageState }, use) => use(workerStorageState),
+  workerStorageState: [async ({ browser }, use) => {
+    const id = test.info().parallelIndex;
+    const file = `playwright/.auth/${id}.json`;
+    // log in with account `user${id}` and save state to file
+    await use(file);
+  }, { scope: 'worker' }],
+});
+
+8. Things I watch for
+
+Session expiry: if tokens expire during a long run, the setup project re-runs on each execution, so I get a fresh session every time. For very long suites, I’d refresh through a fixture.
+Shared accounts and parallel runs: if tests change the same user’s data (password, profile, cart), they interfere with each other, so I use separate accounts or create data per test.
+MFA/CAPTCHA: I ask for a test environment where they are disabled, or a test account with a fixed OTP or bypass token. I don’t automate CAPTCHA.
+Stale auth file: if tests suddenly all fail with login redirects, I delete playwright/.auth and re-run to rule out an expired session.
+
+Why this approach
+
+Faster, since login happens once and not 200 times
+More stable, because the UI login isn’t a dependency of every test
+Tests stay isolated, because each gets a new context, with just the cookies and storage pre-loaded”
+
+Possible next follow-up: “What is the difference between globalSetup and a setup project?” Short answer: both run once before tests, but a setup project runs as a regular test, so it appears in the HTML report with traces, can use fixtures and retries, and can be filtered. globalSetup is a plain function outside the test runner, so debugging it is harder. Playwright recommends setup projects for authentication.
+
+#====================================================================================================
+# Q : What is the difference between globalSetup and a setup project?
+==> Both run once before the main tests, but they differ in how they run. A setup project is a normal Playwright project made of regular tests. globalSetup is a plain function that runs outside the test runner.
+
+1. globalSetup
+
+ts
+// global-setup.ts
+import { chromium, FullConfig } from '@playwright/test';
+
+async function globalSetup(config: FullConfig) {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('https://app.com/login');
+  await page.getByLabel('Username').fill(process.env.USER_NAME!);
+  await page.getByLabel('Password').fill(process.env.USER_PASSWORD!);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.context().storageState({ path: 'playwright/.auth/user.json' });
+  await browser.close();
+}
+export default globalSetup;
+ts
+// playwright.config.ts
+globalSetup: require.resolve('./global-setup'),
+It’s just a function. I launch the browser and manage its lifecycle myself.
+It runs once before all projects, and can return a teardown function, or I can use globalTeardown.
+It doesn’t get Playwright’s test fixtures like page, request or context.
+
+2. Setup project
+
+ts
+// playwright.config.ts
+projects: [
+  { name: 'setup', testMatch: /.*\.setup\.ts/, teardown: 'cleanup' },
+  { name: 'cleanup', testMatch: /.*\.teardown\.ts/ },
+  {
+    name: 'chromium',
+    use: { storageState: 'playwright/.auth/user.json' },
+    dependencies: ['setup'],
+  },
+],
+ts
+// auth.setup.ts
+import { test as setup } from '@playwright/test';
+
+setup('authenticate', async ({ page }) => {
+  // login steps using the normal page fixture
+  await page.context().storageState({ path: 'playwright/.auth/user.json' });
+});
+It’s a regular test, so it uses fixtures (page, request, custom fixtures), expect, retries and timeouts.
+Other projects declare dependencies: ['setup'], so it runs first, and if it fails the dependent projects are skipped.
+Teardown is supported via the teardown property, which is a project that runs after all dependents finish.
+
+3. Key differences
+
+				| globalSetup				| Setup project
+1. What it is			| Plain function outside the runner	| Regular test in a project
+2. Fixtures (page, request)		  | No, I create the browser manually		  | Yes
+3. Shows in HTML report		| No					| Yes
+4. Trace viewer, screenshots, video| No, unless I wire it up myself		| Yes, same as any test
+5. Retries and timeouts		| No					| Yes
+6. Run it alone or filter it	| No					| Yes, --project=setup
+7. Teardown			| globalTeardown			| teardown project
+8. Runs per project/browser	| Once for the whole run			| Once, but can depend on per-project config
+
+4. Why I prefer a setup project
+
+Debuggability: if login fails in CI, I open the trace of the setup test. With globalSetup, a failure is just a stack trace with no report entry, so it’s much harder to see what went wrong.
+Fixtures and config reuse: I use the same baseURL, use options and fixtures as the other tests.
+Visibility: setup and teardown steps show up in the HTML report and in UI mode.
+Dependencies are explicit: it’s clear from the config which projects need the setup.
+
+5. When globalSetup still makes sense
+
+Work that has nothing to do with a browser, for example seeding a database, starting a mock server, or setting up environment variables.
+Very simple one-off setup where I don’t need reporting or tracing.
+Older projects that already use it and work fine.
+
+Even for those cases, I’d consider a setup project first, since it gives better visibility. One limitation to keep in mind: a setup project runs as part of the test run, so if I use a filter like --grep, I need to make sure the setup project is still included, or I run the dependent project through its dependency chain.
+
+So in short: globalSetup is a bare function with no reporting, and a setup project is a first-class test with traces, fixtures and retries, which is why Playwright recommends it for authentication and I use it by default.”
+
+Possible next follow-up: “How do you run tests in parallel in Playwright, and how do you control it?” Short answer: Playwright runs test files in parallel across workers by default. I control it with workers in the config or --workers, fullyParallel: true to parallelize tests within a file, test.describe.configure({ mode: 'serial' }) for dependent tests, and --shard=1/4 to split a suite across CI machines.
+
+#====================================================================================================
+# Q : How do you run tests in parallel in Playwright, and how do you control it?”
+==> “Playwright runs in parallel by default, and I control it at three levels: across files, within a file, and across machines.
+
+1. Default behavior
+
+Playwright starts multiple worker processes, each with its own browser instance.
+Test files run in parallel across workers. Tests inside one file run sequentially, in order, in the same worker.
+Each test gets its own isolated browser context, so cookies and storage don’t leak between tests.
+By default, the worker count is about half the logical CPU cores.
+
+2. Controlling the number of workers
+
+ts
+// playwright.config.ts
+workers: process.env.CI ? 2 : undefined,   // fewer on CI, default locally
+bash
+npx playwright test --workers=4
+npx playwright test --workers=1     # fully serial, useful for debugging
+npx playwright test --workers=50%   # percentage of CPU cores
+
+I keep CI workers conservative, since shared runners have limited CPU and memory, and too many workers cause timeouts that look like flakiness.
+
+3. Parallel tests within a single file
+
+ts
+// config: applies to everything
+fullyParallel: true,
+
+// or per file/describe
+test.describe.configure({ mode: 'parallel' });
+
+With this, individual tests in the same file are distributed across workers. The tests must be fully independent for this to work.
+
+4. Serial mode for dependent tests
+
+ts
+test.describe.configure({ mode: 'serial' });
+
+test.describe('checkout flow', () => {
+  test('add to cart', async ({ page }) => { /* ... */ });
+  test('pay', async ({ page }) => { /* ... */ });
+});
+Tests run in order in one worker, and if one fails, the rest are skipped.
+Serial mode is a last resort. I prefer making tests independent, for example creating the cart through the API in each test. If a serial test fails and retries, the whole group re-runs together.
+
+5. Sharding across machines
+
+bash
+npx playwright test --shard=1/4
+npx playwright test --shard=2/4
+
+In CI, I run a matrix of shards as separate jobs, then merge the results:
+
+ts
+reporter: process.env.CI ? 'blob' : 'html',
+bash
+npx playwright merge-reports --reporter html ./all-blob-reports
+
+Each shard produces a blob report, and I merge them into one HTML report at the end. With fullyParallel: true, sharding balances better because it splits by test, not by file.
+
+6. Parallelism across projects
+
+Projects (for example chromium, firefox, webkit) also run in parallel. Using dependencies makes one project wait for another, such as the auth setup project, which runs first.
+
+7. What I need to ensure for safe parallel runs
+
+Independent tests: no reliance on execution order or on state left by another test.
+Unique test data: a timestamp or UUID in usernames, emails and order names, so parallel workers don’t collide.
+Separate accounts when data is mutated: a worker-scoped fixture with testInfo.parallelIndex or workerIndex to pick a different account per worker.
+No shared files: if tests write to the same file or a shared DB record, they’ll conflict. I write to worker-specific paths instead.
+Resource limits: the app and test environment must handle the concurrent load, otherwise I see random timeouts and 429 or 500 responses.
+
+8. Useful extras
+
+test.describe.parallel and test.describe.serial were older APIs, so I use test.describe.configure({ mode }) now.
+--grep @smoke combined with workers lets me run a fast subset in parallel on every PR.
+testInfo.workerIndex and parallelIndex are useful for per-worker data and for debugging which worker ran what.
+maxFailures or --max-failures=10 stops the run early if too many tests fail, which saves CI time.
+
+Trade-offs I consider
+
+More workers means faster runs, but also more CPU and memory, a higher chance of exposing hidden test dependencies, and more load on the app under test. When I moved a suite to fullyParallel with 4 workers and sharding, the run time dropped significantly, but I first had to fix a few tests that shared test data. If tests fail only in parallel but pass with --workers=1, that’s my signal there’s a data or order dependency.”
+
+Possible next follow-up: “How do you structure a Playwright framework (Page Object Model, fixtures, utilities)?” Short answer: pages and components in a pages/ folder following POM, custom fixtures to inject page objects and test data, utilities for API and data helpers, config and environments kept separate, and tests that read as business flows
+
+#====================================================================================================
+# Q : Element is not clickable due to overlay – how will you handle it?
+==> First I’d find out what the overlay is, because the right fix depends on it. I never jump straight to force: true.
+
+1. Diagnose first
+
+When Playwright can’t click, it retries and then times out with a log like:
+
+- waiting for element to be visible, enabled and stable
+- <div class="loader"> intercepts pointer events
+- retrying click action
+
+That message tells me which element is blocking. I confirm it with the trace viewer (the Log tab and the DOM snapshot at the failing step) or by running --debug. The overlay is usually one of these:
+
+a loading spinner or backdrop
+a cookie banner, promo popup or chat widget
+a sticky header or footer covering the element
+an animation or transition that hasn’t finished
+a modal from a previous step that was never closed
+
+2. Most common fix: wait for the overlay to go away
+
+ts
+await expect(page.locator('.loader')).toBeHidden();
+await page.getByRole('button', { name: 'Submit' }).click();
+
+Playwright’s auto-wait already checks that the element can receive events, but being explicit about the spinner makes the test’s intent clear and gives a better failure message. If the spinner is tied to an API call, I wait for the actual response instead:
+
+ts
+const responsePromise = page.waitForResponse(r => r.url().includes('/api/data') && r.ok());
+await page.getByRole('button', { name: 'Load' }).click();
+await responsePromise;
+await expect(page.locator('.loader')).toBeHidden();
+
+3. Close or accept the blocking element
+
+For a cookie banner or popup, I dismiss it like a user would:
+
+ts
+await page.getByRole('button', { name: 'Accept all' }).click();
+await expect(page.locator('#cookie-banner')).toBeHidden();
+
+If it appears randomly, I register a handler that runs automatically whenever it shows up:
+
+ts
+await page.addLocatorHandler(
+  page.getByRole('dialog', { name: 'Subscribe' }),
+  async () => {
+    await page.getByRole('button', { name: 'Close' }).click();
+  }
+);
+
+addLocatorHandler fires when the overlay appears during an action, so I don’t need if checks scattered through the test. For cookie banners, I’d also pre-set the consent cookie in storageState or set it through context.addCookies, so the banner never shows.
+
+4. Sticky header or footer covering the element
+
+Playwright scrolls the element into view, but a fixed header can still cover it. Options:
+
+ts
+await locator.scrollIntoViewIfNeeded();
+await locator.evaluate(el => el.scrollIntoView({ block: 'center' }));
+await locator.click();
+
+Scrolling to the center of the viewport usually clears the header. If it doesn’t, I check whether a more specific locator or a different element is the right target.
+
+5. Animations or transitions
+
+Playwright waits for the element to be stable (not moving), so most animation cases resolve on their own. If a long animation causes timeouts, I either wait for the end state with an assertion, or disable animations in the test environment with a CSS injection:
+
+ts
+await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+
+6. Last resorts (with caution)
+
+ts
+await locator.click({ force: true });      // skips actionability checks
+await locator.dispatchEvent('click');      // fires the click event directly
+await locator.evaluate(el => (el as HTMLElement).click());
+force: true bypasses the check that the element is visible, enabled and not covered. The click lands on whatever is at that point, which may be the overlay itself.
+A real user could not click that element, so a forced click can hide a genuine bug where the button is permanently covered.
+I only use these when I’ve confirmed the overlay is a known, harmless artifact, such as a non-functional test-environment banner, and I add a comment explaining why.
+
+7. Question whether it’s a real defect
+
+If the overlay shouldn’t be there, such as a loader stuck forever or a modal covering the page after the flow completed, the test is correctly catching an application bug. In that case I don’t work around it, I raise a defect with the trace and screenshot.
+
+My order of preference
+
+Read the log or trace to identify the overlay
+Wait for the overlay to disappear (assertion or API response)
+Close or accept it, or use addLocatorHandler for random popups
+Fix scroll or position issues for sticky elements
+Disable animations if timing is the issue
+force: true only as a documented last resort
+
+Example from my work: a checkout button test failed intermittently with ‘overlay intercepts pointer events’. The trace showed a full-page spinner during a pricing API call. Instead of using force: true, I waited for the pricing response and asserted the spinner was hidden before clicking. The flakiness went away, and a few runs later it also helped us notice that the spinner sometimes stayed on screen for 10 seconds, which we reported as a performance issue.”
+
+Possible next follow-up: “What is the difference between toBeVisible, toBeEnabled and Playwright’s actionability checks?” Short answer: toBeVisible and toBeEnabled are assertions that retry until they pass. Actionability checks are built into actions like click, which automatically wait for the element to be attached, visible, stable, enabled and able to receive events before acting.
 
 
 #====================================================================================================
-# Q :
+# Q : Page is loading slowly – how will you handle synchronization?
+==> With a slow page, my rule is to wait for specific conditions the test actually needs, never for a fixed time. I’d also first check whether the slowness is a test problem or an application problem.
 
+1. Rely on auto-waiting and web-first assertions
+
+Most slow-page issues are already handled if I write tests the Playwright way:
+
+ts
+await page.goto('/dashboard');
+await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+await page.getByRole('button', { name: 'Export' }).click();   // waits for actionability
+Actions wait for the element to be attached, visible, stable, enabled and able to receive events.
+Web-first assertions (toBeVisible, toHaveText, toHaveCount) retry until they pass or time out.
+I avoid one-shot checks like expect(await el.isVisible()), which don’t retry and fail on slow pages.
+
+2. Wait for the right signal, not time
+
+ts
+// Bad
+await page.waitForTimeout(10000);
+
+// Good: wait for the thing the next step depends on
+await expect(page.locator('.spinner')).toBeHidden();
+await expect(page.getByTestId('results-table')).toBeVisible();
+await page.waitForURL('**/dashboard');
+
+3. Wait on network calls for data-driven pages
+
+If content depends on an API, I wait for that response. I register the wait before the trigger so I don’t miss it:
+
+ts
+const responsePromise = page.waitForResponse(
+  r => r.url().includes('/api/orders') && r.status() === 200
+);
+await page.getByRole('button', { name: 'Search' }).click();
+await responsePromise;
+await expect(page.getByRole('row')).toHaveCount(10);
+
+4. Choose the right load state
+
+ts
+await page.goto('/report', { waitUntil: 'domcontentloaded' });
+The default load waits for all resources, including images and third-party scripts, which can be slow and irrelevant to my test.
+domcontentloaded plus an assertion on the element I need is usually faster and more reliable.
+I avoid networkidle as a default because it’s discouraged for reliability. Pages with polling, analytics or websockets may never go idle. I use it only for specific pages where it’s proven to work.
+
+5. Increase timeouts selectively
+
+ts
+// config: sensible defaults
+timeout: 60_000,
+expect: { timeout: 10_000 },
+use: { actionTimeout: 15_000, navigationTimeout: 30_000 },
+
+// only for a legitimately slow step
+await expect(page.getByText('Report ready')).toBeVisible({ timeout: 45_000 });
+test.slow();   // triples the timeout for one known-slow test
+
+I don’t raise the global timeout to hide slowness. That makes real failures slower to detect and masks performance regressions.
+
+4b. Poll for backend-driven completion
+
+For long-running processes such as report generation:
+
+ts
+await expect.poll(async () => {
+  const res = await request.get('/api/reports/42');
+  return (await res.json()).status;
+}, { timeout: 60_000, intervals: [1000, 2000, 5000] }).toBe('COMPLETED');
+
+6. Speed up what I can control
+
+Use storageState so login isn’t repeated.
+Create test data through the API instead of long UI flows.
+Block unnecessary heavy resources if they aren’t part of the test:
+ts
+await page.route('**/*.{png,jpg,jpeg,gif,svg}', route => route.abort());
+await page.route('**/analytics/**', route => route.abort());
+Mock slow third-party dependencies with page.route() and route.fulfill().
+
+7. Diagnose whether it’s a test issue or an app issue
+
+Open the trace and check the Network tab for slow or failing requests.
+Compare local and CI timings. CI runners are often slower, and too many workers can starve the browser, so I may reduce workers on CI.
+If the application genuinely takes 20 seconds to load, that’s a performance defect to report, not something to hide with longer waits.
+I can assert on performance in a key flow, for example measure with performance.timing or check that a response arrives within an expected threshold.
+
+8. Handling intermittent slowness with retries
+
+retries: 2 on CI gives a safety net, but I treat a test that needs retries as flaky and investigate it, rather than treating retries as the fix.
+
+My order of preference
+
+Auto-waiting and web-first assertions
+Wait for a specific element, URL or network response
+Use domcontentloaded and avoid networkidle
+Poll for backend-driven states
+Extend timeout for the specific slow step only
+Reduce load: storage state, API data setup, blocking or mocking heavy calls
+
+Example from my work: a reports page took up to 15 seconds under CI load, and tests failed with timeouts on a waitForTimeout(5000) followed by a table check. I replaced it with waitForResponse on the reports API plus toHaveCount on the table rows, and set a 30-second timeout for just that assertion. The tests became stable, and the trace data also showed the API itself was slow, which we raised with the backend team.”
+
+Possible next follow-up: “What is the difference between waitForLoadState, waitForSelector and waitForURL?” Short answer: waitForLoadState waits for a page lifecycle state (load, domcontentloaded, networkidle), waitForSelector is the older element wait that has been replaced by locat
+
+#====================================================================================================
+# Q : A table contains 100 rows, and you need to find a particular user and click Edit. How would you implement it?
+==> As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, I would handle this using dynamic locators and row-based filtering rather than using a hardcoded row index.
+
+My approach is to identify the row containing the particular user's unique information, such as username, email, or user ID, and then click the Edit button within that specific row.
+1. Recommended approach: filter({ hasText })
+Suppose we have a table containing 100 users:
+User ID	Name	Email	Action
+101	John	john@gmail.com	Edit
+102	David	david@gmail.com	Edit
+103	Smith	smith@gmail.com	Edit
+104	Uzma	uzma@gmail.com	Edit
+
+I want to find Uzma and click her Edit button.
+Playwright TypeScript code
+import { test, expect } from '@playwright/test';
+
+test('Find user and click Edit', async ({ page }) => {
+
+    await page.goto('https://example.com/users');
+
+    const userName = 'Uzma';
+
+    // Locate the particular row
+    const userRow = page.locator('table tbody tr')
+        .filter({ hasText: userName });
+
+    // Verify that the row exists
+    await expect(userRow).toHaveCount(1);
+
+    // Click Edit button within that row
+    await userRow.getByRole('button', {
+        name: 'Edit'
+    }).click();
+
+});
+
+
+Explanation
+Step 1: Locate all table rows
+const rows = page.locator('table tbody tr');
+
+
+This identifies all rows in the table.
+
+Step 2: Find the particular user
+const userRow = rows.filter({
+    hasText: 'Uzma'
+});
+
+
+filter({ hasText }) filters the rows and returns the row containing the specified text.
+
+Step 3: Verify the matching row
+await expect(userRow).toHaveCount(1);
+
+
+This ensures that exactly one row matches the user.
+
+Step 4: Click Edit inside that row
+await userRow.getByRole('button', {
+    name: 'Edit'
+}).click();
+
+
+This is important because it clicks the Edit button belonging to the matching row, not an Edit button elsewhere in the table.
+
+2. Alternative approach: Using getByRole() with filter()
+If the application uses accessible table markup, I prefer semantic locators.
+const userRow = page.getByRole('row', {
+    name: /Uzma/
+});
+
+await expect(userRow).toHaveCount(1);
+
+await userRow.getByRole('button', {
+    name: 'Edit'
+}).click();
+
+
+This is more readable and follows Playwright's recommended locator strategy.
+
+3. Alternative approach: Find user using email
+Sometimes multiple users have the same name. In that situation, I prefer using a unique identifier such as email or user ID.
+const userRow = page.locator('table tbody tr')
+    .filter({
+        hasText: 'uzma@gmail.com'
+    });
+
+await expect(userRow).toHaveCount(1);
+
+await userRow.locator('button.edit-btn').click();
+
+
+Why? Usernames may not be unique, but email addresses or user IDs are generally unique.
+
+4. Alternative approach: Using locator() and nth()
+If the table does not have proper semantic markup, I can use XPath or CSS locators.
+const userRow = page.locator(
+    "//tr[td[normalize-space()='Uzma']]"
+);
+
+await expect(userRow).toHaveCount(1);
+
+await userRow.locator("//button[text()='Edit']").click();
+
+
+Note: For a locator scoped to userRow, use a relative XPath beginning with .// if using XPath:
+await userRow.locator(".//button[normalize-space()='Edit']").click();
+
+
+I would avoid nth(5) or other hardcoded indexes because row positions can change when sorting, filtering, or pagination is applied.
+
+5. What if the table has pagination or 1000 records?
+If the user is not present on the current page, I would handle pagination.
+async function findUserAndEdit(
+    page: import('@playwright/test').Page,
+    email: string
+) {
+
+    while (true) {
+
+        const userRow = page.locator('table tbody tr')
+            .filter({ hasText: email });
+
+        if (await userRow.count() === 1) {
+
+            await userRow.getByRole('button', {
+                name: 'Edit'
+            }).click();
+
+            return;
+        }
+
+        const nextButton = page.getByRole('button', {
+            name: 'Next'
+        });
+
+        if (
+            await nextButton.count() === 0 ||
+            !(await nextButton.isEnabled())
+        ) {
+            throw new Error(`User not found: ${email}`);
+        }
+
+        await nextButton.click();
+    }
+}
+
+
+This example assumes the application updates the table after each Next click. In a production framework, I would also wait for a reliable pagination or loading-state change before checking the next page.
+
+6. What if there are multiple Edit buttons?
+Suppose every row has an Edit button. If I write:
+await page.getByRole('button', {
+    name: 'Edit'
+}).first().click();
+
+
+It will click the first Edit button, which might belong to the wrong user.
+
+Instead:
+const userRow = page.getByRole('row', {
+    name: /uzma@gmail\.com/
+});
+
+await userRow.getByRole('button', {
+    name: 'Edit'
+}).click();
+
+
+This scopes the action to the correct user.
+
+Interview-ready answer
+"In my Playwright framework, I handle this using dynamic locators rather than hardcoded row indexes.
+
+First, I locate all table rows using locator('table tbody tr'). Then I use filter({ hasText: username }) to identify the row containing the particular user.
+
+After identifying the row, I verify that exactly one matching row exists using toHaveCount(1). Finally, I scope the Edit button locator to that row and click it.
+
+If multiple users have the same name, I use a unique identifier such as email or user ID. If the table has pagination, I iterate through the pages until I find the required user.
+
+This approach makes the automation reusable, reliable, and independent of the user's position in the table."
+
+Best practice
+ Always locate the user first, scope the Edit button to that user's row, and verify the matching row is unique before clicking
+
+#====================================================================================================
+# Q :  An element takes 5–10 seconds to appear randomly. How would you handle this 
+==> As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, I would handle this using Playwright's auto-waiting mechanism and web-first assertions, rather than using hardcoded waits like waitForTimeout().
+
+If an element takes 5–10 seconds to appear randomly, it could be due to API response time, network latency, asynchronous JavaScript execution, or backend processing.
+
+My approach is to wait for the actual condition that indicates the element is ready.
+
+1. Recommended approach: Auto-waiting
+Playwright automatically waits for elements to become actionable before performing actions such as click, fill, and check.
+import { test, expect } from '@playwright/test';
+
+test('Handle randomly appearing element', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    await page.getByRole('button', {
+        name: 'Submit'
+    }).click();
+
+    await page.getByText('Success').click();
+
+});
+For example, if the Success element appears after 5–10 seconds, Playwright automatically waits for it to become actionable, subject to the configured timeout.
+However, if I only need to verify that an element appears, I prefer an explicit web-first assertion.
+
+2. Use expect().toBeVisible() with timeout
+This is my preferred approach when an element appears asynchronously.
+test('Wait for element visibility', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    await expect(
+        page.locator('#success-message')
+    ).toBeVisible({
+        timeout: 15000
+    });
+
+});
+
+How it works:
+1. Playwright checks whether the element is visible.
+2. If it is not visible, Playwright retries the assertion.
+3. It continues checking until the element becomes visible.
+4. If the element does not appear within 15 seconds, the test fails.
+I use a timeout of 15 seconds here because the expected delay is 5–10 seconds, with some additional buffer.
+
+3. Use locator.waitFor()
+If I specifically need to wait for an element to reach a particular state before performing an action, I can use waitFor().
+
+test('Wait for element before clicking', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    const submitButton = page.locator('#submit');
+
+    await submitButton.waitFor({
+        state: 'visible',
+        timeout: 15000
+    });
+
+    await submitButton.click();
+
+});
+
+
+Available states:
+State		| Meaning
+attached	| Element is present in the DOM
+detached	| Element is removed from the DOM
+visible		| Element is visible
+hidden		| Element is hidden or detached
+
+Important: waitFor({ state: 'visible' }) only ensures visibility. The subsequent click still performs Playwright's actionability checks.
+
+4. What if the element appears after an API response?
+Sometimes the UI element appears only after an API request completes.
+
+In that situation, I can wait for the API response instead of waiting blindly for the UI.
+test('Wait for API response before validating UI', async ({ page }) => {
+
+    await page.goto('https://example.com/dashboard');
+
+    const responsePromise = page.waitForResponse(response =>
+        response.url().includes('/api/users') &&
+        response.status() === 200
+    );
+
+    await page.getByRole('button', {
+        name: 'Load Users'
+    }).click();
+
+    await responsePromise;
+
+    await expect(
+        page.locator('#user-table')
+    ).toBeVisible();
+
+});
+
+Here, I wait for the relevant API response and then verify that the user table is visible.
+This is more reliable than waiting for an arbitrary number of seconds.
+
+5. What if the element appears randomly because of network delays?
+If I suspect network instability, I investigate the request and response timing.
+page.on('requestfailed', request => {
+
+    console.log(
+        'Failed Request:',
+        request.url(),
+        request.failure()?.errorText
+    );
+
+});
+
+page.on('response', response => {
+
+    console.log(
+        'Response:',
+        response.status(),
+        response.url()
+    );
+
+});
+
+I also use Playwright Trace Viewer to inspect:
+- API request and response timing.
+- DOM snapshots.
+- Screenshots.
+- Failed actions.
+- Network activity.
+This helps me identify whether the delay is caused by the frontend, backend, or network.
+6. What if the element is visible but not clickable?
+Sometimes an element appears in the DOM but another element overlays it, or an animation is still running.
+
+I use:
+const button = page.getByRole('button', {
+    name: 'Submit'
+});
+
+await expect(button).toBeVisible();
+
+await expect(button).toBeEnabled();
+
+await button.click({
+    timeout: 15000
+});
+
+
+Playwright's click action checks important actionability conditions:
+- Element is visible.
+- Element is stable.
+- Element receives pointer events.
+- Element is enabled.
+If clicking still fails, I inspect overlays, animations, and the element's actual state instead of immediately using { force: true }.
+7. What I avoid: waitForTimeout()
+I would avoid this approach:
+await page.waitForTimeout(10000);
+
+await page.locator('#success-message').click();
+
+Why do I avoid it?
+- If the element appears in 2 seconds, the remaining 8 seconds are wasted.
+- If it appears after 12 seconds, the test still fails.
+- It increases overall execution time.
+- It does not identify the actual reason for the delay.
+I use fixed waits only when there is a specific reason to pause, such as testing a timed behavior.
+8. Important: Configure global and assertion timeouts
+In my Playwright framework, I configure reasonable timeout values centrally.
+// playwright.config.ts
+
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+
+    timeout: 60000,
+
+    expect: {
+        timeout: 15000
+    },
+
+    use: {
+        actionTimeout: 15000,
+        navigationTimeout: 30000
+    }
+
+});
+
+
+These settings serve different purposes:
+Configuration		| Purpose
+1. timeout		| Maximum duration for an individual test
+2. expect.timeout	| Maximum duration for auto-retrying assertions
+3. actionTimeout	| Maximum duration for actions such as click and fill
+4. navigationTimeout	| Maximum duration for navigation operations
+
+Note that the test timeout includes the time spent in its actions and assertions.
+
+Interview-ready answer
+"If an element takes 5–10 seconds to appear randomly, I don't use hardcoded waits like waitForTimeout(10000).
+
+First, I identify why the element is delayed, whether it is due to an API response, network latency, or asynchronous rendering.
+
+For normal UI interactions, I rely on Playwright's built-in auto-waiting. If I need to verify that an element appears, I use web-first assertions such as expect(locator).toBeVisible({ timeout: 15000 }).
+
+If the element depends on an API call, I use page.waitForResponse() to synchronize with the relevant API response and then validate the UI.
+
+I also use Trace Viewer, screenshots, and network logs to investigate intermittent failures.
+
+My goal is to synchronize the test with the actual application behavior rather than introducing unnecessary fixed delays."
+
+Best practice
+ Prefer condition-based waiting over time-based waiting. It improves test stability and reduces unnecessary execution time.
 
 
 #====================================================================================================
-# Q :
+# Q : An element is inside a shadow DOM. How would you automate it?
+==> As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, I handle Shadow DOM elements using Playwright's built-in locator support.
+
+Unlike Selenium, where we generally need to switch into a Shadow Root using getShadowRoot(), Playwright can automatically pierce open Shadow DOM elements using standard CSS locators.
+1. What is Shadow DOM?
+Shadow DOM is a web technology used to encapsulate HTML, CSS, and JavaScript inside a component.
+
+For example, a web application might contain:
+<user-login>
+    #shadow-root (open)
+        <input id="username">
+        <input id="password">
+        <button id="login">Login</button>
+</user-login>
 
 
+Here, the username, password, and login button are inside the Shadow DOM of the user-login component.
+2. How do you automate Shadow DOM in Playwright?
+Playwright's CSS locators automatically pierce open Shadow DOM boundaries.
+
+We don't need to explicitly access the shadow root.
+Example 1: Locate elements inside Shadow DOM
+import { test, expect } from '@playwright/test';
+
+test('Handle Shadow DOM elements', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    // Locate username inside Shadow DOM
+    await page.locator('user-login #username')
+        .fill('testuser');
+
+    // Locate password inside Shadow DOM
+    await page.locator('user-login #password')
+        .fill('password123');
+
+    // Click login button
+    await page.locator('user-login #login')
+        .click();
+
+});
+
+
+Explanation:
+- user-login identifies the custom web component.
+- #username identifies the username input inside its Shadow DOM.
+- Playwright automatically traverses the open Shadow DOM.
+- We can interact with the elements using normal locator methods.
+3. How do you handle nested Shadow DOM?
+Sometimes an element is inside multiple Shadow DOM components.
+
+Example:
+<app-container>
+    #shadow-root (open)
+
+    <user-login>
+        #shadow-root (open)
+
+        <input id="username">
+        <button id="login">Login</button>
+
+    </user-login>
+</app-container>
+
+
+We can use:
+const username = page.locator(
+    'app-container user-login #username'
+);
+
+await username.fill('testuser');
+
+const loginButton = page.locator(
+    'app-container user-login #login'
+);
+
+await loginButton.click();
+
+
+Playwright automatically pierces both open Shadow DOM boundaries.
+4. Can we use XPath inside Shadow DOM?
+No. Playwright XPath locators do not pierce Shadow DOM boundaries.
+
+For example, this XPath approach will not work when the element is inside a Shadow DOM:
+// Not supported for crossing Shadow DOM boundaries
+await page.locator(
+    '//user-login//input[@id="username"]'
+).fill('testuser');
+
+
+Instead, I use CSS locators or Playwright's other supported locator strategies.
+await page.locator(
+    'user-login #username'
+).fill('testuser');
+
+
+5. What if the Shadow DOM is closed?
+This is an important interview question.
+
+There are two types of Shadow DOM:
+Type			| Description					| Playwright support
+Open Shadow DOM		| Shadow root is accessible through the component	| Supported
+Closed Shadow DOM		| Shadow root is not accessible through the standard DOM APIs	 | Not supported by normal Playwright locators
+
+Example:
+class LoginComponent extends HTMLElement {
+
+    constructor() {
+        super();
+
+        const shadow = this.attachShadow({
+            mode: 'closed'
+        });
+
+        shadow.innerHTML = `
+            <input id="username">
+        `;
+    }
+
+}
+Here, the Shadow DOM is closed.
+
+Playwright's normal locators cannot access elements inside it.
+
+How would I handle it?
+1. Request developers to expose a test-friendly interface or use an open Shadow DOM if appropriate.
+2. Interact through publicly exposed component APIs.
+3. Validate behavior through accessible UI or backend APIs.
+4. Avoid changing application internals just to make tests pass.
+Playwright also documents a special limitation: closed Shadow Roots are not supported by its normal locators.
+6. What about iframe containing Shadow DOM?
+This is another commonly asked scenario.
+
+Suppose an application contains an iframe, and inside that iframe there is a Shadow DOM component.
+
+In this case, I first locate the iframe using frameLocator() and then locate the Shadow DOM element inside it.
+const username = page
+    .frameLocator('#login-frame')
+    .locator('user-login #username');
+
+await username.fill('testuser');
+
+
+Here:
+- frameLocator() enters the iframe's document.
+- .locator() locates the custom element and its open Shadow DOM child.
+- Playwright automatically pierces the open Shadow DOM.
+
+7. Selenium vs Playwright: Shadow DOM handling
+Feature			| Selenium Java					| Playwright TypeScript
+Open Shadow DOM		| Explicit Shadow Root access generally required	| Automatically supported
+Closed Shadow DOM		| Not accessible through standard Shadow Root API	| Not supported by normal locators
+Nested Shadow DOM		| Multiple getShadowRoot() calls			| CSS locator can pierce nested open roots
+XPath			| Cannot directly cross Shadow DOM boundaries	| Cannot pierce Shadow DOM
+Iframe + Shadow DOM	| Switch frame, then access Shadow Root		| frameLocator() followed by locator
+
+Selenium example for comparison
+WebElement shadowHost = driver.findElement(
+    By.cssSelector("user-login")
+);
+
+SearchContext shadowRoot = shadowHost.getShadowRoot();
+
+WebElement username = shadowRoot.findElement(
+    By.cssSelector("#username")
+);
+
+username.sendKeys("testuser");
+
+Interview-ready answer
+"In Playwright, handling Shadow DOM is straightforward because Playwright automatically pierces open Shadow DOM boundaries when using supported locators.
+
+For example, if I have a custom web component called user-login containing username and password fields inside its open Shadow DOM, I can directly use page.locator('user-login #username') and interact with it without explicitly accessing the Shadow Root.
+
+For nested Shadow DOM, I can chain CSS locators, and Playwright handles the open Shadow DOM boundaries automatically.
+
+One limitation is that XPath locators do not pierce Shadow DOM. Also, closed Shadow DOM is not supported by normal Playwright locators.
+
+If an iframe contains a Shadow DOM, I first use frameLocator() to access the iframe and then locate the element inside the open Shadow DOM.
+
+Compared with Selenium, Playwright makes Shadow DOM automation easier because it handles open Shadow DOM traversal automatically."
+
+Key point to remember: Open Shadow DOM → directly use Playwright locators. Closed Shadow DOM → normal Playwright locators cannot access it.
+
+#====================================================================================================
+# Q : How would you handle an element whose position changes dynamically on every execution?
+==> As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, I would handle dynamically changing element positions using stable attributes, dynamic locators, and relationship-based locators rather than relying on fixed indexes or coordinates.
+
+For example, suppose a table contains 100 users, and the Edit button for a particular user appears at a different row position every time because the application sorts the records dynamically.
+
+I would identify the user using a unique attribute, locate the corresponding row, and then click the Edit button within that row.
+1. Approach: Use unique attributes
+Suppose the element has a dynamically changing position but a stable ID or test attribute.
+<button data-testid="edit-user">Edit</button>
+
+
+Playwright code:
+await page.getByTestId('edit-user').click();
+
+
+This is the simplest approach because the locator does not depend on the element's position.
+2. Approach: Use text-based locators
+If the element has dynamic positioning but stable visible text, I use getByText() or getByRole().
+await page.getByRole('button', {
+    name: 'Submit'
+}).click();
+
+
+Even if the button moves from the top to the bottom of the page, Playwright can locate it using its accessible role and name.
+3. Approach: Use relationship-based locators
+Consider a table where user records change their positions on every execution.
+User ID	Name	Action
+103	David	Edit
+101	John	Edit
+105	Uzma	Edit
+102	Smith	Edit
+
+I want to click Edit for Uzma.
+import { test, expect } from '@playwright/test';
+
+test('Click Edit for dynamically positioned user', async ({ page }) => {
+
+    await page.goto('/users');
+
+    const userRow = page.locator('table tbody tr')
+        .filter({ hasText: 'uzma@gmail.com' });
+
+    await expect(userRow).toHaveCount(1);
+
+    await userRow.getByRole('button', {
+        name: 'Edit'
+    }).click();
+
+});
+
+
+Why this approach?
+- It doesn't depend on row position.
+- It works even if the table is sorted differently.
+- It identifies the correct user's Edit button.
+- It makes the automation reusable.
+4. Approach: Handle dynamically generated IDs
+Sometimes applications generate dynamic IDs.
+
+For example:
+<input id="input-12345">
+<input id="input-67890">
+
+
+If the ID changes on every execution, I avoid using the complete ID.
+
+Instead, I identify stable attributes.
+await page.locator('input[name="username"]')
+    .fill('testuser');
+
+
+If there is a stable prefix:
+await page.locator('input[id^="input-"]')
+    .fill('testuser');
+
+
+CSS attribute selectors:
+Selector	Meaning
+[id^="input-"]	ID starts with input-
+[id$="-field"]	ID ends with -field
+[id*="username"]	ID contains username
+
+I would verify that the locator uniquely identifies the intended element before interacting with it.
+5. Approach: Handle dynamically positioned elements using CSS relationships
+Suppose the application contains:
+<div class="user-card">
+    <span class="username">Uzma</span>
+    <button class="edit">Edit</button>
+</div>
+
+
+I can locate the card based on the username and then locate its Edit button.
+const userCard = page.locator('.user-card')
+    .filter({ hasText: 'Uzma' });
+
+await expect(userCard).toHaveCount(1);
+
+await userCard.locator('.edit').click();
+
+
+This is useful when the page contains multiple cards with identical buttons.
+6. What if the element's actual screen coordinates change?
+Suppose a button moves because of:
+- Responsive UI changes.
+- Dynamic content loading.
+- Animations.
+- Different screen resolutions.
+- Scrolling.
+I generally avoid coordinate-based interactions such as:
+await page.mouse.click(450, 300);
+
+
+Instead, I use locator-based actions:
+const button = page.getByRole('button', {
+    name: 'Submit'
+});
+
+await expect(button).toBeVisible();
+
+await button.click();
+
+
+Playwright automatically scrolls the element into view when necessary and performs actionability checks before clicking.
+
+If an overlay or animation temporarily blocks the element, I investigate that behavior rather than immediately using force: true.
+7. What if the element moves because of sorting or asynchronous loading?
+I wait for the application to finish loading the relevant data and then locate the element.
+await page.getByRole('button', {
+    name: 'Load Users'
+}).click();
+
+await expect(
+    page.locator('table tbody tr')
+).not.toHaveCount(0);
+
+const userRow = page.locator('table tbody tr')
+    .filter({ hasText: 'uzma@gmail.com' });
+
+await expect(userRow).toHaveCount(1);
+
+await userRow.getByRole('button', {
+    name: 'Edit'
+}).click();
+
+
+If the application exposes a loading indicator, I would also wait for it to disappear:
+await expect(
+    page.locator('.loading-spinner')
+).toBeHidden();
+
+
+This prevents locating an element while the table is still updating.
+
+8. What approaches do I avoid?
+Approach	Why I avoid it
+nth(5)	Position may change
+Absolute XPath	DOM structure may change
+Hardcoded coordinates	Element may move on screen
+Fixed waits	Do not guarantee the element is ready
+force: true	Can hide genuine interaction problems
+
+Interview-ready answer
+"If an element's position changes dynamically on every execution, I never depend on its index or screen coordinates.
+
+First, I identify whether the element has any stable attributes, such as an ID, name, test ID, accessible role, or visible text.
+
+If it is part of a table or repeated component, I use relationship-based locators. For example, I locate the row using a unique username or email and then locate the Edit button inside that particular row.
+
+If the position changes due to asynchronous loading or sorting, I wait for the relevant application condition before interacting with the element.
+
+I prefer getByRole(), getByTestId(), CSS locators, and filter({ hasText }) because they make automation independent of the element's physical position.
+
+My goal is to identify an element based on its identity and relationship with other elements, not where it appears on the screen."
+
+Best practice
+ Locate by identity, not by position. Use stable attributes and scoped locators to make Playwright automation resilient to dynamic UI changes.
+
+#====================================================================================================
+# Q : An element is present but not visible. Which wait would you use and why?
+==> As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, first I would understand whether the element is present in the DOM but hidden, or whether it is present but not yet displayed because of some application condition.
+
+If an element is present in the DOM but not visible, I would use:
+await locator.waitFor({
+    state: 'visible',
+    timeout: 15000
+});
+
+
+However, the correct wait depends on the expected behavior.
+1. Difference between attached and visible
+Consider the following HTML:
+<div id="success-message" style="display: none;">
+    Login Successful
+</div>
+
+
+Here, the element exists in the DOM, but it is not visible to the user.
+
+Playwright provides four locator wait states:
+State	Meaning
+attached	Element exists in the DOM
+visible	Element exists and is visible
+hidden	Element is hidden or detached
+detached	Element is removed from the DOM
+
+2. If the element is present but hidden, and I expect it to become visible
+I use waitFor({ state: 'visible' }).
+import { test, expect } from '@playwright/test';
+
+test('Wait for hidden element to become visible', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    const successMessage = page.locator('#success-message');
+
+    // Wait until element becomes visible
+    await successMessage.waitFor({
+        state: 'visible',
+        timeout: 15000
+    });
+
+    // Validate the message
+    await expect(successMessage).toHaveText('Login Successful');
+
+});
+
+
+How it works:
+1. Playwright checks whether the element exists.
+2. If it exists but is hidden, Playwright continues waiting.
+3. Once it becomes visible, execution continues.
+4. If it remains hidden for 15 seconds, the test fails.
+3. Alternative: Use expect().toBeVisible()
+This is my preferred approach when I want to validate visibility.
+await expect(
+    page.locator('#success-message')
+).toBeVisible({
+    timeout: 15000
+});
+
+
+Difference:
+- locator.waitFor() waits for a locator to reach a particular state.
+- expect(locator).toBeVisible() waits and asserts that the element is visible.
+For validation-oriented test cases, I prefer web-first assertions because they automatically retry until the assertion passes or times out.
+4. What if the element is hidden initially and becomes visible after clicking a button?
+Example:
+await page.getByRole('button', {
+    name: 'Show Details'
+}).click();
+
+const details = page.locator('#details');
+
+await expect(details).toBeVisible({
+    timeout: 10000
+});
+
+
+Here, I perform the action that should make the element visible and then verify the expected UI behavior.
+5. What if the element is present but permanently hidden?
+Suppose an application hides an Edit button for a Viewer role.
+<button id="edit" style="display: none;">
+    Edit
+</button>
+
+
+If my requirement is to verify that the Edit button is hidden, I use:
+await expect(
+    page.locator('#edit')
+).toBeHidden();
+
+
+I would not wait for it to become visible because that is not the expected behavior.
+6. Important: Difference between isVisible() and toBeVisible()
+This is a common interview follow-up.
+
+Using isVisible():
+const visible = await page.locator('#submit').isVisible();
+
+console.log(visible);
+
+
+- Returns true or false immediately.
+- Does not automatically wait for the element to become visible.
+Using toBeVisible():
+await expect(
+    page.locator('#submit')
+).toBeVisible({
+    timeout: 10000
+});
+
+
+- Automatically retries the assertion.
+- Waits until the element becomes visible or the timeout expires.
+7. Interview-ready answer
+"If an element is present in the DOM but not visible, I first identify whether it is expected to become visible or should remain hidden.
+
+If it is expected to become visible, I use locator.waitFor({ state: 'visible' }) or preferably expect(locator).toBeVisible().
+
+For example, if a success message is initially hidden and becomes visible after an API response, I wait for it using toBeVisible() with an appropriate timeout.
+
+If my requirement is to verify that an element remains hidden, such as an Edit button for a read-only user, I use toBeHidden().
+
+I also understand the difference between isVisible() and toBeVisible(): isVisible() checks immediately, whereas toBeVisible() automatically retries.
+
+So, I select the wait based on the expected application behavior rather than adding fixed waits."
+
+Quick revision:
+Requirement			| Method
+Wait until element exists in DOM	| locator.waitFor({ state: 'attached' })
+Wait until element becomes visible	| locator.waitFor({ state: 'visible' })
+Verify element is visible with auto-retry	 | expect(locator).toBeVisible()
+Verify element is hidden		| expect(locator).toBeHidden()
+Wait until element is removed from DOM	| locator.waitFor({ state: 'detached' })
+
+Interview tip
+ Remember: Present in DOM does not mean visible on screen. Use attached for DOM presence and visible for actual visibility.
+
+#====================================================================================================
+# Q : You have AJAX calls that don't refresh the page. How would you wait for the operation to complete?
+==> As a Playwright TypeScript Automation Engineer with 3.6 years of experience, I handle AJAX calls using page.waitForResponse(), page.waitForRequest(), and Playwright's auto-waiting assertions, depending on what I need to validate.
+
+Since AJAX calls update only part of the page without a full page reload, I don't wait for navigation. Instead, I wait for the relevant API response or the expected UI change.
+1. Using page.waitForResponse() – Preferred approach
+I use this when I want to ensure that a particular API call has completed successfully.
+
+Example: Clicking Search triggers an AJAX request.
+import { test, expect } from '@playwright/test';
+
+test('Wait for AJAX response', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    // Start waiting for the API response
+    const responsePromise = page.waitForResponse(response =>
+        response.url().includes('/api/users') &&
+        response.request().method() === 'GET' &&
+        response.status() === 200
+    );
+
+    // Trigger AJAX request
+    await page.getByRole('button', { name: 'Search' }).click();
+
+    // Wait for API response
+    const response = await responsePromise;
+
+    console.log('API Status:', response.status());
+
+    // Validate updated UI
+    await expect(page.locator('#user-table')).toBeVisible();
+});
+
+
+How it works:
+1. I register waitForResponse() before clicking the button.
+2. I trigger the action that sends the AJAX request.
+3. Playwright waits until the matching response is received.
+4. I validate the response status and the updated UI.
+Important: I register the response listener before triggering the action to avoid missing a fast response.
+2. Using page.waitForRequest()
+I use this when I only need to verify that the browser has sent a particular AJAX request.
+const requestPromise = page.waitForRequest(request =>
+    request.url().includes('/api/users') &&
+    request.method() === 'POST'
+);
+
+await page.getByRole('button', { name: 'Create User' }).click();
+
+const request = await requestPromise;
+
+console.log('Request URL:', request.url());
+console.log('Request Method:', request.method());
+
+
+Difference: waitForRequest() confirms that the request was sent, whereas waitForResponse() waits for the corresponding response.
+3. Using Playwright auto-waiting assertions
+Sometimes I don't need to validate the API response directly. I only need to verify that the AJAX operation updated the UI.
+
+In that case, I use web-first assertions.
+await page.getByRole('button', { name: 'Load Users' }).click();
+
+await expect(page.locator('#loading')).toBeHidden();
+
+await expect(page.locator('#user-table tbody tr'))
+    .toHaveCount(5);
+
+
+Playwright automatically retries the assertions until the expected condition is met or the timeout is reached.
+4. Handling AJAX calls with loading indicators
+For applications that display a loader while processing an AJAX request, I wait for the loader to disappear and then verify the updated data.
+await page.getByRole('button', { name: 'Submit' }).click();
+
+// Wait until loader disappears
+await expect(page.locator('.loader')).toBeHidden();
+
+// Verify success message
+await expect(page.getByText('Data saved successfully'))
+    .toBeVisible();
+
+
+This is useful for search results, form submissions, dashboards, and dynamically loaded tables.
+5. Handling multiple AJAX calls
+If clicking a button triggers multiple API calls, I can wait for all expected responses.
+const usersPromise = page.waitForResponse(response =>
+    response.url().includes('/api/users') &&
+    response.status() === 200
+);
+
+const rolesPromise = page.waitForResponse(response =>
+    response.url().includes('/api/roles') &&
+    response.status() === 200
+);
+
+await page.getByRole('button', { name: 'Load Dashboard' }).click();
+
+const [usersResponse, rolesResponse] = await Promise.all([
+    usersPromise,
+    rolesPromise
+]);
+
+expect(usersResponse.ok()).toBeTruthy();
+expect(rolesResponse.ok()).toBeTruthy();
+
+
+Which approach would I choose?
+Method		    | When I use it
+waitForResponse()		| Wait for a specific API response
+waitForRequest()		| Verify that an AJAX request was triggered
+expect()				| Wait for the expected UI update
+Loader disappearance | Wait until background processing finishes
+Promise.all()			| Wait for multiple independent API responses
+
+What I avoid
+I avoid using fixed waits such as:   await page.waitForTimeout(5000);
+
+This is unreliable because the AJAX operation may complete in 500 ms or take 8 seconds. A fixed wait either wastes execution time or causes flaky tests.
+
+My interview answer:
+
+"When AJAX calls don't refresh the page, I don't use waitForNavigation(). I prefer page.waitForResponse() when I need to synchronize with a specific API call. I register the response listener before triggering the action, wait for the response, validate its status, and then verify the updated UI using Playwright's web-first assertions. If the application has a loading indicator, I also wait for it to disappear. This approach makes my automation reliable, efficient, and less prone to flaky failures."
+
+#====================================================================================================
+# Q : Sometimes a loader appears over the page and disappears after a few seconds. How would you handle it?
+==> In Playwright TypeScript, I handle loaders or spinners using explicit locator-based waits and Playwright's auto-waiting mechanism.
+A loader usually appears while the application is processing an AJAX request or fetching data. I wait until the loader disappears before interacting with the underlying page elements.
+
+1. Using toBeHidden() – Preferred approach
+If the loader disappears after the operation completes, I use Playwright's web-first assertion.
+import { test, expect } from '@playwright/test';
+
+test('Handle loader', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    await page.getByRole('button', { name: 'Load Data' }).click();
+
+    // Wait until loader disappears
+    await expect(page.locator('.loader'))
+        .toBeHidden({ timeout: 15000 });
+
+    // Verify the data is displayed
+    await expect(page.locator('#data-table')).toBeVisible();
+});
+How it works:
+1. Click the button that triggers the operation.
+2. Playwright checks whether the loader is hidden.
+3. The assertion automatically retries until the loader disappears or the timeout is reached.
+4. Once hidden, the test verifies that the expected content is displayed.
+
+2. Using locator.waitFor()
+Alternatively, I can use waitFor() with the hidden state.
+
+const loader = page.locator('.loading-spinner');
+
+await page.getByRole('button', { name: 'Submit' }).click();
+
+// Wait until loader becomes hidden
+await loader.waitFor({
+    state: 'hidden',
+    timeout: 15000
+});
+
+// Continue with next operation
+await page.getByRole('button', { name: 'Continue' }).click();
+
+The hidden state is satisfied when the element becomes invisible or is removed from the DOM.
+
+3. Handling loaders that appear and disappear dynamically
+Sometimes the loader appears only after a delay because the AJAX response is very fast.
+
+In this situation, I prefer waiting for the actual API response and then validating the UI.
+
+const responsePromise = page.waitForResponse(response =>
+    response.url().includes('/api/products') &&
+    response.status() === 200
+);
+
+await page.getByRole('button', { name: 'Search Products' }).click();
+
+await responsePromise;
+
+await expect(page.locator('#product-loader')).toBeHidden();
+
+await expect(page.locator('.product-list')).toBeVisible();
+
+This avoids depending only on the loader's appearance, which may be too brief to observe reliably.
+
+4. Handling multiple loaders on the page
+If the application contains multiple loaders, I identify the specific loader associated with the operation.
+
+const loader = page.locator('#user-section .loader');
+
+await page.getByRole('button', { name: 'Refresh Users' }).click();
+
+await expect(loader).toBeHidden();
+
+await expect(page.locator('#user-table tbody tr')) .toHaveCount(5);
+
+I avoid using a generic selector such as .loader if multiple loaders exist, because it might match an unrelated component.
+5. What if the loader never disappears?
+I handle this as a potential application or API failure rather than increasing the timeout blindly.
+
+I investigate:
+- Whether the AJAX request failed.
+- Whether the API returned an error.
+- Whether the loader is stuck due to an application bug.
+- Whether the locator identifies the correct loader.
+- Whether the application has a timeout or error state.
+For debugging, I can capture failed requests:
+
+page.on('requestfailed', request => {
+    console.log(
+        'Failed Request:',
+        request.url(),
+        request.failure()?.errorText
+    );
+});
+
+Difference between toBeHidden() and waitFor({ state: 'hidden' })
+Feature			| toBeHidden()	| waitFor({ state: 'hidden' })
+Purpose			| Assertion	| Synchronization
+Auto-waiting		| Yes		| Yes
+Fails if timeout occurs	| Yes		| Yes
+Verifies test expectation	| Yes		| No
+Best use			| Validate loader disappearance	| Wait before next action
+
+Interview-ready answer
+"In my Playwright framework, whenever a loader appears during an AJAX operation, I use expect(locator).toBeHidden() to wait until it disappears. Playwright automatically retries this assertion until the loader becomes hidden or the timeout is reached.
+
+If I need synchronization without making an assertion, I use locator.waitFor({ state: 'hidden' }). I also verify that the expected page content is displayed after the loader disappears.
+
+I avoid hardcoded waits like waitForTimeout(5000) because loader duration can vary depending on network speed and application performance. This makes my tests more reliable and reduces flaky failures."
+
+Important interview point: toBeHidden() also passes if the loader was never visible or has already been removed. If the test specifically needs to verify that a loader appears and then disappears, first assert visibility and then assert hidden, provided the application behavior guarantees that it will appear.
+
+#====================================================================================================
+# Q : Clicking a link opens a new browser tab. How would you switch to the new tab?
+==> o switch to a new tab in Playwright with TypeScript, you must listen for the page or popup event before or during the click action, which yields a new Page object representing the new tab. Unlike other frameworks, Playwright does not require you to manually manage window handles by index—you simply interact with the new Page object directly.
+Here are the two standard patterns to achieve this:
+
+1. The Promise.all Pattern (Recommended)
+
+This approach triggers the event listener and the click action concurrently, safely capturing the event without race conditions.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Switch to new tab using Promise.all', async ({ context, page }) => {
+  await page.goto('https://example.com');
+
+  // Start waiting for the new page event and trigger the click simultaneously
+  const [newPage] = await Promise.all([
+    context.waitForEvent('page'),             // 1. Listen for the new tab event
+    page.getByText('Open New Tab').click(),   // 2. Perform the action that opens it
+  ]);
+
+  // Optional: Wait for the new tab to completely finish loading
+  await newPage.waitForLoadState(); 
+
+  // You are now interacting with the new tab
+  await expect(newPage).toHaveURL('https://example.com');
+  await newPage.getByRole('button', { name: 'Submit' }).click();
+
+  // Switch back to the original tab by just using the original 'page' object
+  await page.bringToFront(); 
+});
+Use code with caution.
+
+2. The Defer Promise Pattern
+
+Alternatively, you can assign the event promise to a variable before running the click step.
+typescript
+test('Switch to new tab using deferred promise', async ({ context, page }) => {
+  await page.goto('https://example.com');
+
+  // Set up the listener first (Do NOT use 'await' here)
+  const pagePromise = context.waitForEvent('page');
+
+  // Click the link that triggers the tab
+  await page.locator('#link-that-opens-tab').click();
+
+  // Await the promise to resolve into the new page object
+  const newPage = await pagePromise;
+
+  // Interact with the new tab
+  console.log(await newPage.title());
+});
+Use code with caution.
+
+Key Functions to Keep in Mind
+
+• context.waitForEvent('page'): Listens context-wide for any new page or tab creation. You can also use page.waitForEvent('popup') if the new tab is triggered strictly as a popup window.
+• newPage.bringToFront(): Brings the tab into active view. While Playwright commands work on newPage in the background without it, this is required if your test behavior depends on element visibility triggers or if you are running in non-headless mode and want to watch the execution.
+If you want to tailor this further, let me know:
+• Does the link open via a standard target="_blank" attribute, or is it triggered by a custom JavaScript click event?
+• Are you looking to assert specific text on the new tab, or do you need to close it immediately after an interaction?
+
+#====================================================================================================
+# Q : Does the link open via a standard target="_blank" attribute, or is it triggered by a custom JavaScript click event?
+==> how you handle standard target="_blank" links vs. JavaScript-triggered popups, along with how to assert text and clean up by closing the tab.
+
+1. The Standard Link (target="_blank")
+
+If the link is a normal HTML anchor tag with target="_blank", you use the context.waitForEvent('page') pattern. This captures any new tab created within that browser context.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Handle standard target="_blank" link', async ({ context, page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Setup the listener and click the link
+  const [newPage] = await Promise.all([
+    context.waitForEvent('page'),
+    page.locator('a[target="_blank"]').click(), 
+  ]);
+
+  // 2. Wait for the new tab's content to load
+  await newPage.waitForLoadState();
+
+  // 3. Assert specific text on the new tab
+  await expect(newPage.locator('h1')).toHaveText('Welcome to the New Tab!');
+  await expect(newPage.getByText('Success Message')).toBeVisible();
+
+  // 4. Close the new tab to clean up memory
+  await newPage.close();
+
+  // 5. Continue testing on the original page
+  await expect(page).toHaveURL('https://example.com');
+});
+Use code with caution.
+
+2. The JavaScript-Triggered Popup (window.open)
+
+If the link uses a custom JavaScript click event (like window.open()), it is often treated strictly as a popup. For this, listening to page.waitForEvent('popup') is more precise.
+typescript
+test('Handle JavaScript window.open() popup', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Listen for the specific popup event from this page
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByRole('button', { name: 'Launch App' }).click(),
+  ]);
+
+  await popup.waitForLoadState();
+
+  // 2. Assert text inside the JS popup
+  await expect(popup.locator('.dashboard-title')).toContainText('Dashboard');
+
+  // 3. Close the popup when done
+  await popup.close();
+});
+Use code with caution.
+
+Quick Reference Checklist
+
+• context.waitForEvent('page'): Best for any new tab (HTML links or JS).
+• page.waitForEvent('popup'): Best when the action is localized to a specific button triggering a popup on that exact page.
+• newPage.close(): Always close your spawned tabs if your test continues on the main page. It keeps your test execution fast and prevents memory leaks.
+
+#====================================================================================================
+# Q : There are three browser windows open. How would you switch to a specific window?
+==> To switch to a specific browser window out of multiple open ones in Playwright, you do not use indexes or click commands. Instead, you find the window matching a specific property (like its URL or title) within the browser context's array of open pages.
+Every time a new window or tab opens, Playwright tracks it inside context.pages().
+Here is how you search through all open windows and switch your target interaction to the correct one:
+
+The "Find by Title or URL" Pattern
+
+Instead of relying on the order the windows opened, iterate through context.pages() to locate your target window.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Switch to a specific window out of multiple open windows', async ({ context, page }) => {
+  await page.goto('https://example.com');
+
+  // ... actions that trigger two more windows to open ...
+
+  // 1. Get an array of all currently open windows/tabs
+  const allWindows = context.pages(); 
+  console.log(`Total open windows: ${allWindows.length}`); // Outputs: 3
+
+  // 2. Define a variable to hold our target window
+  let targetWindow;
+
+  // 3. Loop through them to find the one matching your criteria (e.g., Title or URL)
+  for (const win of allWindows) {
+    const title = await win.title();
+    if (title === 'Target Dashboard Window') {
+      targetWindow = win;
+      break;
+    }
+  }
+
+  // 4. Ensure the window was actually found
+  if (!targetWindow) {
+    throw new Error('Could not find the specific target window!');
+  }
+
+  // 5. Optional: Bring it visually to the front (useful for non-headless debugging)
+  await targetWindow.bringToFront();
+
+  // 6. Interact with the specific window safely
+  await expect(targetWindow.locator('h1')).toHaveText('Welcome to the Dashboard');
+  await targetWindow.getByRole('button', { name: 'Logout' }).click();
+});
+Use code with caution.
+
+Alternative: A Cleaner Functional Approach
+
+If you prefer clean TypeScript, you can replace the for...of loop with an asynchronous find strategy:
+typescript
+const allWindows = context.pages();
+
+// Find the page where the URL contains a specific path
+const targetWindow = allWindows.find(win => win.url().includes('/settings'));
+
+if (targetWindow) {
+  await targetWindow.bringToFront();
+  // Interact here
+}
+Use code with caution.
+
+Key Things to Remember
+
+• No Window Handles: Unlike Selenium or WebDriverIO, you don't need to pass string tokens or switch context modes globally. Whichever Page object variable you call commands on (page, targetWindow, popup) is the window Playwright interacts with.
+• Race Conditions: If the windows are opened dynamically via clicks right before you switch, make sure to use await page.waitForTimeout(1000) or wait for the specific page events to resolve first so that context.pages() accurately reflects all 3 windows.
+To narrow this down, let me know:
+• Do you know the exact Title or URL snippet of the window you want to target?
+• Are these windows already open when the test starts, or are they opened by clicking links during the test execution?
+
+#====================================================================================================
+# Q : After completing a test in a child window, how would you return to the parent window?
+==> o return to the parent window in Playwright, you do not need to execute an explicit "switch back" command. Because Playwright isolates pages into distinct variables, you simply call your next commands directly on your original page object variable while using bringToFront() if you need to visually focus it.
+Here is the cleanest way to finish your work in a child window, close it, and instantly resume testing on the parent page:
+
+The Return Pattern
+
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Interact with child window and return to parent', async ({ context, page }) => {
+  // 'page' is your parent window
+  await page.goto('https://example.com');
+
+  // 1. Open the child window
+  const [childWindow] = await Promise.all([
+    context.waitForEvent('page'),
+    page.getByText('Open Child Window').click(),
+  ]);
+  await childWindow.waitForLoadState();
+
+  // 2. Perform your tests inside the child window
+  await expect(childWindow.locator('h1')).toHaveText('Child Window Dashboard');
+  await childWindow.getByRole('button', { name: 'Save Changes' }).click();
+
+  // 3. Close the child window (Best practice to free up browser memory)
+  await childWindow.close();
+
+  // 4. Return to the parent window
+  // If running in headed mode, this brings the parent window back into visual focus
+  await page.bringToFront(); 
+
+  // 5. Instantly resume interacting with the parent window
+  await expect(page).toHaveURL('https://example.com');
+  await page.getByRole('link', { name: 'Next Step' }).click();
+});
+Use code with caution.
+
+Why it Works This Way
+
+Unlike legacy frameworks like Selenium (which use a global driver state requiring driver.switchTo().window(parentHandle)), Playwright is object-driven.
+• The variable page always points to your parent window.
+• The variable childWindow points to the new popup.
+• Even if childWindow is currently open and active on the screen, running await page.click(...) will automatically execute against the parent window in the background.
+
+#====================================================================================================
+# Q : How would you automate file download validation using Playwright typescript?
+==> To automate file download validation in Playwright with TypeScript, you must handle the download asynchronously by listening for the download event before or during the trigger action.
+Playwright manages downloads by caching them in a temporary directory. You can then access the download object to validate the filename, save it to a permanent directory, or read its contents.
+Here are the most reliable patterns to automate this process.
+
+1. The Standard Promise.all Download Pattern
+
+This approach handles the download event and the user action (like a button click) concurrently to prevent race conditions.
+typescript
+import { test, expect } from '@playwright/test';
+import * as path from 'path';
+import * as fs from 'fs';
+
+test('Download a file and validate its properties', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Start waiting for the download event and trigger the click simultaneously
+  const [download] = await Promise.all([
+    page.waitForEvent('download'), 
+    page.getByRole('button', { name: 'Download Invoice' }).click(),
+  ]);
+
+  // 2. Validate the suggested filename
+  const filename = download.suggestedFilename();
+  expect(filename).toBe('invoice-2026.pdf');
+
+  // 3. Define where you want to save the file permanently
+  const downloadPath = path.join(__dirname, '../downloads', filename);
+
+  // 4. Save the file from the temporary cache to your path
+  await download.saveAs(downloadPath);
+
+  // 5. Assert that the file physically exists on the disk
+  expect(fs.existsSync(downloadPath)).toBeTruthy();
+});
+Use code with caution.
+
+2. Advanced: Validating File Contents (CSV/Text/JSON)
+
+If you download a readable file like a CSV, JSON, or text file, you can read it directly into memory from Playwright's temporary stream without even needing to manually save it to a permanent folder first.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Download a CSV and validate its textual content', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#download-csv-btn').click(),
+  ]);
+
+  // Create a readable stream from the download object
+  const stream = await download.createReadStream();
+  
+  if (stream) {
+    // Read the stream buffers into a single string
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    const fileContent = Buffer.concat(chunks).toString('utf-8');
+
+    // Validate the contents of the file
+    expect(fileContent).toContain('User ID,Email,Status');
+    expect(fileContent).toContain('active');
+  }
+});
+Use code with caution.
+
+3. Best Practice: Global Download Directories
+
+If you want all downloads across your entire test suite to go to a specific folder automatically (so you don't have to call .saveAs() on every single test), you can configure it globally in your playwright.config.ts file:
+typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    // Tells Playwright to automatically save downloads to this relative path
+    downloadsPath: './test-results/downloads', 
+  },
+});
+Use code with caution.
+
+Key API Functions to Know
+
+• download.suggestedFilename(): Returns the filename recommended by the server's Content-Disposition header.
+• download.url(): Returns the download URL link string.
+• download.path(): Returns the temporary filesystem absolute path where Playwright stored the download.
+• download.cancel(): Cancels a download in progress
+
+#====================================================================================================
+# Q : How would you upload a file through Playwright typescript?
+==> To upload a file in Playwright with TypeScript, you should interact directly with the underlying HTML input element using the setInputFiles() method.
+Playwright interacts with the browser at a system level, meaning it bypasses the operating system's native file dialog window entirely. You do not need to click the upload button to open a file explorer; you simply target the input and supply the file path.
+Here are the standard patterns depending on how your upload form is built.
+
+1. The Standard Input Element Pattern (Recommended)
+
+This works for any traditional HTML upload form that utilizes an <input type="file"> tag.
+typescript
+import { test, expect } from '@playwright/test';
+import * as path from 'path';
+
+test('Upload a single file via input element', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Prepare the absolute path to your test file
+  const filePath = path.join(__dirname, '../test-data/sample-invoice.pdf');
+
+  // 2. Select the input element and pass the file path directly
+  await page.locator('input[type="file"]').setInputFiles(filePath);
+
+  // 3. Click the submit/upload button if your application requires it
+  await page.getByRole('button', { name: 'Submit' }).click();
+
+  // 4. Assert the upload was successful
+  await expect(page.getByText('File uploaded successfully!')).toBeVisible();
+});
+Use code with caution.
+
+Uploading Multiple Files
+
+If the file input field supports multi-file uploads (contains the multiple attribute), you pass an array of file paths:
+typescript
+await page.locator('input[type="file"]').setInputFiles([
+  path.join(__dirname, '../test-data/file1.txt'),
+  path.join(__dirname, '../test-data/file2.txt')
+]);
+Use code with caution.
+
+2. The Drag-and-Drop / Hidden Input Pattern
+
+Many modern web applications use customized, stylish upload areas (like drag-and-drop zones) that completely hide the actual <input> tag from view using CSS (display: none or opacity: 0).
+If your target input is hidden, Playwright can still find it and interact with it seamlessly:
+typescript
+test('Upload a file to a hidden or custom input field', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const filePath = path.join(__dirname, '../test-data/avatar.png');
+
+  // Playwright bypasses CSS visibility restrictions for file inputs natively
+  await page.locator('input[type="file"]').setInputFiles(filePath);
+});
+Use code with caution.
+
+3. The filechooser Event Pattern (For inputs without an ID or stable locator)
+
+If the page lacks a direct file input or handles uploads dynamically via a custom click listener, you can listen for the browser's file chooser dialog window event concurrently with the click action:
+typescript
+test('Upload a file using the filechooser event listener', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Start waiting for the file chooser before clicking the custom upload button
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByText('Drag & Drop or Click to Upload').click(), // Triggers the file chooser
+  ]);
+
+  // 2. Pass the file path directly to the resolved file chooser instance
+  const filePath = path.join(__dirname, '../test-data/report.xlsx');
+  await fileChooser.setFiles(filePath);
+});
+
+
+💡 Quick Tips for Clean Tests
+
+• Keep paths relative: Always use Node's path.join(__dirname, ...) so your tests don't break when executed on a remote CI/CD server (like GitHub Actions or Jenkins).
+• Clearing files: If you need to deselect or clear an attached file from an input field during a test, pass an empty array:typescript
+await page.locator('input[type="file"]').setInputFiles([]);
+
+#====================================================================================================
+# Q : The browser displays a basic authentication popup. How would you handle it?
+==> To handle a basic authentication popup in Playwright with TypeScript, you should provide the credentials directly within your test context configuration instead of trying to interact with the popup interface.
+Because HTTP Basic Authentication popups are native browser dialogs (not HTML elements), Playwright intercepts them automatically at the network layer when credentials are pre-configured.
+Here are the two standard ways to handle basic auth depending on your test setup.
+
+1. Passing Credentials inline via browser.newContext (Recommended)
+
+This approach injects the username and password directly into the browser context when creating it, ensuring any page inside that context automatically logs in.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Handle basic auth popup via context credentials', async ({ browser }) => {
+  // 1. Create a fresh context explicitly with the HTTP credentials
+  const context = await browser.newContext({
+    httpCredentials: {
+      username: 'myUsername',
+      password: 'myPassword',
+    },
+  });
+
+  // 2. Open a new page using that specific context
+  const page = await context.newPage();
+
+  // 3. Navigate to your protected site — the popup is handled automatically
+  await page.goto('https://example.com');
+
+  // 4. Assert that you bypassed the popup successfully
+  await expect(page.locator('h1')).toHaveText('Welcome to the Secret Area');
+
+  // Clean up context
+  await context.close();
+});
+Use code with caution.
+
+2. Setting Global Basic Auth in playwright.config.ts
+
+If your entire test environment (or a specific test project) is hidden behind a basic authentication wall, you can configure it globally so you don't have to rewrite the context code in every single test file.
+typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    // This applies credentials globally to the default 'page' fixture
+    httpCredentials: {
+      username: process.env.BASIC_AUTH_USERNAME || 'fallbackUser',
+      password: process.env.BASIC_AUTH_PASSWORD || 'fallbackPass',
+    },
+  },
+});
+Use code with caution.
+With the global configuration active, your actual test files remain incredibly clean:
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Global basic auth test', async ({ page }) => {
+  // Playwright seamlessly handles the popup in the background using config values
+  await page.goto('https://example.com');
+  await expect(page.getByText('Authenticated Content')).toBeVisible();
+});
+Use code with caution.
+
+⚠️ Alternative URL Embedding (Not Recommended)
+
+While it is technically possible to pass credentials directly into the URL schema like https://example.com, this approach is highly discouraged as it exposes secrets in your test logs and is blocked by many modern application security policies
+
+#====================================================================================================
+# Q : A page contains nested iframes. How would you interact with an element inside the innermost iframe?
+==> To interact with an element inside nested iframes in Playwright with TypeScript, you must chain multiple .frameLocator() calls together to drill down to the innermost iframe before locating the target element.
+Unlike other testing tools that require you to explicitly "switch context" into an iframe and later "switch back" to the main page, Playwright uses an object-driven locator strategy. You simply define the path to the element, and Playwright handles the frame context switching automatically behind the scenes.
+Here is the standard pattern to target nested iframes safely:
+
+The Nested Frame Locator Pattern
+
+Suppose you have a webpage structure that looks like this:
+• Main Page
+	• iframe#outer-frame
+		• iframe[name="inner-frame"]
+			• <button id="submit-btn">Click Me</button>
+Here is the exact TypeScript code to click that button:
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Interact with an element inside nested iframes', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Chain frameLocators from outermost to innermost
+  const innermostIframe = page
+    .frameLocator('#outer-frame')       // Selects the 1st (outer) iframe
+    .frameLocator('[name="inner-frame"]'); // Selects the 2nd (inner) iframe
+
+  // 2. Locate the actual element inside that innermost frame
+  const targetButton = innermostIframe.locator('#submit-btn');
+
+  // 3. Perform your action directly
+  await targetButton.click();
+
+  // 4. Assertions also work natively on the framed element
+  await expect(innermostIframe.locator('.success-message')).toBeVisible();
+  
+  // 5. To go back to the main page, just use the original 'page' object again
+  await expect(page.locator('h1')).toHaveText('Main Page Title');
+});
+Use code with caution.
+
+Quick Locator Strategies for Frames
+
+You can target your iframes using any standard CSS selectors inside .frameLocator(). Pick the most stable identifier available:
+typescript
+// Find by ID
+const frameById = page.frameLocator('#my-iframe-id');
+
+// Find by Title attribute (Great for accessibility/user-facing attributes)
+const frameByTitle = page.frameLocator('iframe[title="Payment Gateway"]');
+
+// Find by URL match
+const frameBySrc = page.frameLocator('iframe[src*="secure-checkout.com"]');
+Use code with caution.
+
+💡 Pro-Tips for Robust Iframe Tests
+
+• Automatic Switching: You do not need to "exit" the frame. As soon as you call await page.click(...) on the next line, Playwright automatically operates on the main document context.
+• Strict Web-First Assertions: Elements inside iframes are prone to loading delays. Playwright’s auto-waiting mechanism handles this perfectly—it will wait for both the iframes to load and the target button to become actionable before performing the click.
 
 
 #====================================================================================================
-# Q :
+# Q : How would you switch back from an iframe to the main page?
+==> o switch back from an iframe to the main page in Playwright, you do not need to execute any special "switch back" or "exit" command.
+Because Playwright is entirely object-driven, your contexts are bound to variables. The page object always represents the main parent document, while a frameLocator represents the iframe. To interact with the main page again, you simply call your next command directly on the original page object.
+Here is a short example demonstrating how seamlessly this works:
+typescript
+import { test, expect } from '@playwright/test';
 
+test('Switch back from iframe to main page', async ({ page }) => {
+  await page.goto('https://example.com');
 
+  // 1. Define and interact with an element inside the iframe
+  const myIframe = page.frameLocator('#payment-frame');
+  await myIframe.locator('#card-number').fill('4111111111111111');
+
+  // 2. Switch back to the main page instantly
+  // No switchBack() or defaultContent() commands required! 
+  // Just use the 'page' variable directly.
+  await page.getByRole('button', { name: 'Complete Purchase' }).click();
+
+  // 3. Assert on the main page content
+  await expect(page.locator('#confirmation-msg')).toHaveText('Thank you!');
+});
+Use code with caution.
+
+Why Playwright is Different
+
+If you are coming from legacy frameworks like Selenium WebDriver, you might be used to doing this:
+javascript
+// Legacy Selenium Code (NOT Playwright)
+driver.switchTo().frame("payment-frame");
+driver.findElement(By.id("card-number")).sendKeys("...");
+driver.switchTo().defaultContent(); // ❌ Playwright does NOT need this!
+Use code with caution.
+Playwright completely eliminates this global state switching. The page and myIframe objects remain active simultaneously, meaning you can jump back and forth between them line-by-line without any overhead.
+
+#====================================================================================================
+# Q :  An unexpected JavaScript alert appears during execution and causes the test to fail. How would you handle it?
+==> In Playwright, unexpected JavaScript alerts, confirms, or prompts do not automatically fail your tests because Playwright dismisses them automatically by default. [1]
+If your test is failing when an alert appears, it is usually because your application code expects a specific user action (like clicking "OK" or typing into a prompt) to progress, or the alert is blocking the UI.
+To explicitly handle, accept, dismiss, or validate the text inside an unexpected JavaScript alert, you must register a page.on('dialog') event listener before the action that triggers the alert. [1]
+Here are the standard patterns to handle dialogs cleanly in Playwright with TypeScript:
+
+1. Automatically Accepting the Dialog (OK / Yes)
+
+If your test needs to explicitly accept the alert to let the application continue:
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Explicitly accept an unexpected alert', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Setup the listener BEFORE the alert is triggered
+  page.on('dialog', async (dialog) => {
+    console.log(`Alert message encountered: ${dialog.message()}`);
+    
+    // Assert the text inside the alert if needed
+    expect(dialog.message()).toBe('Are you sure you want to delete this?');
+    
+    // Accept the alert (clicks "OK" or "Yes")
+    await dialog.accept(); 
+  });
+
+  // 2. Trigger the action that opens the alert
+  await page.getByRole('button', { name: 'Delete Account' }).click();
+
+  // 3. Continue testing normally
+  await expect(page.getByText('Account deleted')).toBeVisible();
+});
+Use code with caution.
+
+2. Dismissing the Dialog (Cancel / No)
+
+If the alert is a confirmation dialog and your test needs to simulate clicking "Cancel":
+typescript
+test('Dismiss a confirmation dialog', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // Setup listener to dismiss
+  page.on('dialog', async (dialog) => {
+    // Dismisses the dialog (clicks "Cancel" or "No")
+    await dialog.dismiss(); 
+  });
+
+  await page.getByRole('button', { name: 'Delete Account' }).click();
+});
+Use code with caution.
+
+3. Handling Prompts (Entering Text)
+
+If the popup is a JavaScript prompt asking for user input, you can pass a string argument directly into the .accept() method:
+typescript
+test('Handle a JavaScript prompt by entering text', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  page.on('dialog', async (dialog) => {
+    // Type text into the prompt window and hit OK
+    await dialog.accept('My Secret Answer'); 
+  });
+
+  await page.getByRole('button', { name: 'Security Question' }).click();
+});
+Use code with caution.
+
+💡 Important Rules for Dialogs in Playwright
+
+• Register early: Always place the page.on('dialog', ...) listener above the click or navigation action that causes the alert. [1] If you put it after, the alert will open and freeze the browser thread before the listener can attach.
+
+• One-time listeners: If you only want to handle a single specific alert and stop listening afterward, use page.once('dialog') instead of page.on(). [1]
+
+• Types of dialogs: You can inspect dialog.type() to see if the popup is an alert, confirm, or prompt. [1]
+
+#====================================================================================================
+# Q : How would you handle confirmation and prompt alerts?
+==> To handle confirmation and prompt alerts in Playwright with TypeScript, you must register a page.on('dialog') listener before the user action triggers the alert.
+Inside the listener, you can check the type of dialog (dialog.type()), validate its text content, and then decide whether to approve it (dialog.accept()) or cancel it (dialog.dismiss()).
+Here is how you handle both scenarios:
+
+1. Handling Confirmation Dialogs (OK / Cancel)
+
+Confirmation alerts give the user two choices. You can either use .accept() to click OK or .dismiss() to click Cancel.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Handle a Confirmation Alert (Accept and Dismiss)', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Setup the listener to CLICK OK (Accept)
+  page.on('dialog', async (dialog) => {
+    // Optional check: Ensure it is a confirmation type
+    if (dialog.type() === 'confirm') {
+      expect(dialog.message()).toBe('Are you sure you want to delete this file?');
+      await dialog.accept(); // Clicks "OK"
+    }
+  });
+
+  // Trigger the confirmation alert
+  await page.getByRole('button', { name: 'Delete File' }).click();
+  await expect(page.getByText('File successfully deleted')).toBeVisible();
+
+  // -------------------------------------------------------------
+  // 2. Setup a clean listener to CLICK CANCEL (Dismiss)
+  // Remove the previous listener first if you are doing this in the same test
+  page.removeAllListeners('dialog');
+
+  page.on('dialog', async (dialog) => {
+    expect(dialog.message()).toBe('Are you sure you want to delete this file?');
+    await dialog.dismiss(); // Clicks "Cancel"
+  });
+
+  // Trigger the confirmation alert again
+  await page.getByRole('button', { name: 'Delete File' }).click();
+  await expect(page.getByText('File successfully deleted')).not.toBeVisible();
+});
+Use code with caution.
+
+2. Handling Prompt Dialogs (Entering Text)
+
+Prompt alerts ask the user to type text into an input field. To simulate a user typing and clicking OK, pass your text string directly into dialog.accept('your text here').
+typescript
+test('Handle a Prompt Alert by entering text', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // Setup the listener BEFORE the prompt appears
+  page.on('dialog', async (dialog) => {
+    if (dialog.type() === 'prompt') {
+      // Validate the prompt's instruction text
+      expect(dialog.message()).toBe('Please enter your admin PIN to proceed:');
+      
+      // Type '1234' into the prompt text field and click "OK"
+      await dialog.accept('1234'); 
+    }
+  });
+
+  // Trigger the prompt action
+  await page.getByRole('button', { name: 'Access Admin Settings' }).click();
+
+  // Verify the application accepted your prompt input
+  await expect(page.locator('#admin-panel')).toBeVisible();
+});
+Use code with caution.
+
+💡 Best Practices to Prevent Test Flakiness
+
+• Use page.once() for single alerts: If an alert only pops up exactly once during a workflow, use page.once('dialog', ...) instead of page.on(). Playwright will automatically tear down the listener after the first dialog is dealt with, preventing it from interfering with subsequent steps.
+
+• Playwright's default behavior: If you do not register a listener, Playwright will automatically dismiss all standard confirmation and prompt dialogs in the background so your code doesn't hang. You only need to write these listeners if your application requires an accept action or text input to make progress.
+
+#====================================================================================================
+# Q : What would you do if an alert appears randomly and not on every execution?
+==> If an alert appears randomly and unpredictably, you cannot rely on sequential, step-by-step test code because you never know when to wait for it.
+To handle this cleanly without causing your tests to flake or freeze, you must establish a persistent, global background event listener using page.on('dialog') at the very beginning of your test execution.
+Here is the exact pattern to catch and handle random alerts dynamically:
+
+The Global "Catch-All" Event Listener
+
+By attaching a listener right after creating or loading the page, Playwright runs a background process that actively monitors the browser thread. The moment a random alert springs up, this listener intercepts it, dismisses or accepts it, and then lets your main test script keep running smoothly.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Handle unpredictable, random alerts seamlessly', async ({ page }) => {
+  // 1. Establish the global background listener FIRST
+  page.on('dialog', async (dialog) => {
+    console.warn(`⚠️ Random alert intercepted! Type: ${dialog.type()} | Message: ${dialog.message()}`);
+    
+    // Dynamically choose how to handle it based on text or type
+    if (dialog.message().includes('Session Timeout Warning')) {
+      await dialog.accept(); // Keep session alive
+    } else {
+      await dialog.dismiss(); // Safely dismiss any other random popups
+    }
+  });
+
+  // 2. Proceed with your regular, linear test workflow
+  await page.goto('https://example.com');
+
+  // The alert could happen here, or 3 steps later—the listener above will catch it
+  await page.getByRole('button', { name: 'Load Data' }).click();
+  await page.getByPlaceholder('Search...').fill('Report 2026');
+
+  // Assertions remain unaffected
+  await expect(page.locator('.results-grid')).toBeVisible();
+});
+Use code with caution.
+
+Why Playwright Natively Protects You
+
+It is worth noting that Playwright is highly resilient to random alerts by default.
+If a random JavaScript alert or confirmation popup appears and your test script doesn't explicitly interact with it, Playwright automatically dismisses it in the background so your test thread does not freeze or block.
+Therefore, you only need to explicitly write the global page.on('dialog') handler if:
+1. The random alert breaks your app state unless you explicitly click "OK" (Accept).
+2. You want to log the alert text into your CI/CD console to debug why your environment is throwing random errors.
+
+⚠️ A Common Gotcha: HTML Modals vs. Native Alerts
+
+Make sure your "random alert" is a native browser popup (triggered by window.alert(), window.confirm(), or window.prompt()).
+If the random popup is an HTML-based modal (like a cookie consent banner, feedback survey, or a React/Bootstrap modal), the page.on('dialog') listener will not catch it. For random HTML overlays, you would instead use an interceptor pattern or check for visibility conditionally before major steps.
+
+#====================================================================================================
+# Q : The table pagination contains 20 records per page, but your required record may be on any page. How would you automate it?
+==> To automate finding and interacting with a record hidden across multiple pages of a paginated table, you must implement an asynchronous while loop.
+This loop searches the current page for your target row. If found, it breaks out and interacts with it; if not, it checks if a "Next" button is enabled, clicks it, waits for the table to reload, and repeats the process.
+Here is the robust, bulletproof pattern to handle multi-page dynamic table searching in Playwright with TypeScript:
+
+The Multi-Page Table Search Pattern
+
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Locate and interact with a record across multiple pages', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const targetRecordText = 'Invoice #9042'; // The specific item you are looking for
+  let recordFound = false;
+
+  // 1. Keep looping until the record is found or we run out of pages
+  while (!recordFound) {
+    // Locate the row containing your target text on the current page
+    const targetRow = page.locator('table tbody tr').filter({ hasText: targetRecordText });
+
+    // 2. Check if the element exists and is visible on the current page
+    if (await targetRow.isVisible()) {
+      console.log(`🎉 Record found! Interacting with row...`);
+      
+      // Perform your action (e.g., click a view button inside that specific row)
+      await targetRow.getByRole('button', { name: 'View' }).click();
+      recordFound = true;
+      break; 
+    }
+
+    // 3. If not found on this page, look for the 'Next' pagination button
+    const nextButton = page.getByRole('button', { name: 'Next' });
+
+    // 4. Critical check: Is there a next page, and is it clickable?
+    // This checks both visibility and ensures it doesn't have a 'disabled' attribute/class
+    if (await nextButton.isVisible() && await nextButton.isEnabled()) {
+      console.log('Record not on this page. Clicking "Next" page...');
+      
+      // Click the next page and wait for the network/table to update
+      await Promise.all([
+        page.waitForResponse(response => response.url().includes('/api/records') && response.status() === 200), // Change to your app's network call if applicable
+        nextButton.click()
+      ]);
+      
+      // Alternative if no network call: wait for the old rows to detach or a loading spinner to disappear
+      // await page.waitForLoadState('networkidle'); 
+    } else {
+      // If the Next button is disabled or missing, we have hit the last page
+      break; 
+    }
+  }
+
+  // 5. Final assertion to fail the test clearly if the item doesn't exist anywhere
+  expect(recordFound).toBeTruthy();
+});
+Use code with caution.
+
+💡 3 Golden Rules for Pagination Automation
+
+• Wait for the Page Transition: Simply clicking "Next" isn't enough. If your script loops faster than the table can redraw its rows, Playwright might accidentally re-read the old data and think it hit a dead end. Always pair the click with a page.waitForResponse(), page.waitForSelector(), or a short state wait.
+• The .filter({ hasText: ... }) Strategy: Instead of mapping rows to an index number, target the exact structural row instantly by filtering the table rows by your unique text string.
+• Prevent Infinite Loops: Ensure your loop breaks out cleanly if nextButton.isEnabled() returns false. If your "Next" button never gets a disabled attribute when reaching the end, track a counter variable (let pageCount = 0) and throw an error manually if it exceeds a reasonable limit (e.g., pageCount > 50).
+
+#====================================================================================================
+# Q : How would you retrieve all values from a dynamic web table?
+==> o retrieve all values from a dynamic web table in Playwright with TypeScript, you should use the .allTextContents() locator method to extract cell values efficiently in parallel batches rather than looping through every element cell-by-cell.
+Looping through elements with sequential await calls causes severe test slowdowns due to multiple browser round-trips. Fetching rows as grouped arrays is significantly faster and more reliable.
+Here are the standard patterns to extract all table values, depending on whether you want a single flat array or a structured two-dimensional (2D) grid representing rows and columns.
+
+1. Extract as a 2D Array (Structured Rows and Columns)
+
+This is the best approach if you want to validate data column-by-column, match specific rows, or export the data cleanly.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Retrieve structured 2D array of all table data', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Wait for the table rows to be rendered and visible
+  const rowLocator = page.locator('table tbody tr');
+  await rowLocator.first().waitFor({ state: 'visible' });
+
+  // 2. Get an array of all row element handles
+  const allRows = await rowLocator.all();
+  
+  // 3. Map through rows and extract all cell values simultaneously
+  const tableData: string[][] = await Promise.all(
+    allRows.map(async (row) => {
+      // Find all cell elements (td) inside this specific row
+      return await row.locator('td').allTextContents();
+    })
+  );
+
+  // 4. Output the structured table data
+  console.log(tableData); 
+  /* Outputs:
+     [
+       ['#101', 'John Doe', 'Paid'],
+       ['#102', 'Jane Smith', 'Pending'],
+       ['#103', 'Bob Johnson', 'Failed']
+     ]
+  */
+
+  // 5. Example Assertions on the retrieved data
+  expect(tableData.length).toBeGreaterThan(0); // Ensure table is not empty
+  expect(tableData[0][1]).toBe('John Doe');    // Assert exact cell position value
+});
+Use code with caution.
+
+2. Extract as a Flat Array (Quick Text Match)
+
+If you only need to verify that certain strings exist anywhere inside the table body and you don't care about row structure, you can grab all cells in a single line of code.
+typescript
+test('Retrieve a flat array of all table cell values', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // Locate all cells directly across the entire table body
+  const cellLocator = page.locator('table tbody tr td');
+  
+  // Instantly returns a flat array of strings
+  const allCellValues = await cellLocator.allTextContents();
+
+  console.log(allCellValues); 
+  // Outputs: ['#101', 'John Doe', 'Paid', '#102', 'Jane Smith', 'Pending']
+
+  expect(allCellValues).toContain('Jane Smith');
+});
+Use code with caution.
+
+3. Extracting and Trimming Data (Cleaning Spaces)
+
+Web tables frequently contain hidden line breaks, trailing spaces, or carriage returns from HTML formatting. You can clean the extracted strings inline during your data retrieval loop:
+typescript
+const tableDataCleaned = await Promise.all(
+  allRows.map(async (row) => {
+    const cells = await row.locator('td').allTextContents();
+    // Trim accidental whitespace from every single cell value
+    return cells.map(cellText => cellText.trim()); 
+  })
+);
+Use code with caution.
+
+💡 Key Tips for Dynamic Tables
+
+• Auto-Waiting: Dynamic tables that load via APIs can initially render empty. Always add await page.locator('table tbody tr').first().waitFor() to give the backend an extra second to populate rows before calling your mapping functions.
+• Header Matching: If you also need the column header labels, you can extract them using await page.locator('table thead th').allTextContents(); and pair them up with your data columns.
+
+#====================================================================================================
+# Q : A dropdown loads its values from an API after you click it. How would you automate it?
+===> To automate a dropdown that fetches its values dynamically from an API upon clicking, you must coordinate your click action with Playwright's network interceptors and structural waits.
+If you try to select an option immediately after clicking, your test will likely fail because the browser thread operates faster than the API response can arrive and render the HTML options.
+Here are the standard, reliable patterns to handle this scenario:
+
+1. The Network-First Pattern (Recommended)
+
+This is the most robust approach. It forces Playwright to wait until the specific background API response returns a 200 OK status before trying to interact with the freshly loaded options.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Select an option from an API-driven dynamic dropdown', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const dropdownTrigger = page.getByRole('combobox', { name: 'Select Country' });
+
+  // 1. Intercept the network call and click the dropdown simultaneously
+  await Promise.all([
+    // Adjust the URL string/regex to match your application's actual API endpoint
+    page.waitForResponse(response => response.url().includes('/api/countries') && response.status() === 200),
+    dropdownTrigger.click() 
+  ]);
+
+  // 2. Locate the dynamically rendered option
+  const targetOption = page.getByRole('option', { name: 'India' });
+
+  // 3. Wait for the element to physically attach and become visible in the DOM
+  await targetOption.waitFor({ state: 'visible' });
+
+  // 4. Click the option to select it
+  await targetOption.click();
+
+  // 5. Assert the selection was successful
+  await expect(dropdownTrigger).toHaveValue('India'); // or use .toHaveText() depending on markup
+});
+Use code with caution.
+
+2. The Element-Attached Pattern (No Network Dependency)
+
+If you don't know the exact API endpoint URL or if it's unstable, you can look for a structural cue in the UI—such as the appearance of a loading spinner disappearing or a specific option element attaching to the DOM.
+typescript
+test('Select an option using element waiting', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Open the dropdown menu
+  await page.locator('#dynamic-dropdown-trigger').click();
+
+  // 2. Target the specific element container where options appear
+  const firstOption = page.locator('.dropdown-menu .dropdown-item').first();
+
+  // 3. Playwright will auto-wait for this element to be attached and actionable
+  await firstOption.waitFor({ state: 'visible', timeout: 5000 });
+
+  // 4. Select your item out of the list once populated
+  await page.locator('.dropdown-menu').getByText('United States').click();
+});
+Use code with caution.
+
+💡 Crucial Tips for Dynamic Dropdowns
+
+• Standard HTML vs. Custom Components: If your dropdown is a native HTML <select> tag, you can use page.selectOption(). However, API-driven dropdowns are almost always custom components (like React-Select, Angular Material, or Select2) built out of <div>, <ul>, and <li> tags. For these, use explicit .click() steps instead of .selectOption().
+• Inspect the Network Tab: Open your browser's Developer Tools (F12), head to the Network tab, and click your dropdown manually. Look for the XHR/fetch request that triggers—this will give you the exact URL string to drop into your page.waitForResponse() hook.
+
+#====================================================================================================
+# Q : A search result appears dynamically after typing into a search box. How would you select the correct result?
+==> To automate a dynamic search box that populates results as you type, you must simulate realistic user keystrokes using locator.pressSequentially() and then wait for the specific result to appear or stabilize in the UI.
+Modern autocomplete/search elements (like Google Search, Algolia, or custom React combos) trigger an API call on every keystroke or after a slight delay (debounce). If you type too fast or try to click instantly, your test will miss the result list entirely.
+Here are the standard patterns to handle this scenario reliably in Playwright with TypeScript.
+
+1. The Real Keystroke & Auto-Wait Pattern (Recommended)
+
+This approach mimics an actual human typing, which gives the application’s underlying JavaScript event handlers (like onKeyPress or debouncing) time to fire properly.
+typescript
+import { test, expect } from '@playwright/test';
+
+test('Type and select from a dynamic autocomplete search result', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // 1. Locate the search box input
+  const searchInput = page.getByPlaceholder('Search products...');
+  await searchInput.click();
+
+  // 2. Type sequentially with a slight delay between keys (mimicking a user)
+  await searchInput.pressSequentially('Playwright Cookbook', { delay: 100 });
+
+  // 3. Locate the results container or list container
+  const resultsContainer = page.locator('.search-results-list');
+  
+  // 4. Narrow down to the specific item you want to click
+  // .filter() ensures you hit the row containing your exact string
+  const targetResult = resultsContainer
+    .locator('.search-item')
+    .filter({ hasText: 'Playwright Cookbook (Advanced Edition)' });
+
+  // 5. Explicitly wait for that dynamic item to become visible in the UI
+  await targetResult.waitFor({ state: 'visible', timeout: 5000 });
+
+  // 6. Click the specific result item
+  await targetResult.click();
+
+  // 7. Verify the page transitioned or loaded the expected search item
+  await expect(page).toHaveURL(/.*products\/playwright-cookbook/);
+});
+
+Use code with caution.
+
+2. The Keyboard Navigation Pattern (Arrow Down + Enter)
+
+In many applications, clicking a dynamically moving dropdown list can cause flakiness if the list updates right as the mouse goes to click it. Selecting the item via keyboard keys is often a bulletproof alternative.
+typescript
+test('Select dynamic search results using keyboard actions', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const searchInput = page.locator('#global-search-input');
+  
+  // Type the search phrase
+  await searchInput.pressSequentially('iPhone 15', { delay: 50 });
+
+  // Wait for the popup results panel to exist and show content
+  const firstResult = page.locator('.autocomplete-dropdown .suggestion-item').first();
+  await firstResult.waitFor({ state: 'visible' });
+
+  // Press ArrowDown to highlight the first suggestion, then press Enter to select it
+  await searchInput.press('ArrowDown');
+  await searchInput.press('Enter');
+
+  // Verify search completed
+  await expect(page.locator('h1')).toContainText('Search Results for "iPhone 15"');
+});
+
+Use code with caution.
+
+💡 Pro-Tips for Dynamic Search Fields
+
+• Avoid .fill(): Do not use await page.fill() for autocomplete fields. .fill() injects the entire string into the element instantly all at once, which frequently fails to trigger keyup or input JavaScript listeners in frontend frameworks.
+• Mind the Debounce: Many search fields wait for a user to stop typing for 300ms–500ms before sending the network request. If your test acts too quickly, it checks the results before the debounce timer finishes. Adding the { delay: 100 } option to pressSequentially natively cushions against this.
+• Keyboard over Mouse: If your search dropdown disappears or moves slightly when a mouse moves over it, switching to the Keyboard Navigation Pattern removes mouse coordinates from the equation entirely.
 
 
 #====================================================================================================
-# Q :
+# Q : An application uses infinite scrolling instead of pagination. How would you find an element that may be far down the page?
+==> To find an element on a page that uses infinite scrolling, you must programmatically scroll down the window iteratively and wait for new content to load until the target element becomes visible in the viewport.
+Because infinite scroll layouts only render elements dynamically as the scrollbar approaches the bottom, standard Playwright actions like .click() will throw a timeout error if the element doesn't exist in the DOM yet.
+The most reliable way to handle this is an asynchronous while loop combined with a failsafe scroll limit to prevent an infinite loop.
 
+1. The Dynamic Scrolling Pattern (Recommended)
 
+This pattern scrolls down the page step-by-step, checking for the element's visibility after each scroll action.
+typescript
+import { test, expect } from '@playwright/test';
 
+test('Locate an element in an infinite scrolling feed', async ({ page }) => {
+  await page.goto('https://example.com');
 
-#====================================================================================================
-# Q :
+  const targetLocator = page.getByRole('heading', { name: 'Target Article Title' });
+  
+  let isFound = false;
+  let scrollAttempts = 0;
+  const maxScrollAttempts = 50; // Safety guard rails to prevent an infinite loop
 
+  while (!isFound && scrollAttempts < maxScrollAttempts) {
+    // 1. Check if the element is visible on the current screen view
+    if (await targetLocator.isVisible()) {
+      isFound = true;
+      console.log(`🎉 Element found after ${scrollAttempts} scrolls!`);
+      break;
+    }
 
+    // 2. Locate the last item currently rendered to use as a scroll anchor
+    const feedItems = page.locator('.feed-item');
+    const lastItem = feedItems.last();
 
+    if (await lastItem.count() > 0) {
+      // Scroll the last visible item into view to trigger the next API batch load
+      await lastItem.scrollIntoViewIfNeeded();
+      scrollAttempts++;
 
-#====================================================================================================
-# Q :
+      // 3. Wait for the loading spinner to disappear or network activity to settle
+      // Adjust the selector or API string to match your application
+      await page.waitForTimeout(500); 
+    } else {
+      // Fallback: Scroll the window directly if there are no distinct items
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      scrollAttempts++;
+      await page.waitForTimeout(500);
+    }
+  }
 
+  // 4. Fail the test with a clear message if the item was never found
+  expect(isFound, 'Target element was not found within the scroll limits').toBeTruthy();
 
+  // 5. Interact with your item safely now that it is rendered
+  await targetLocator.click();
+});
+Use code with caution.
 
+2. Advanced: Fast Network-Level Interception
 
-#====================================================================================================
-# Q :
+If you are scraping data or just verifying an item exists, scrolling 50 times can slow down your test suite. A significantly faster alternative is to intercept the API response that provides the infinite scroll payload.
+Instead of moving the browser UI, you monitor the background network data:
+typescript
+test('Validate infinite scroll data via API interception', async ({ page }) => {
+  const matchingDataPromise = page.waitForResponse(async (response) => {
+    if (response.url().includes('/api/v1/feed-items') && response.status() === 200) {
+      const json = await response.json();
+      // Check if the network payload contains your specific record data
+      return json.items.some((item: any) => item.title === 'Target Article Title');
+    }
+    return false;
+  });
 
+  await page.goto('https://example.com');
 
+  // Perform a couple of quick scrolls to trigger network calls
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-#====================================================================================================
-# Q :
+  // Await the network promise to confirm the backend actually served the item
+  const interceptedResponse = await matchingDataPromise;
+  expect(interceptedResponse).toBeDefined();
+});
+Use code with caution.
 
+💡 Best Practices for Infinite Scrolling
 
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
+• Use scrollIntoViewIfNeeded(): Instead of calculating arbitrary pixel values (window.scrollBy(0, 1000)), target the last list container or item. This mimics standard user behavior perfectly.
+• Cushion with Short Delays: Frontend frameworks require a brief window (typically 200ms–500ms) to resolve the scroll layout event and paint the new elements into the DOM tree.
+• Always implement a maxAttempts guard: If an item gets deleted from the database or never renders, a raw while(true) loop will hang your CI/CD pipeline until it reaches hard execution timeouts.
 
 #====================================================================================================
-# Q :
+# Q : How would you verify that a particular row was added to a table after submitting a form?
+==> To verify that a row was successfully added to a table after form submission, you must handle the verification asynchronously to avoid race conditions. Since forms usually trigger either a page reload or a background API request, checking the table immediately after clicking "Submit" can lead to flaky tests.
+The most resilient way to automate this is by combining a specific row locator with a web-first visibility assertion or intercepting the creation network response.
+Here are the standard patterns to verify added data:
 
+1. The Dynamic Row Visibility Pattern (Recommended)
 
+This approach relies on Playwright's auto-waiting mechanism. It targets the specific row based on the unique text you just submitted and waits for it to appear in the UI.
+typescript
+import { test, expect } from '@playwright/test';
 
-#====================================================================================================
-# Q :
+test('Fill a form, submit, and verify the row is added to the table', async ({ page }) => {
+  await page.goto('https://example.com');
 
+  const uniqueId = `INV-${Date.now()}`; // Creates a unique runtime string to avoid data conflicts
 
+  // 1. Fill out and submit the form
+  await page.getByLabel('Invoice Number').fill(uniqueId);
+  await page.getByLabel('Amount').fill('250.00');
+  await page.getByRole('button', { name: 'Add Invoice' }).click();
 
+  // 2. Locate the specific row containing your unique data
+  // This filters all table body rows down to the single one holding your text
+  const addedRow = page.locator('table tbody tr').filter({ hasText: uniqueId });
 
-#====================================================================================================
-# Q :
+  // 3. Web-First Assertion: Playwright will automatically retry this line 
+  // until the row renders and becomes visible (default timeout: 5s)
+  await expect(addedRow).toBeVisible();
 
+  // 4. Optional: Assert on specific cell content inside that newly added row
+  await expect(addedRow.locator('td')).toContainText(['', uniqueId, '$250.00']);
+});
+Use code with caution.
 
+2. The Network Interception + Row Count Pattern
 
+If you want to verify both the data layout and that your table rows incremented by exactly one, you can intercept the API creation request while monitoring the table structure.
+typescript
+test('Verify row addition by tracking network and row count', async ({ page }) => {
+  await page.goto('https://example.com');
 
-#====================================================================================================
-# Q :
+  // Count the rows before submitting the form
+  const initialRowCount = await page.locator('table tbody tr').count();
 
+  // Fill out the form fields
+  await page.getByPlaceholder('Enter item name').fill('Automated Test Item');
 
+  // Intercept the API save request and click submit concurrently
+  await Promise.all([
+    page.waitForResponse(response => response.url().includes('/api/items') && response.status() === 201),
+    page.getByRole('button', { name: 'Save Item' }).click()
+  ]);
 
+  // Assert that the total row count has increased by exactly 1
+  const updatedRows = page.locator('table tbody tr');
+  await expect(updatedRows).toHaveCount(initialRowCount + 1);
 
-#====================================================================================================
-# Q :
+  // Assert that the very last row contains the data you just created
+  await expect(updatedRows.last()).toContainText('Automated Test Item');
+});
+Use code with caution.
 
+💡 Best Practices for Row Verifications
 
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
+• Inject Unique Runtime Data: Hardcoding string values like "Test Item" will eventually break your environment if the table doesn't clear out between test runs. Using timestamps (Date.now()) or custom UUIDs ensures your assertion targets only the data created by the current test execution.
+• Avoid Hardcoded Breaks: Never use await page.waitForTimeout(2000) right after clicking submit. Playwright's await expect(locator).toBeVisible() or toHaveCount() handles the variable timing of server-side state saves automatically
 
 
 

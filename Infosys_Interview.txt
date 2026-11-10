@@ -36,27 +36,28 @@ Framework design
 𝗜𝗧𝗖 𝗜𝗻𝗳𝗼𝘁𝗲𝗰𝗵 | 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻 𝗧𝗲𝘀𝘁𝗲𝗿 | 𝗜𝗻𝘁𝗲𝗿𝘃𝗶𝗲𝘄 𝗤𝘂𝗲𝘀𝘁𝗶𝗼𝗻𝘀
 
 🔹 𝗧𝗲𝘀𝘁𝗶𝗻𝗴 & 𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗼𝗻 𝗙𝘂𝗻𝗱𝗮𝗺𝗲𝗻𝘁𝗮𝗹𝘀
-1. Self intro & framework contributions.
-2. Encapsulation & Polymorphism applied in framework?
+1. Self intro & framework contributions. - Done
+
+2. Encapsulation & Polymorphism applied in framework?  - Done
 3. String rotation check e.g. 'ABCD', 'CDAB' -> true.
-4. Relative XPath using preceding-sibling & parent axes in Selenium?
-5. findElement() vs findElements() exceptions in WebDriver?
-6. Hovering SVG graph elements & extracting tooltip in Selenium?
-7. Video recording & trace logs in Playwright?
-8. Deserializing nested JSON API response to Java POJO?
-9. API response header & cookie assertions in REST Assured?
-10. Cookie consent banner popup handling in Selenium?
+4. Relative XPath using preceding-sibling & parent axes in Selenium?  - Done
+5. findElement() vs findElements() exceptions in WebDriver?  - Done
+6. Hovering SVG graph elements & extracting tooltip in Selenium? 	 - Done
+7. Video recording & trace logs in Playwright?  	- Done
+8. Deserializing nested JSON API response to Java POJO?  	- Done
+9. API response header & cookie assertions in REST Assured?  	- Done
+10. Cookie consent banner popup handling in Selenium?  	- Done
 
 🔹 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹 𝟮
 1. Word frequency count e.g. 'cat dog cat' -> cat:2, dog:1.
 2. Actions class keyboard shortcuts (Ctrl+A, Enter) in Selenium?
-3. JavascriptExecutor click on hidden web elements?
-4. Cucumber BDD scenario state sharing across steps?
-5. Parallel cross-browser execution across Chrome, Edge, Firefox?
-6. GraphQL API request automation in REST Assured?
-7. Infinite scroll web table automation & row assertion in Selenium?
-8. Multi-environment config switching via Maven profiles?
-9. Extent HTML report failure screenshot attachment?
+3. JavascriptExecutor click on hidden web elements?  	- Done
+4. Cucumber BDD scenario state sharing across steps?  	- Done
+5. Parallel cross-browser execution across Chrome, Edge, Firefox? 	- Done
+6. GraphQL API request automation in REST Assured? 	- Done
+7. Infinite scroll web table automation & row assertion in Selenium? 	- Done
+8. Multi-environment config switching via Maven profiles? 	- Done
+9. Extent HTML report failure screenshot attachment? 	- Done
 
 
 
@@ -65,33 +66,34 @@ Framework design
 
 Round 1 : ( Technical ) 
 
-👉 : Tell me about your roles and responsibilities in Project.
-👉 : Have you created framework from scratch ? Explain architecture.
-👉 : Which design pattern you have used in framework ?
-👉 : Difference between Comparable and Comparator ?
-👉 : What are cases where you will use finally block ?
-👉 : What is 3 Amigos ?
-👉 : Difference between Scrum and Kanban
-👉 : Smoke VS Sanity Testing , Regression vs Retesting .
-👉 : In TestNg how will you ensure that screenshots will be taken only for fail test cases.
+👉 : Tell me about your roles and responsibilities in Project.		- Done
+👉 : Have you created framework from scratch ? Explain architecture.		- Done
+👉 : Which design pattern you have used in framework ?		*- Done
+👉 : Difference between Comparable and Comparator ? 		- Done
+👉 : What are cases where you will use finally block ?		 - Done
+👉 : What is 3 Amigos ? 	- Done
+👉 : Difference between Scrum and Kanban	 - Done
+👉 : Smoke VS Sanity Testing , Regression vs Retesting . 		- Done
+👉 : In TestNg how will you ensure that screenshots will be taken only for fail test cases. - Done
 👉 : How to perform data driven testing in postman ?
-👉 : What are the important validation you will put on a API.
+👉 : What are the important validation you will put on a API		- Done
 👉 : Suppose you have 200 test case and 49 test failed , how would you collect the data of only failed test cases in testNg. Best way ?
-👉 : What is maven surefire plugin ?
+👉 : What is maven surefire plugin ? 	- Done
 
 ----------------------------------------------------------------
 📌 Round 2 ( Technical )
 
-👉 : Explain how do you pick which test cases to automate ?
-👉 : Write code to find Broken Links in Selenium
-👉 : How to you handle multiple frames ?
+👉 : Explain how do you pick which test cases to automate ?          -Done
+👉 : Write code to find Broken Links in Selenium	       -Done
+👉 : How to you handle multiple frames ?		-Done
 👉 : You have 10 links how will you print title of each link using selenium. Give Optimal approach 
 👉 : In what cases we need to use implicit / explicit wait
 👉 : What is null pointer exception.
-👉 : Follow up question ( check question 3 ) , how would you switch to parent frame.
-👉 : Difference between driver.get() vs driver.navigate().to()
-👉 : How to handle Location popup in selenium ?
-👉 : How to handle dynamic dropdowns in Selenium ?
+👉 : Follow up question ( check question 3 ) , how would you switch to parent frame. -Done
+
+👉 : Difference between driver.get() vs driver.navigate().to() -Done
+👉 : How to handle Location popup in selenium ? -Done
+👉 : How to handle dynamic dropdowns in Selenium ? -Done
 👉 : default vs public access modifier.
 👉 : What is method hiding in Java ?
 👉 : Write Java code to print all the array elements that appears atleast 2 times. (means 2 or greater than two)
@@ -105,46 +107,30 @@ Major difference between Selenium 3 and Selenium 4
 
 What is Synchronization and how to overcome it
 
-How to handle dynamic iFrame
+How to handle dynamic iFrame   -Done
 
-How to handle cookies
+How to handle cookies	-Done
 
-What is Actions Class
+What is Actions Class	-Done
 
-How to handle multiple windows
+How to handle multiple windows	-Done
 
-What are Listeners and how do you use them?
+What are Listeners and how do you use them?	-Done
 
-Difference between Assert and Verify
+Difference between Assert and Verify -Done
 
 #======================================================================================================
 
-
-Project & Framework Design
-
-* Describe your roles and responsibilities in the project.
-* Have you created a framework from scratch? Explain the architecture.
-* Which design pattern have you used in your framework?
-
-Java Concepts
-
-* Difference between `Comparable` and `Comparator`
-* When would you use a `finally` block in exception handling?
-* What is method hiding in Java?
-* What is a `NullPointerException`?
-* `default` vs `public` access modifiers
-* Write Java code to print array elements that appear at least twice
-
 Selenium & TestNG
 
-* Write code to detect broken links using Selenium
-* How do you handle multiple frames in Selenium?
-* Given 10 links, how would you print the title of each using the optimal approach?
-* Use cases for implicit vs explicit waits
-* Difference between `driver.get()` and `driver.navigate().to()`
-* How to handle location pop-ups and dynamic dropdowns in Selenium?
-* In TestNG, how do you ensure screenshots are taken only for failed test cases?
-* How to extract only failed test case results from 200 tests when 49 fail — best approach?
+* Write code to detect broken links using Selenium -Done
+* How do you handle multiple frames in Selenium?	-Done
+* Given 10 links, how would you print the title of each using the optimal approach?	-Done
+* Use cases for implicit vs explicit waits -Done
+* Difference between `driver.get()` and `driver.navigate().to()` -Done
+* How to handle location pop-ups and dynamic dropdowns in Selenium? -Done
+* In TestNG, how do you ensure screenshots are taken only for failed test cases? -Done
+* How to extract only failed test case results from 200 tests when 49 fail — best approach? -Done
 
 API Testing & Postman
 
@@ -210,7 +196,7 @@ Tools & Utilities
 40. Tests are flaky – how do you identify and fix them?
 
 #=================================================================================================
-
+#============================= Playwright remaining =====================================
 ### 1. Web Element Handling
 
 1. An element is present in the DOM, but Selenium says it is not clickable. How would you debug and fix it?
@@ -266,6 +252,8 @@ Tools & Utilities
 38. An application uses infinite scrolling instead of pagination. How would you find an element that may be far down the page?
 39. How would you verify that a particular row was added to a table after submitting a form?
 
+
+######### Playwright start from here
 ### 6. Exception & Failure Scenarios
 
 40. Your test fails with `StaleElementReferenceException`. What is the root cause and how would you fix it?

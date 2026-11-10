@@ -3372,14 +3372,1348 @@ Interview tip: If asked to solve this without built-in methods, use the first ap
 
 
 #==========================================================================================================
-# Q : 
+# Q : What are cases where you will use finally block ?
+==> The finally block is for code that must run whether or not an exception occurs. In my automation work, I use it in these cases:
+
+1. Closing the WebDriver (most common)
+If a test fails midway, the browser process must still be closed, otherwise orphaned chromedriver/browser processes pile up on the machine or Jenkins agent.
+
+java
+WebDriver driver = null;
+try {
+    driver = new ChromeDriver();
+    driver.get("https://example.com");
+    // test steps
+} catch (NoSuchElementException e) {
+    System.out.println("Element not found: " + e.getMessage());
+} finally {
+    if (driver != null) {
+        driver.quit();
+    }
+}
+
+In a TestNG framework, I normally do this in @AfterMethod, but in utility or standalone code, finally is the safe option.
+
+2. Releasing resources (files, streams, DB connections)
+When reading Excel or properties files for test data, I close the streams in finally so file handles aren’t leaked. (For AutoCloseable resources, try-with-resources is the cleaner option, but finally is what happens under the hood.)
+
+java
+FileInputStream fis = null;
+try {
+    fis = new FileInputStream("testdata.xlsx");
+    Workbook wb = new XSSFWorkbook(fis);
+    // read data
+} catch (IOException e) {
+    e.printStackTrace();
+} finally {
+    if (fis != null) {
+        try { fis.close(); } catch (IOException ignored) {}
+    }
+}
+
+The same applies to JDBC connections when I validate API results against the database: ResultSet, Statement and Connection get closed in finally.
+
+3. Cleaning up test data in REST Assured
+If a test creates a booking or user through a POST call and then an assertion fails, the created record would be left behind. I delete it in finally so test runs stay independent and repeatable.
+
+java
+String bookingId = null;
+try {
+    bookingId = given().body(payload).post("/booking").jsonPath().getString("bookingid");
+    given().get("/booking/" + bookingId).then().statusCode(200);
+} finally {
+    if (bookingId != null) {
+        given().header("Cookie", "token=" + token).delete("/booking/" + bookingId);
+    }
+}
+
+4. Resetting state
+Restoring things like implicit wait, switching back from an iframe or a child window to the default content, or clearing a ThreadLocal driver after parallel execution:
+
+java
+try {
+    driver.switchTo().frame("payment");
+    driver.findElement(By.id("pay")).click();
+} finally {
+    driver.switchTo().defaultContent();
+}
+java
+finally {
+    DriverManager.unload(); // threadLocal.remove() to avoid memory leaks in parallel runs
+}
+
+5. Logging and reporting
+Attaching a screenshot or writing an end-of-test log entry regardless of pass or fail.
+
+Key points interviewers often follow up on
+
+finally runs even when there is a return in try or catch. The return value is evaluated first, then finally executes, then the method returns.
+A return inside finally overrides the try return and swallows any exception, so I avoid it.
+finally will not run if System.exit() is called, the JVM crashes, or the thread is killed.
+A try can be followed by finally alone, without catch. The exception then propagates after finally runs.
+If finally itself throws, it masks the original exception, so I keep cleanup code defensive (null checks, nested try-catch).
+finally vs finalize(): finalize() is a deprecated Object method called by the garbage collector and is not reliable. They are unrelated.
+
+Short answer for the interview: “I use finally for cleanup that must always happen: quitting the driver, closing file or DB resources, deleting test data created via API calls, and resetting state like frames or ThreadLocals. In modern code I prefer try-with-resources for AutoCloseable objects, but finally is still what I use for driver and test-data cleanup.”
+
+#==========================================================================================================
+# Q : Encapsulation & Polymorphism applied in framework?
+==> Encapsulation
+
+Encapsulation means hiding the internal data and exposing it only through controlled public methods.
+
+1. Page Object Model (Selenium)
+Locators are private and the test class never touches them. Tests call business-level methods only.
+
+java
+public class LoginPage {
+    private WebDriver driver;
+
+    private By username = By.id("user-name");
+    private By password = By.id("password");
+    private By loginBtn = By.id("login-button");
+
+    public LoginPage(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public ProductsPage login(String user, String pass) {
+        driver.findElement(username).sendKeys(user);
+        driver.findElement(password).sendKeys(pass);
+        driver.findElement(loginBtn).click();
+        return new ProductsPage(driver);
+    }
+}
+
+If a locator changes, I fix it in one place and no test is affected. This is the biggest maintenance benefit.
+
+2. POJO / payload classes (REST Assured)
+Request and response models have private fields with getters and setters (or Lombok @Data). Jackson serializes and deserializes through them.
+
+java
+public class BookingRequest {
+    private String firstname;
+    private String lastname;
+    private int totalprice;
+
+    public String getFirstname() { return firstname; }
+    public void setFirstname(String firstname) { this.firstname = firstname; }
+    // ...
+}
+
+3. Config and utility classes
+ConfigReader loads the properties file privately and exposes only getProperty("baseUrl"). Callers don’t know whether the data comes from a .properties, JSON, or environment variable, so I can change the source without touching tests.
+
+4. DriverManager with ThreadLocal
+The ThreadLocal<WebDriver> is private, and only getDriver(), setDriver() and unload() are exposed. This keeps parallel execution thread-safe, because nobody can mess with the driver variable directly.
+
+Polymorphism
+
+Polymorphism means one interface or method name behaving differently depending on the object.
+
+Compile-time (overloading)
+
+Overloaded utility methods, for example in my WaitUtils or CommonActions:
+
+java
+public void click(By locator) { ... }
+public void click(WebElement element) { ... }
+public void click(By locator, int timeoutSeconds) { ... }
+
+Runtime (overriding / interface-based)
+
+WebDriver reference
+java
+WebDriver driver = new ChromeDriver();   // or FirefoxDriver / EdgeDriver
+driver.get(url);
+
+The same get(), findElement() and quit() calls behave according to the actual browser class at runtime. Switching browsers needs no change in test code. This is the best real-world example to give.
+
+Browser factory
+java
+public static WebDriver createDriver(String browser) {
+    switch (browser.toLowerCase()) {
+        case "chrome":  return new ChromeDriver();
+        case "firefox": return new FirefoxDriver();
+        case "edge":    return new EdgeDriver();
+        default: throw new IllegalArgumentException("Unsupported browser: " + browser);
+    }
+}
+
+The return type is WebDriver, while the object is browser-specific.
+
+Base page with overridden behaviour
+java
+public abstract class BasePage {
+    protected abstract boolean isPageLoaded();
+}
+
+public class CartPage extends BasePage {
+    @Override
+    protected boolean isPageLoaded() {
+        return driver.findElement(By.className("cart_list")).isDisplayed();
+    }
+}
+
+Each page defines its own load check, and the base class calls it generically.
+
+Reporting / listener interfaces
+
+ITestListener is an interface, and my TestListener implements onTestFailure() to capture a screenshot. TestNG calls it polymorphically without knowing my class.
+
+REST Assured
+
+RequestSpecification and Response are interfaces. The same given().when().then() chain works regardless of the underlying implementation.
+
+Short interview answer
+
+“Encapsulation: in my POM, locators are private and exposed only through action methods like login(). POJOs have private fields with getters/setters, and DriverManager keeps the ThreadLocal driver private. So a UI or payload change is fixed in one place.
+
+Polymorphism: I use the WebDriver interface reference, WebDriver driver = new ChromeDriver(), so the same test runs on Chrome, Firefox or Edge via a factory. I also use method overloading in utility classes (click(By) and click(WebElement)) and overriding in base page classes and TestNG listeners.”
+
+Likely follow-ups
+Encapsulation vs abstraction: encapsulation hides data (private fields plus getters), while abstraction hides implementation complexity (interfaces and abstract classes, like WebDriver).
+Overloading vs overriding: overloading is resolved at compile time within the same class (different parameters), while overriding is resolved at runtime across parent and child (same signature).
+Can static or private methods be overridden? No. Static methods get hidden, and private methods aren’t visible to subclasses.
+Why WebDriver driver = new ChromeDriver() and not ChromeDriver driver = ...? Programming to the interface keeps the code browser-independent.
+
+#==========================================================================================================
+# Q : What is method hiding in Java ?
+==> Method hiding happens when a subclass defines a static method with the same signature as a static method in its parent class. The child’s method hides the parent’s method instead of overriding it.
+
+java
+class Parent {
+    static void show() {
+        System.out.println("Parent static show");
+    }
+}
+
+class Child extends Parent {
+    static void show() {          // hides Parent.show()
+        System.out.println("Child static show");
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        Parent p = new Child();
+        p.show();                 // Parent static show
+        Child c = new Child();
+        c.show();                 // Child static show
+        Parent.show();            // Parent static show
+        Child.show();             // Child static show
+    }
+}
+
+The key line is Parent p = new Child(); p.show();. It prints the Parent version, because static methods are resolved at compile time using the reference type, not the actual object type.
+
+Hiding vs overriding
+	Overriding	Hiding
+Applies to	Instance methods	Static methods
+Resolved at	Runtime (object type)	Compile time (reference type)
+Polymorphism	Yes	No
+@Override annotation	Allowed	Compile error
+Rules
+A static method cannot hide an instance method, and an instance method cannot override a static method. Both give a compile error.
+The return type must be compatible, and the hiding method cannot reduce visibility.
+Variables can also be hidden: if the child declares a field with the same name as the parent’s, the field accessed depends on the reference type, not the object.
+Private methods are not hidden or overridden. The child’s method is simply a new, unrelated method.
+Where it shows up in framework work
+
+I rarely do this on purpose. It usually appears by accident when utility or driver helper methods are static. For example, if a BasePage has static void log(String msg) and a child page defines its own static void log(String msg), calls through a BasePage reference still run the parent’s version. This surprises people expecting polymorphism. If I want different behaviour per page, I make the method non-static and override it.
+
+Short interview answer
+
+“Method hiding is when a child class declares a static method with the same signature as a static method in the parent. Unlike overriding, it isn’t runtime polymorphism. The method called is decided at compile time by the reference type, so Parent p = new Child(); p.show(); calls the Parent’s static method. Overriding applies to instance methods and is resolved by the actual object at runtime. That’s also why @Override can’t be used on a hidden static method.”
+
+Likely follow-ups
+Can we override a static method? No, it can only be hidden.
+Can we override a private method? No, it isn’t inherited, so the child’s method is a separate method.
+Can we override a final method? No. A final instance method can’t be overridden, and a final static method can’t be hidden.
+
+#==========================================================================================================
+# Q : Can we override a static method? No, it can only be hidden.
+Can we override a private method? No, it isn’t inherited, so the child’s method is a separate method.
+Can we override a final method? No. A final instance method can’t be overridden, and a final static method can’t be hidden.
+
+==> Why these three can’t be overridden
+
+First, what overriding actually needs. Overriding works through runtime polymorphism: the JVM looks at the actual object at runtime and picks that class’s version of an inherited instance method. So for overriding to happen, the method must be:
+
+Inherited by the child
+An instance method (tied to an object)
+Not final
+
+Each of your three cases breaks one of these conditions.
+
+1. Can we override a static method? No, only hidden
+
+Why: A static method belongs to the class, not to any object. Overriding depends on the object’s runtime type, but static methods are never looked up through an object. The compiler binds them at compile time using the reference type (this is called static or early binding).
+
+java
+class Parent {
+    static void greet() { System.out.println("Parent"); }
+}
+
+class Child extends Parent {
+    static void greet() { System.out.println("Child"); }
+}
+
+Parent p = new Child();
+p.greet();   // Parent
+
+Even though the object is a Child, the compiler already decided at compile time that p.greet() means Parent.greet(), because p is declared as Parent. The JVM never checks the actual object. Since there’s no runtime dispatch, there’s no overriding.
+
+What the child’s greet() does is hide the parent’s. Both exist independently, one on Parent, one on Child.
+
+Extra points:
+
+@Override on a static method gives a compile error, which proves the compiler doesn’t treat it as overriding.
+A static method can’t override an instance method, and an instance method can’t override a static one. Both are compile errors.
+Calling a static method through an object reference (p.greet()) is just a shortcut. The compiler converts it to Parent.greet(). That’s why p could even be null and it would still work.
+java
+Parent p = null;
+p.greet();   // works, prints "Parent", no NullPointerException
+2. Can we override a private method? No, it isn’t inherited
+
+Why: Private members are visible only inside the declaring class. A child class doesn’t inherit them, so there is nothing for it to override. If the child declares a method with the same name, it’s a brand-new, unrelated method.
+
+java
+class Parent {
+    private void show() { System.out.println("Parent private"); }
+
+    void callShow() { show(); }
+}
+
+class Child extends Parent {
+    private void show() { System.out.println("Child private"); }
+}
+
+new Child().callShow();   // Parent private
+
+Inside Parent, the call show() is bound to Parent’s own private method. It can’t be redirected to Child’s version, because the parent’s private method is not part of the inheritance chain.
+
+Proof it’s not overriding:
+
+@Override on the child’s method gives a compile error: “method does not override or implement a method from a supertype.”
+The child’s method can have a different return type, different access modifier, or throw different exceptions with no restrictions, because the overriding rules don’t apply.
+java
+class Child extends Parent {
+    public int show() { return 5; }   // allowed, completely unrelated method
+}
+
+Notice that I changed the return type to int and made it public. That would be illegal if it were overriding.
+
+Remember: “Overridden” means inherited and replaced. Private isn’t inherited, so it can’t be replaced.
+
+3. Can we override a final method? No
+
+Why: The final keyword on a method is the designer’s way of saying “this behaviour must not be changed by subclasses.” The compiler enforces it.
+
+a) Final instance method: cannot be overridden
+
+java
+class Parent {
+    final void process() { System.out.println("Parent"); }
+}
+
+class Child extends Parent {
+    void process() { }   // compile error: cannot override final method
+}
+
+b) Final static method: cannot be hidden
+
+java
+class Parent {
+    static final void util() { }
+}
+
+class Child extends Parent {
+    static void util() { }   // compile error: cannot hide final method
+}
+
+Static methods can normally be hidden (case 1), but marking them final blocks even that.
+
+Why designers use final methods:
+
+To protect critical logic, such as a template method that defines a fixed sequence of steps.
+For security and consistency, so a subclass can’t change something other code relies on.
+Examples in the JDK: Object.getClass(), Object.wait(), Object.notify() are final, so no class can change how they work.
+
+Note on a private final method: it’s legal but redundant. A private method can’t be overridden anyway, so final adds nothing.
+
+Summary table
+Method type	Inherited?	Runtime dispatch?	Override?	What happens in the child
+Static	Yes	No (compile-time binding)	No	Hiding
+Private	No	No	No	New, unrelated method
+Final instance	Yes	Yes	No (compile error)	Not allowed
+Final static	Yes	No	No (compile error)	Hiding not allowed either
+Normal instance	Yes	Yes	Yes	Overriding
+Short interview answer
+
+“Overriding needs an inherited, non-final instance method, resolved at runtime based on the actual object. A static method belongs to the class and is bound at compile time using the reference type, so the child’s same-signature static method only hides it, it doesn’t override. A private method isn’t visible to the child, so it isn’t inherited, and a same-named child method is just a new, independent method. A final method is explicitly blocked by the compiler from being overridden, and a static final method can’t even be hidden.”
+
+Likely follow-ups
+Why can’t constructors be overridden? They aren’t inherited, and each class has its own constructors tied to its own name.
+Can we overload static and private methods? Yes. Overloading is just a different parameter list, and it works for any method type within the same class.
+Can we override a method and make it more restrictive? No. Visibility can be widened but not narrowed, for example default to public is fine, public to protected is a compile error.
+Can a final method be overloaded? Yes. Overloading creates a different method signature, so final doesn’t block it.
+
+
+#==========================================================================================================
+# Q : Why can’t constructors be overridden?
+==> 1. Why can’t constructors be overridden?
+
+Overriding means a child class replaces an inherited method with its own version, and the JVM picks the child’s version at runtime. A constructor fails every condition for that.
+
+Reason 1: Constructors aren’t inherited.
+Inheritance passes down methods and fields. Constructors are not passed down. If Child extends Parent, the child does not get Parent’s constructors. Nothing inherited means nothing to override.
+
+Reason 2: A constructor’s name must match its class name.
+If overriding were allowed, Child would need a constructor named Parent(), but a constructor in Child must be named Child(). The compiler would treat a method named Parent() in Child as an ordinary method (and it would need a return type).
+
+java
+class Parent {
+    Parent() { System.out.println("Parent constructor"); }
+}
+
+class Child extends Parent {
+    Child() {                      // new constructor, NOT an override
+        super();                   // explicitly calls Parent's constructor
+        System.out.println("Child constructor");
+    }
+}
+
+new Child();
+// Parent constructor
+// Child constructor
+
+Reason 3: Constructors work by chaining, the opposite of overriding.
+When you create a Child, the Parent constructor also runs (through super(), which the compiler inserts if you don’t write it). With overriding, the child’s version replaces the parent’s. With constructors, both execute, parent first. The object has to be built from the top of the hierarchy down.
+
+Reason 4: There is no runtime polymorphism for constructors.
+You always write new ClassName(), so the exact class is known at compile time. There is no need for the JVM to pick a version at runtime.
+
+What you can do instead: overload constructors (different parameter lists) in the same class and call super(...) or this(...).
+
+Related points:
+
+this() and super() must be the first statement in a constructor.
+If the parent has no no-arg constructor, the child must call super(args) explicitly, otherwise it’s a compile error.
+Constructors can’t be static, final, or abstract.
+
+
+#==========================================================================================================
+# Q : Can we overload static and private methods?
+==> Why: Overloading and overriding are completely different mechanisms.
+
+	Overloading	Overriding
+Needs inheritance?	No	Yes
+Decided at	Compile time	Runtime
+Based on	Method name + parameter list	Same signature in parent and child
+
+Overloading just means the same method name with different parameters in the same class. The compiler picks the method by matching the arguments. Since it needs no inheritance and no runtime dispatch, the restrictions that block overriding (static = no runtime binding, private = not inherited) are irrelevant.
+
+java
+class Util {
+    static int add(int a, int b)          { return a + b; }
+    static double add(double a, double b) { return a + b; }
+    static int add(int a, int b, int c)   { return a + b + c; }
+
+    private void log(String msg)           { System.out.println(msg); }
+    private void log(String msg, int level) { System.out.println(level + ": " + msg); }
+}
+
+All of these compile and work. Static methods are chosen by the compiler using argument types, and private methods can be overloaded because the class itself can see all of them.
+
+What actually counts as overloading:
+
+Different number of parameters, or different types, or different order of types.
+Return type alone does not count, and neither do parameter names or access modifiers. This gives a compile error:
+java
+int  get(int a) { return a; }
+long get(int a) { return a; }   // compile error: same signature
+
+You can also overload a method inherited from a parent class by adding a same-name method with a different parameter list in the child. main(String[] args) can be overloaded too, but the JVM only calls the standard one.
+
+
+#==========================================================================================================
+# Q : Can we override a method and make it more restrictive? No
+
+Why: It comes from the Liskov Substitution Principle and the way runtime polymorphism works. A parent reference can point to a child object, and code written against the parent must keep working.
+
+java
+class Parent {
+    public void show() { System.out.println("Parent"); }
+}
+
+class Child extends Parent {
+    void show() { System.out.println("Child"); }   // compile error: weaker access
+}
+
+Suppose this were allowed:
+
+java
+Parent p = new Child();
+p.show();   // compiler checks Parent.show(), which is public, so it allows this
+
+The compiler only sees Parent, where show() is public, so it permits the call. But at runtime the object is a Child whose show() is not public. The call would break encapsulation or fail. To prevent this, Java guarantees the child’s method must be at least as accessible as the parent’s.
+
+The rule:
+
+private < default < protected < public
+Parent method	Allowed in child
+public	public only
+protected	protected, public
+default	default, protected, public
+private	Not overriding at all (unrelated method)
+
+Same idea for exceptions: an overriding method can’t throw broader checked exceptions than the parent’s method. If the parent declares throws IOException, the child can’t declare throws Exception. It can throw the same, a narrower one, or none. The child may throw any unchecked exception.
+
+Return type: it can be the same or a covariant type (a subclass of the parent’s return type). It can’t be unrelated.
+
+
+#==========================================================================================================
+# Q : 4. Can a final method be overloaded? Yes
+
+Why: final on a method only prevents overriding (and hiding, for static). It says “subclasses can’t change this method’s behaviour.” Overloading doesn’t change an existing method. It adds a different method with a different signature, so final doesn’t conflict.
+
+java
+class Parent {
+    final void process(int a) {
+        System.out.println("Final process: " + a);
+    }
+
+    void process(String s) {                  // overload, legal
+        System.out.println("Overloaded: " + s);
+    }
+}
+
+class Child extends Parent {
+    void process(int a, int b) {              // overload in the child, also legal
+        System.out.println("Child overload");
+    }
+
+    // void process(int a) { }                // compile error: cannot override final method
+}
+
+process(int) is protected from change. process(String) and process(int, int) are different signatures, so they’re separate methods that the final one doesn’t affect.
+
+Summary table
+Question	Answer	Core reason
+Override constructors?	No	Not inherited, name tied to class, chaining instead of replacement
+Overload static/private?	Yes	Overloading is compile-time and needs no inheritance
+Override with weaker access?	No	Parent-reference calls must stay valid (Liskov)
+Overload a final method?	Yes	final blocks only same-signature replacement
+Short interview answers
+
+Constructors: “They aren’t inherited and their name must match the class name, so there’s nothing to override. Instead, constructors are chained: the parent’s constructor always runs first through super(). You can overload them but not override them.”
+
+Overload static/private: “Yes. Overloading only needs the same name with different parameters in the same class and is resolved at compile time, so inheritance and runtime dispatch don’t matter.”
+
+Weaker access: “No. A parent reference can hold a child object, and the compiler checks against the parent’s access level. If the child narrowed access, valid code could break at runtime, so Java only allows the same or wider access.”
+
+Final overload: “Yes. Final only stops overriding a method with the same signature. An overloaded method has a different signature, so it’s a separate method
+
+
+#==========================================================================================================
+# Q : 1. Can a constructor be private? Yes
+
+Why: A constructor is just a member of the class, so it takes any access modifier. The access modifier controls who can call new ClassName(). If the constructor is private, only code inside the same class can create objects. That’s the point: you deliberately take object creation away from the outside world.
+
+java
+public class ConfigReader {
+    private ConfigReader() { }          // nobody can do new ConfigReader()
+
+    public static String get(String key) { ... }
+}
+
+ConfigReader c = new ConfigReader();    // compile error outside the class
+
+Where it’s used:
+
+a) Singleton pattern: exactly one instance exists. The class creates it itself and hands it out.
+
+java
+public class DriverManager {
+    private static DriverManager instance;
+
+    private DriverManager() { }         // blocks outside instantiation
+
+    public static synchronized DriverManager getInstance() {
+        if (instance == null) {
+            instance = new DriverManager();
+        }
+        return instance;
+    }
+}
+
+b) Utility / helper classes: all methods are static, so creating an object is meaningless (WaitUtils, ExcelUtils, ConfigReader). A private constructor stops anyone doing it by mistake.
+
+c) Factory methods: the class controls how objects are created, such as validation, caching, or returning different configurations.
+
+java
+public class RequestBuilder {
+    private final String endpoint;
+    private RequestBuilder(String endpoint) { this.endpoint = endpoint; }
+
+    public static RequestBuilder forBooking() { return new RequestBuilder("/booking"); }
+    public static RequestBuilder forAuth()    { return new RequestBuilder("/auth"); }
+}
+
+d) Builder pattern: the outer class has a private constructor, and only its nested Builder can call it.
+
+Side effects to remember:
+
+A class with only private constructors cannot be subclassed from outside, because the child’s constructor must call super(), which it can’t access.
+Reflection can still call a private constructor using setAccessible(true), which can break a singleton. Using an enum singleton prevents this.
+Private constructors are legal in nested classes too, and the outer class can access them.
+
+#==========================================================================================================
+# Q : . Can a constructor call another constructor? Yes
+
+Why: It avoids duplicating initialization logic. There are two forms:
+
+this(...) calls another constructor in the same class (constructor chaining).
+super(...) calls a constructor in the parent class.
+java
+class Browser {
+    private String name;
+    private boolean headless;
+    private int timeout;
+
+    Browser() {
+        this("chrome");                 // calls Browser(String)
+    }
+
+    Browser(String name) {
+        this(name, false);              // calls Browser(String, boolean)
+    }
+
+    Browser(String name, boolean headless) {
+        this.name = name;
+        this.headless = headless;
+        this.timeout = 30;
+    }
+}
+
+The real initialization is written once in the most detailed constructor, and the others delegate to it with default values.
+
+Why it must be the first statement:
+When an object is built, the parent part must be constructed before the child’s own fields and code are used. If you could put other statements before super() or this(), they might use fields of an object that isn’t initialized yet. Java forces the constructor call first so construction order is guaranteed: parent first, then child.
+
+Rules:
+
+You can’t use both this(...) and super(...) in the same constructor, since each needs to be first. When you use this(...), the chain eventually reaches a constructor that calls super(...).
+Recursive chaining is a compile error: A() calling this(5) and A(int) calling this().
+If you write neither, the compiler silently inserts super(); as the first line.
+If the parent has no no-arg constructor, the child must call super(args) explicitly, otherwise a compile error.
+java
+class Parent {
+    Parent(String name) { }             // no no-arg constructor
+}
+
+class Child extends Parent {
+    Child() {
+        super("default");               // required, otherwise compile error
+    }
+}
+You can’t pass instance fields or call instance methods as arguments to this() or super(), because the object isn’t constructed yet. Static members and parameters are fine.
+
+(Note: newer Java versions, 22+, allow statements before super() as long as they don’t touch this. For interviews, the “must be first” answer is the standard one.)
+
+#==========================================================================================================
+# Q : What if I don’t write any constructor? Default constructor is added
+
+Why: Every class must have at least one constructor, because new always runs one. To save you from writing an empty one, the compiler generates a default constructor when you declare none.
+
+java
+class Page { }
+
+// compiler effectively produces:
+class Page {
+    Page() {
+        super();                        // calls Object's constructor
+    }
+}
+
+Details:
+
+It takes no parameters, has an empty body (apart from the implicit super()), and gets the same access modifier as the class (a public class gets a public default constructor).
+It’s generated only if you declare no constructor at all. The moment you write any constructor, even a parameterized one, the compiler adds nothing.
+java
+class LoginPage {
+    LoginPage(WebDriver driver) { }
+}
+
+new LoginPage();                        // compile error: no no-arg constructor exists
+
+This trips up many beginners. In framework code, once I add LoginPage(WebDriver driver), I can’t call new LoginPage() unless I also write a no-arg constructor.
+
+Impact on inheritance: if the parent has only a parameterized constructor, the child’s implicit super() fails to compile. You must call super(args) explicitly.
+The default constructor also initializes fields to default values (0, false, null) because that’s what the JVM does for every new object.
+Frameworks like Jackson (POJO deserialization) and TestNG/Cucumber often need a no-arg constructor. If I add a parameterized constructor to a POJO, I also keep an explicit no-arg one, otherwise Jackson throws “no Creators, like default constructor, exist”.
+
+#==========================================================================================================
+# Q : Overloading with null argument
+
+Why: The compiler chooses the overloaded method at compile time based on the argument types. A null literal has no specific type, so it fits any reference type. The compiler then picks the most specific applicable method.
+
+java
+class Demo {
+    void print(Object o) { System.out.println("Object"); }
+    void print(String s) { System.out.println("String"); }
+}
+
+new Demo().print(null);                 // String
+
+Both methods accept null, but String is a subclass of Object, so it’s more specific. Java prefers the most specific match.
+
+Ambiguous case:
+
+java
+void print(String s)  { }
+void print(Integer i) { }
+
+print(null);                            // compile error: ambiguous
+
+String and Integer are siblings, with no inheritance relation between them. Neither is more specific, so the compiler can’t decide and gives an error.
+
+Fixes: cast the null, or use a typed variable.
+
+java
+print((String) null);                   // calls print(String)
+
+Integer i = null;
+print(i);                               // calls print(Integer)
+
+Other points on overload resolution:
+
+It’s decided by the declared type of the argument, not the actual object.
+java
+Object o = "hello";
+print(o);                               // calls print(Object), not print(String)
+Resolution order: exact match, then widening (int to long), then boxing (int to Integer), then varargs.
+A primitive can’t be null, so print(int) and print(String) with print(null) picks the String one.
+
+
+#==========================================================================================================
+# Q : Is overloading polymorphism? Yes, compile-time polymorphism
+
+Why: Polymorphism means “many forms”: the same name behaving differently. Java achieves this in two ways, distinguished by when the method is chosen.
+
+		| Overloading				| Overriding
+1. Type		| Compile-time (static) polymorphism	| Runtime (dynamic) polymorphism
+2. Binding	| Early binding				| Late binding
+3. Decided by	| Reference/argument types		| Actual object type
+4. Where	| Same class (or inherited)		| Parent and child
+5. Signature	| Different parameters			| Same signature
+6. Resolved by	| Compiler				| JVM
+java
+// Compile-time: overloading
+class Calc {
+    int add(int a, int b)       { return a + b; }
+    double add(double a, double b) { return a + b; }
+}
+
+// Runtime: overriding
+class Animal { void sound() { System.out.println("..."); } }
+class Dog extends Animal { void sound() { System.out.println("Bark"); } }
+
+Animal a = new Dog();
+a.sound();                              // Bark, decided at runtime
+
+In overloading, the compiler fixes which version runs before the program starts, so there’s no runtime decision.
+
+Debate point: some authors argue only overriding is “true” polymorphism, since overloading is resolved by the compiler. In interviews, the accepted answer is that Java supports both, compile-time and runtime.
+
+Framework examples: overloaded click(By) / click(WebElement) utilities are compile-time. WebDriver driver = new ChromeDriver() is runtime.
+
+Summary table
+Question				| Answer	| Core reason
+1. Private constructor?			| Yes		| Constructor is a normal member, private blocks outside new; used for singleton, utilities, 						|		| factories
+2. Constructor calling constructor?	| Yes		| this() / super() for chaining; first statement to keep parent-first construction order
+3. No constructor written?		| Default added	| Every class needs one; only generated if none is declared
+4. Overload with null			| Most specific wins; siblings are ambiguous	| Compile-time resolution picks the most specific type
+5. Overloading is polymorphism?		| Yes, compile-time	| Same name, different behaviour, resolved by compiler
+
+Short interview answers
+
+Private constructor: “Yes. It stops other classes from creating objects. I use it for singletons like a DriverManager and for utility classes like ConfigReader or ExcelUtils, which only have static methods.”
+
+Constructor calling constructor: “Yes, this(...) calls another constructor in the same class and super(...) calls the parent’s. It must be the first statement so the parent is always initialized before the child.”
+
+No constructor: “The compiler provides a default no-arg constructor, but only if I haven’t written any. Once I add a parameterized constructor, I have to write the no-arg one myself if I need it, for example for Jackson POJOs.”
+
+Null overloading: “The compiler picks the most specific type, so print(null) chooses String over Object. If the candidates are unrelated, like String and Integer, it’s ambiguous and fails to compile.”
+
+Overloading as polymorphism: “Yes, it’s compile-time polymorphism, resolved by the compiler from the argument types. Overriding is runtime polymorphism, resolved by the JVM from the actual object.”
+
+#==========================================================================================================
+# Q : Can a constructor be static, final, or abstract?
+==>  No
+Each modifier conflicts with what a constructor is.
+
+Why not static?
+A constructor’s job is to initialize a specific new object. It uses this (the object being built) and sets instance fields. A static member belongs to the class, has no this, and exists before any object does. The two ideas contradict each other.
+
+java
+class Page {
+    static Page() { }       // compile error: modifier static not allowed here
+}
+
+Also, static members are inherited and can be hidden, while constructors are neither inherited nor hidden.
+
+Why not final?
+final on a method prevents overriding. Constructors can’t be overridden in the first place because they aren’t inherited, so final would add nothing. Java disallows it as meaningless.
+
+Why not abstract?
+An abstract method has no body and must be implemented by a subclass. But a constructor must have a body that runs when the object is created, and subclasses can’t override it. An abstract constructor would be a promise nobody can fulfil.
+
+java
+abstract class Base {
+    abstract Base() { }     // compile error
+}
+
+What is allowed on a constructor? Only access modifiers: public, protected, default, private. (Annotations are also fine.)
+
+#==========================================================================================================
+# Q : Can a constructor return a value? 
+==> No
+Why: A constructor is invoked by new, and new ClassName() already returns the reference to the newly created object. The constructor itself only initializes that object. It’s the new operator, not the constructor, that allocates memory and gives back the reference.
+
+java
+Page p = new Page();     // new allocates + returns reference; constructor initializes
+
+What happens if you add a return type? The compiler treats it as an ordinary method that happens to have the same name as the class. This is a classic trap:
+
+java
+class Page {
+    void Page() {                       // NOT a constructor, just a method
+        System.out.println("Hello");
+    }
+}
+
+new Page();                             // prints nothing, default constructor ran
+new Page().Page();                      // prints Hello
+
+Since no real constructor was declared, the compiler still adds the default one, which is why new Page() compiles and does nothing visible.
+
+A constructor can use a bare return; (no value) to exit early, which is legal but rare.
+
+#==========================================================================================================
+# Q : Can an abstract class have a constructor?
+==>  Yes
+
+Why: An abstract class can’t be instantiated directly, but it can still have fields that need initializing, and a subclass object contains the parent part inside it. When you create a concrete child, the child’s constructor calls super(...) first, which runs the abstract class’s constructor. Constructor chaining requires it.
+
+java
+abstract class BasePage {
+    protected WebDriver driver;
+
+    BasePage(WebDriver driver) {            // abstract class constructor
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+}
+
+class LoginPage extends BasePage {
+    LoginPage(WebDriver driver) {
+        super(driver);                      // runs BasePage constructor
+    }
+}
+
+This is exactly the pattern in a Selenium framework: the BasePage constructor stores the driver and initializes elements once, and every page class reuses it.
+
+Key points:
+
+You can’t call new BasePage(driver) directly. The constructor only runs via a subclass’s super(...).
+If the abstract class has only a parameterized constructor, every child must call super(args) explicitly.
+The abstract class constructor can be protected, which is a common choice, since only subclasses should call it.
+Caution: don’t call an overridable (abstract) method from an abstract class constructor. The child’s override may run before the child’s fields are initialized, giving nulls or bugs.
+
+
+#==========================================================================================================
+# Q : Can an interface have a constructor?
+==> No
+Why: A constructor exists to initialize instance state of an object. An interface:
+
+Can’t be instantiated (new WebDriver() is not allowed).
+Has no instance fields. Its fields are implicitly public static final constants, initialized at class-load time, so nothing needs a constructor.
+Exists to define a contract (what a class can do), not to hold state or build objects.
+
+A class that implements an interface gets its own constructor. The interface adds nothing to the construction chain.
+
+What about Java 8+ features? Default and static methods in interfaces still don’t have instance state, so there’s still no need for a constructor. Java 9 private methods are also just helpers.
+
+Remember the contrast: an abstract class can have state and constructors, while an interface is a pure contract.
+
+#==========================================================================================================
+# Q : How do you break a singleton, and how do you prevent it?
+==> A singleton relies on a private constructor and one static instance. Three things can create a second instance anyway.
+a) Reflection
+Reflection can bypass private using setAccessible(true).
+
+java
+Constructor<DriverManager> con = DriverManager.class.getDeclaredConstructor();
+con.setAccessible(true);
+DriverManager second = con.newInstance();   // a second object
+
+Prevention: throw an exception in the constructor if an instance already exists.
+
+java
+private DriverManager() {
+    if (instance != null) {
+        throw new IllegalStateException("Instance already exists");
+    }
+}
+
+b) Serialization / deserialization
+If the singleton implements Serializable, deserializing the saved bytes creates a new object each time.
+
+Prevention: add readResolve(), which makes deserialization return the existing instance.
+
+java
+protected Object readResolve() {
+    return getInstance();
+}
+
+c) Cloning
+If the class implements Cloneable (or inherits from one that does), clone() makes a copy.
+
+Prevention: override clone() and throw CloneNotSupportedException or return the same instance.
+
+java
+@Override
+protected Object clone() throws CloneNotSupportedException {
+    throw new CloneNotSupportedException("Singleton can't be cloned");
+}
+
+d) Multithreading (not a “break” by attack, but a common flaw)
+In lazy initialization, two threads can both see instance == null and each create one. Prevention: synchronized method, double-checked locking with volatile, or the holder idiom.
+
+java
+private static volatile DriverManager instance;
+
+public static DriverManager getInstance() {
+    if (instance == null) {
+        synchronized (DriverManager.class) {
+            if (instance == null) {
+                instance = new DriverManager();
+            }
+        }
+    }
+    return instance;
+}
+
+e) Multiple class loaders: each class loader loads its own copy of the class, so each gets its own “singleton”. This is rare in test frameworks.
+
+Best protection: enum singleton.
+
+java
+public enum ConfigManager {
+    INSTANCE;
+
+    public String get(String key) { ... }
+}
+
+The JVM guarantees one instance, and enums are safe against reflection (newInstance on an enum throws an exception), serialization, and thread issues. The trade-off is that it can’t extend another class and isn’t lazy in the same way.
+
+
+
+#==========================================================================================================
+# Short interview answers
+
+1. static/final/abstract: “No. Static belongs to the class but a constructor initializes an object, and final and abstract are about overriding, which doesn’t apply because constructors aren’t inherited. Only access modifiers are allowed.”
+
+2. Return value: “No. The new operator returns the object reference, the constructor only initializes it. If I put a return type, it becomes a normal method.”
+
+3. Abstract class constructor: “Yes. It can’t be called directly, but it runs through super() when a child is created. I use it in my BasePage to store the driver and initialize page elements.”
+
+4. Interface constructor: “No. Interfaces have no instance state and can’t be instantiated, so a constructor has no purpose.”
+
+5. Breaking a singleton: “Reflection with setAccessible(true), deserialization, and cloning can all create a second instance. I prevent it with a check in the constructor, readResolve(), overriding clone(), or best of all, an enum singleton.”
+
+6. Constructor vs method: “A constructor has no return type, has the same name as the class, runs automatically on new to initialize the object, and isn’t inherited. A method has a return type, any name, is called explicitly, and can be inherited and overridden.” 
+
+#==========================================================================================================
+# Q : Can a constructor be synchronized? No
+==> 
+Why: synchronized on a method makes a thread acquire a lock (on this for instance methods) before running. For a constructor this is pointless, and Java simply disallows it:
+
+java
+class Page {
+    synchronized Page() { }     // compile error: modifier synchronized not allowed here
+}
+While the constructor runs, the object is still being built, and the reference hasn’t been returned to the caller yet. So only the creating thread can see that object. No other thread can call the constructor on that same object, so there’s nothing to protect.
+Each new creates a different object, so two threads calling new Page() are working on two separate objects and don’t conflict.
+
+Caveat (this is where the “no need” idea can fail): if the constructor leaks this before it finishes, for example by registering this in a static list, starting a thread inside the constructor, or passing this to a listener, another thread can see a half-constructed object. That’s why you should never let this escape from a constructor.
+
+What you can do instead:
+
+Use a synchronized (lock) { ... } block inside the constructor if it touches shared static data.
+Use final fields. The Java Memory Model guarantees other threads see final fields correctly initialized once the constructor finishes.
+Protect shared creation logic in a factory or getInstance() method, as in the singleton.
+java
+class Report {
+    private static int count = 0;
+    private static final Object LOCK = new Object();
+
+    Report() {
+        synchronized (LOCK) {       // shared static counter needs protection
+            count++;
+        }
+    }
+}
+
+#==========================================================================================================
+# Q : Can a constructor throw exceptions?
+==> Yes
+Why: A constructor can fail, for example because a file is missing, a config is invalid or a connection can’t open. Failing fast with an exception is better than returning a broken object. Both checked and unchecked exceptions are allowed.
+
+java
+class ConfigReader {
+    private Properties props = new Properties();
+
+    ConfigReader(String path) throws IOException {
+        FileInputStream fis = new FileInputStream(path);   // may throw IOException
+        props.load(fis);
+    }
+}
+
+// caller must handle or declare
+try {
+    ConfigReader cr = new ConfigReader("config.properties");
+} catch (IOException e) {
+    e.printStackTrace();
+}
+
+Rules around inheritance:
+
+If the parent constructor declares a checked exception, the child constructor must declare the same or a broader checked exception, because super() is called inside it. Otherwise it’s a compile error.
+java
+class Parent {
+    Parent() throws IOException { }
+}
+
+class Child extends Parent {
+    Child() throws IOException {       // must declare, since super() throws it
+        super();
+    }
+}
+The child may also catch it? No. super() must be the first statement, so you can’t wrap it in try-catch. The child has to declare it with throws.
+This is different from method overriding: a constructor isn’t overriding anything, so the “can’t throw broader checked exception” rule doesn’t apply. The child can throw a broader one.
+If the parent uses the default constructor, and the child’s implicit super() call can’t throw checked exceptions, nothing is needed.
+
+What happens when the constructor throws? The object is not created. The new expression fails and the reference is never assigned. Any resources the constructor opened before failing should be closed there (use try-catch inside, or try-with-resources).
+
+#==========================================================================================================
+# Q : What is a copy constructor?
+
+Why it exists: To create a new object with the same state as an existing one, independent of it. Simply assigning b = a copies only the reference, so both variables point to the same object, and changes through one show up in the other.
+
+java
+class Booking {
+    private String name;
+    private int price;
+
+    Booking(String name, int price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    Booking(Booking other) {            // copy constructor
+        this.name = other.name;
+        this.price = other.price;
+    }
+}
+
+Booking a = new Booking("Raj", 500);
+Booking b = new Booking(a);             // separate object, same values
+b.setPrice(900);                        // a is unaffected
+
+Why Java has no built-in one: C++ generates a copy constructor automatically. Java doesn’t, because objects are handled by reference and the language gives you clone() instead. Most developers prefer a hand-written copy constructor or a static factory because Cloneable and clone() have known problems (the interface has no clone() method, it does a shallow copy, and it bypasses constructors).
+
+Shallow vs deep copy:
+
+Shallow copy: copies field values, so reference fields (like a List or another object) still point to the same shared object.
+Deep copy: also creates new copies of the referenced objects.
+java
+Booking(Booking other) {
+    this.name = other.name;                          // String is immutable, safe
+    this.dates = new ArrayList<>(other.dates);       // new list, deep enough for List<String>
+}
+
+Framework use: copying a base request payload POJO, then modifying one field for a negative test, without altering the original.
+
+4. Order of initialization
+
+For a class hierarchy, the order is fixed.
+
+A. Class loading phase (once per class, the first time it’s used): parent first
+
+Parent static variables and static blocks, in the order written.
+Child static variables and static blocks.
+
+B. Each new Child() (every object):
+
+Parent instance variables and instance initializer blocks, in order written.
+Parent constructor body.
+Child instance variables and instance initializer blocks.
+Child constructor body.
+java
+class Parent {
+    static { System.out.println("1. Parent static"); }
+    { System.out.println("3. Parent instance block"); }
+    Parent() { System.out.println("4. Parent constructor"); }
+}
+
+class Child extends Parent {
+    static { System.out.println("2. Child static"); }
+    { System.out.println("5. Child instance block"); }
+    Child() { System.out.println("6. Child constructor"); }
+}
+
+new Child();
+new Child();
+
+Output:
+
+1. Parent static
+2. Child static
+3. Parent instance block
+4. Parent constructor
+5. Child instance block
+6. Child constructor
+3. Parent instance block      // second object: no static blocks again
+4. Parent constructor
+5. Child instance block
+6. Child constructor
+
+Why this order:
+
+Static members belong to the class, so they’re set up when the class loads. A child class can’t load before its parent.
+A child object contains the parent part, and the child’s code may depend on it, so the parent is built fully first.
+The instance blocks and field initializers run before the constructor body of the same class. The compiler actually copies them into the start of every constructor, right after the super() call.
+
+Related points:
+
+Static blocks run only once per class loader, even if you create 100 objects.
+Before any initializer runs, all fields have default values (0, false, null).
+main itself is static, so the static block of the main class runs before main.
+
+#==========================================================================================================
+# Q : Can we call an overridden method from a constructor? 
+==> Yes, but it’s risky
+
+Why it’s legal: A constructor can call any method. And because of runtime polymorphism, if the method is overridden, the child’s version runs, even though the call is in the parent’s constructor.
+
+Why it’s risky: The parent constructor runs before the child’s fields are initialized (see the order above). So the child’s overridden method can run while the child’s fields are still at default values.
+
+java
+class Parent {
+    Parent() {
+        System.out.println("Parent constructor");
+        init();                          // calls Child's version!
+    }
+    void init() { }
+}
+
+class Child extends Parent {
+    private String name = "Raj";
+
+    @Override
+    void init() {
+        System.out.println("Name = " + name);
+    }
+}
+
+new Child();
+// Parent constructor
+// Name = null        // field not yet initialized
+
+name prints null, not Raj, because name = "Raj" runs only after the parent constructor finishes. This can cause a NullPointerException or wrong values.
+
+Best practices:
+
+Don’t call overridable methods from constructors.
+If you must, call only private, static or final methods, which can’t be overridden.
+For setup that depends on child state, use a separate init() method called after construction, or a factory method.
+6. Where do I use a singleton in my framework?
+
+A singleton fits things that should have exactly one shared instance for the whole run.
+
+Class			| Why one instance
+1. ConfigReader		| Loads the properties file once and shares the values everywhere, instead of re-reading the file
+2. DriverManager	| Holds the driver. For parallel runs it’s a singleton holding a ThreadLocal<WebDriver>, so each thread still gets its own browser
+3. ExtentReportManager	| One report object for the whole suite, so all tests write to the same report
+4. LogManager / logger	| One shared logger configuration
+5. ExcelUtils / DB connection helper	| Reuse one connection or workbook
+java
+public class ConfigReader {
+    private static ConfigReader instance;
+    private final Properties props = new Properties();
+
+    private ConfigReader() {
+        try (FileInputStream fis = new FileInputStream("config.properties")) {
+            props.load(fis);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot load config", e);
+        }
+    }
+
+    public static synchronized ConfigReader getInstance() {
+        if (instance == null) {
+            instance = new ConfigReader();
+        }
+        return instance;
+    }
+
+    public String get(String key) { return props.getProperty(key); }
+}
+
+Important point: a plain singleton WebDriver breaks parallel execution, because all threads would share one browser. That’s why DriverManager stores the driver in a ThreadLocal, so the manager is a singleton, but the driver is one per thread. Don’t make test data or page objects singletons, since they hold per-test state.
+
+Summary table
+Question	    		| Answer	| Core reason
+1. Synchronized constructor?	| No		| Object not visible to other threads during construction; use a synchronized block for static data
+2. Throw exceptions?		| Yes		| Fail instead of creating a broken object; child must declare parent’s checked exceptions
+3. Copy constructor?		| Write your own| Java has no automatic one; creates an independent copy (watch shallow vs deep)
+4. Initialization order?	| Static (parent, child), then parent instance + constructor, child instance + constructor  | Parent must be fully built before child
+5. Call overridden method in constructor?	| Legal but risky	| Child’s field not yet initialized when parent constructor runs
+6. Singleton usage?		| ConfigReader, DriverManager, report manager	| One shared instance needed; driver stays per-thread via ThreadLocal
+
+Short interview answers
+
+1. Synchronized constructor: “Not allowed, because while an object is being constructed only the creating thread has a reference to it, so locking isn’t needed. If the constructor touches shared static data, I use a synchronized block inside.”
+
+2. Constructor exceptions: “Yes, checked or unchecked. If the parent constructor throws a checked exception, the child constructor must declare it, since super() can’t be wrapped in a try-catch. If it throws, the object isn’t created.”
+
+3. Copy constructor: “It’s a constructor that takes an object of the same class and copies its fields into a new object. Java doesn’t provide one automatically, so I write it, taking care of shallow versus deep copy for mutable fields.”
+
+4. Initialization order: “Parent static blocks, child static blocks once at class load. Then per object: parent instance blocks and constructor, then child instance blocks and constructor.”
+
+5. Overridden method in constructor: “It runs the child’s version before the child’s fields are initialized, so fields can be null or default. I avoid it, or only call private or final methods.”
+
+6. Singleton in framework: “ConfigReader, the DriverManager (holding a ThreadLocal driver for parallel runs), and the Extent report manager.”
+
 
 
 
 #==========================================================================================================
 # Q : 
-
 
 
 #==========================================================================================================
 # Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+#==========================================================================================================
+# Q :
+
+
+
+#==========================================================================================================
+# Q : 
+
+
+
+#==========================================================================================================
+# Q : 
+

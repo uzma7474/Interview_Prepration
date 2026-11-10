@@ -1,3 +1,14 @@
+
+Related Jackson Annotations (Quick Comparison)
+
+• @JsonIgnoreProperties: Used at the class level to ignore multiple properties by name (e.g., @JsonIgnoreProperties({"password", "secret"})) or to ignore unknown incoming JSON fields (ignoreUnknown = true).
+• @JsonIgnoreType: Used at the class level to ignore all fields of a specific data type.
+• @JsonProperty: Used to explicitly map or rename a field.
+
+
+
+
+#========================================================================================================
 # Q : What are the important validation you will put on a API.
 
 ==> When I test an API, I don't validate only the status code. I validate the response at multiple levels—HTTP response, headers, response body, schema, business rules, and data consistency.
@@ -182,11 +193,11 @@ HTTP status codes are three-digit numbers returned by a server to indicate the o
 The codes are divided into five major categories based on their first digit:
 
 Code Range	Category	General Meaning
-1xx	Informational	Request received, continuing process.
-2xx	Success	Action successfully received, understood, and accepted.
-3xx	Redirection	Further action needs to be taken to complete the request.
-4xx	Client Error	The request contains bad syntax or cannot be fulfilled.
-5xx	Server Error	The server failed to fulfill an apparently valid request.
+1xx		Informational	Request received, continuing process.
+2xx		Success	Action  successfully received, understood, and accepted.
+3xx		Redirection	Further action needs to be taken to complete the request.
+4xx		Client Error	The request contains bad syntax or cannot be fulfilled.
+5xx		Server Error	The server failed to fulfill an apparently valid request.
 
 
 Complete List of Common Standard HTTP Status Codes
@@ -2869,26 +2880,526 @@ Feature		| String Payload Approach		| POJO / Map Approach
 
 
 #===================================================================================
-# Q : 
+# Q :  Deserializing nested JSON API response to Java POJO?
+==> In my project we deserialize API responses into POJOs rather than working with raw JSON strings, because it gives us type safety, readable assertions and reusable models.
 
+The approach is to mirror the JSON structure with classes. Each nested object becomes its own class, and each JSON array becomes a List<T>. For example, if the response has a user with an address object and a list of orders, I create User, Address and Order classes, and User holds an Address and a List<Order>.
+
+I use Jackson, since REST Assured uses it by default when it’s on the classpath. I annotate the classes with @JsonIgnoreProperties(ignoreUnknown = true) so that if the backend adds a new field, our tests don’t break with an UnrecognizedPropertyException. If a JSON key doesn’t match my Java naming, I use @JsonProperty("order_id").
+
+In REST Assured, I do it in one line:
+
+java
+User user = given()
+		.spec(requestSpec)
+           .when()
+		.get("/users/101")
+           .then()
+		.statusCode(200)
+        	.extract()
+		.as(User.class);
+
+If I only need a nested part, I use JsonPath:
+
+java
+Address address = response.jsonPath().getObject("address", Address.class);
+List<Order> orders = response.jsonPath().getList("orders", Order.class);
+
+If the root is an array or a generic type, Class isn’t enough because of type erasure, so I use TypeReference with ObjectMapper:
+
+java
+List<User> users = mapper.readValue(json, new TypeReference<List<User>>() {});
+
+Then the assertions become simple and readable:
+
+java
+Assert.assertEquals(user.getAddress().getCity(), "Pune");
+Assert.assertEquals(user.getOrders().size(), 2);
+
+In Playwright (Java or TypeScript), it’s the same idea. Playwright’s APIResponse gives me the body as text or JSON, and I map it myself. In Java, I call response.text() and pass it to ObjectMapper.readValue(). In TypeScript, I’d use await response.json() and cast it to an interface.
+
+Things I’ve handled in practice:
+
+Missing fields: I use wrapper types like Integer instead of int, so I can tell ‘missing’ (null) from ‘zero’.
+Dates: I register JavaTimeModule for LocalDate and LocalDateTime.
+Dynamic or unknown structures: I fall back to Map<String, Object> or JsonNode with readTree().
+Boilerplate: I use Lombok (@Data) so I don’t write getters and setters by hand, and I can generate POJOs from a sample JSON with tools like jsonschema2pojo.
+Same POJOs for requests: I use the same classes for request payloads with writeValueAsString(), so the framework has one model for both directions.”
+
+
+#--------------------------------#
+Short answer: map the JSON structure to a matching class structure, then let Jackson (or Gson) do the work. Nested objects become nested classes, arrays become List<T>.
+
+Sample JSON
+
+json
+{
+  "id": 101,
+  "name": "Uzma",
+  "address": {
+    "city": "Pune",
+    "pincode": "411001"
+  },
+  "orders": [
+    { "orderId": "A1", "amount": 499.5 },
+    { "orderId": "A2", "amount": 120.0 }
+  ]
+}
+
+POJOs (Jackson)
+
+java
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class User {
+    private int id;
+    private String name;
+    private Address address;
+    private List<Order> orders;
+
+    // getters and setters
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Address {
+    private String city;
+    private String pincode;
+
+    // getters and setters
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Order {
+    private String orderId;
+    private double amount;
+
+    // getters and setters
+}
+
+Jackson needs a no-arg constructor plus getters/setters (or public fields). Use @JsonProperty("order_id") when the JSON key differs from the field name.
+
+Deserializing
+
+java
+ObjectMapper mapper = new ObjectMapper();
+
+// From a String
+User user = mapper.readValue(jsonString, User.class);
+
+// From a REST Assured response
+User user = response.as(User.class);
+// or
+User user = response.jsonPath().getObject("", User.class);
+
+// Only a nested part of the response
+Address address = response.jsonPath().getObject("address", Address.class);
+List<Order> orders = response.jsonPath().getList("orders", Order.class);
+
+Top-level array or generic types
+
+User.class won’t work when the root is an array, or you have a generic type. Use TypeReference:
+
+java
+List<User> users = mapper.readValue(json, new TypeReference<List<User>>() {});
+Map<String, Object> map = mapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+
+Common interview follow-ups
+
+Unknown fields: by default Jackson throws UnrecognizedPropertyException. Fix with @JsonIgnoreProperties(ignoreUnknown = true) or mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).
+Different key names: @JsonProperty("first_name") private String firstName;
+Wrapped root or deeply nested single value: use mapper.readTree(json).path("a").path("b") and then treeToValue(node, Target.class).
+Dates: register JavaTimeModule and use @JsonFormat(pattern = "yyyy-MM-dd") for LocalDate.
+Null/missing fields: primitives default to 0/false, wrappers (Integer) stay null, so use wrappers when you need to tell “missing” from “zero”.
+Polymorphic types: @JsonTypeInfo and @JsonSubTypes.
+Java records (Java 16+): Jackson 2.12+ supports them directly: record Address(String city, String pincode) {}.
+Serialization vs deserialization: writeValueAsString() goes POJO to JSON, readValue() goes JSON to POJO.
+
+Gson equivalent
+
+java
+Gson gson = new Gson();
+User user = gson.fromJson(json, User.class);
+
+Type listType = new TypeToken<List<User>>() {}.getType();
+List<User> users = gson.fromJson(json, listType);
+
+Gson ignores unknown fields by default and uses @SerializedName("order_id") for renaming.
+
+One-liner for interviews: “I model the JSON as nested POJOs, use List<T> for arrays, annotate with @JsonIgnoreProperties(ignoreUnknown = true) for resilience, and call ObjectMapper.readValue(). For generics I use TypeReference.
+
+
+#===================================================================================
+# Q : API response header & cookie assertions in REST Assured?
+==> In REST Assured, I validate headers and cookies in two ways. For quick checks, I chain .header() and .cookie() with Hamcrest matchers in the then() block. When I need more control, I extract the Response and assert with TestNG.
+
+Header assertions
+
+java
+given().spec(requestSpec)
+.when()
+    .get("/booking/1")
+.then()
+    .statusCode(200)
+    .header("Content-Type", containsString("application/json"))
+    .header("Server", notNullValue())
+    .headers("Connection", "keep-alive",
+             "Cache-Control", "no-cache");
+
+Header names are case-insensitive, but values are case-sensitive. For dynamic values like a request ID or timestamp, I assert with notNullValue() or a regex matcher instead of an exact value.
+
+Cookie assertions
+
+java
+given().body(credentials)
+.when()
+    .post("/auth")
+.then()
+    .statusCode(200)
+    .cookie("session_id", notNullValue())
+    .cookie("theme", "dark");
+
+Extracting from the Response
+
+java
+Response response = given().spec(requestSpec).when().get("/booking/1");
+
+String contentType = response.getHeader("Content-Type");
+String sessionId = response.getCookie("session_id");
+Map<String, String> cookies = response.getCookies();
+List<String> setCookies = response.getHeaders().getValues("Set-Cookie");
+
+Assert.assertEquals(response.getStatusCode(), 200);
+Assert.assertTrue(contentType.contains("application/json"));
+
+Cookie attributes
+
+getCookie() returns only the value. To validate Secure, HttpOnly, Path or Domain, I use getDetailedCookie():
+
+java
+Cookie cookie = response.getDetailedCookie("session_id");
+Assert.assertTrue(cookie.isHttpOnly(), "HttpOnly flag missing");
+Assert.assertTrue(cookie.isSecured(), "Secure flag missing");
+Assert.assertEquals(cookie.getPath(), "/");
+
+Reusing them in later requests
+
+In my framework, I extract the auth token or session cookie from the login response and pass it into later calls:
+
+java
+Map<String, String> cookies = given().body(credentials).post("/login").getCookies();
+
+given().cookies(cookies).get("/profile").then().statusCode(200);
+
+For session handling across many calls, I use SessionFilter. For header-based auth, I set the Authorization header in a shared RequestSpecification, so I don’t repeat it in every test.”
+
+
+#-------------------------------------#
+Use .header(), .headers(), .cookie() and .cookies() in the then() block for quick checks, or extract values from the Response when you need custom logic.
+
+Header assertions
+
+java
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
+
+given()
+    .baseUri("https://restful-booker.herokuapp.com")
+.when()
+    .get("/booking/1")
+.then()
+    .statusCode(200)
+    .header("Content-Type", "application/json; charset=utf-8")   // exact match
+    .header("Server", containsString("Cowboy"))                  // Hamcrest matcher
+    .header("Content-Length", notNullValue())
+    .headers("Connection", "keep-alive",
+             "Via", "1.1 vegur");                                // multiple at once
+
+Header names are case-insensitive, values are not (unless you use a matcher like equalToIgnoringCase).
+
+Cookie assertions
+
+java
+given()
+    .contentType("application/json")
+    .body(credentials)
+.when()
+    .post("/auth")
+.then()
+    .statusCode(200)
+    .cookie("session_id", notNullValue())
+    .cookie("theme", "dark")
+    .cookies("session_id", notNullValue(), "lang", "en");
+
+Extracting from the Response
+
+java
+Response response = given().when().get("/booking/1");
+
+// Headers
+String contentType = response.getHeader("Content-Type");
+Headers allHeaders = response.getHeaders();
+List<String> setCookies = response.getHeaders().getValues("Set-Cookie"); // multi-valued header
+boolean hasHeader = response.getHeaders().hasHeaderWithName("X-Request-Id");
+
+// Cookies
+String sessionId = response.getCookie("session_id");
+Map<String, String> cookies = response.getCookies();
+Cookie detailed = response.getDetailedCookie("session_id");
+
+// Detailed cookie attributes
+detailed.getValue();
+detailed.getPath();
+detailed.getDomain();
+detailed.getMaxAge();
+detailed.isSecured();
+detailed.isHttpOnly();
+
+getCookie() returns only the value. Use getDetailedCookie() when you must verify Secure, HttpOnly, Path, Domain or Max-Age.
+
+Asserting with TestNG / AssertJ
+
+java
+Assert.assertEquals(response.getHeader("Content-Type"), "application/json; charset=utf-8");
+Assert.assertTrue(response.getDetailedCookie("session_id").isHttpOnly(), "HttpOnly missing");
+
+Detailed cookie matchers in the DSL
+
+java
+.then()
+    .cookie("session_id", detailedCookie()
+        .value(notNullValue())
+        .path("/")
+        .httpOnly(true)
+        .secured(true));
+
+Import: import static io.restassured.matcher.RestAssuredMatchers.detailedCookie;
+
+Sending headers and cookies in the request
+
+java
+given()
+    .header("Authorization", "Bearer " + token)
+    .headers(Map.of("X-Api-Key", "abc123", "Accept", "application/json"))
+    .cookie("token", token)
+    .cookies(cookieMap)
+.when()
+    .get("/booking");
+
+Reusing a cookie from login in later calls
+
+java
+Map<String, String> cookies = given()
+        .body(credentials).post("/login")
+        .getCookies();
+
+given().cookies(cookies).get("/profile").then().statusCode(200);
+
+Or use a SessionFilter to carry session cookies automatically:
+
+java
+SessionFilter session = new SessionFilter();
+given().filter(session).body(credentials).post("/login");
+given().filter(session).get("/profile");
+
+Common interview follow-ups
+
+Multiple headers with the same name (e.g. Set-Cookie): response.getHeader() returns only one value, so use getHeaders().getValues("Set-Cookie").
+Header exists but value is dynamic (request ID, timestamp): assert with notNullValue() or a regex via matchesPattern(...).
+Header must be absent: .header("X-Powered-By", nullValue()).
+header() vs headers(): header checks one, headers takes alternating name/value pairs for several.
+Content-Type with charset: exact match fails if the server appends ; charset=utf-8. Use containsString("application/json") or .contentType(ContentType.JSON), which tolerates the charset.
+Security header checks: Strict-Transport-Security, X-Content-Type-Options: nosniff, Cache-Control, and the Secure/HttpOnly/SameSite flags on cookies are common asks.
+Cookie attributes not exposed (e.g. SameSite): read the raw Set-Cookie header and assert with containsString("SameSite=Strict").
+
+One-liner for interviews: “For quick checks I chain .header() and .cookie() with Hamcrest matchers in then(). When I need attributes like HttpOnly or Secure, or have to reuse values later, I extract Response and use getHeader(), getDetailedCookie() or getCookies().
 
 
 
 #===================================================================================
-# Q : 
+# Q : 1. Why POJO instead of JsonPath?
 
+“It depends on the size and reuse of the response. For one or two values, like grabbing a token or an ID to chain into the next request, I use JsonPath because it’s quick:
 
+java
+String token = response.jsonPath().getString("token");
+
+But for anything larger or reused, I prefer POJOs. They give me compile-time safety, so a typo in getAdress() fails at compile time, while a typo in a JsonPath string like "adress.city" only fails at runtime, and often silently returns null. They also support IDE auto-complete and safe refactoring, and the same model can be reused across many tests and for building request payloads. Assertions on the whole object also read better:
+
+java
+Assert.assertEquals(user.getAddress().getCity(), "Pune");
+
+The trade-off is that POJOs mean more classes to maintain, and they can break if the contract changes, which I handle with @JsonIgnoreProperties(ignoreUnknown = true). In practice I use both: JsonPath for quick extraction and chaining, POJOs for full response validation.”
+
+2. What if the JSON has a field named class or default?
+
+“Those are reserved keywords in Java, so I can’t use them as field names. I keep the Java name valid and map it with @JsonProperty:
+
+java
+public class Product {
+    @JsonProperty("class")
+    private String className;
+
+    @JsonProperty("default")
+    private boolean isDefault;
+
+    // getters and setters
+}
+
+The same applies to keys with hyphens or spaces, like first-name, and keys that don’t follow Java naming conventions, like order_id. Jackson uses the annotation value for both serialization and deserialization, so one annotation covers both directions. If many fields need this, I can set a naming strategy such as @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class) at the class level instead of annotating every field.”
+
+3. Serialization vs deserialization?
+
+“Serialization converts a Java object into JSON, and deserialization converts JSON into a Java object.
+
+In API testing, I use serialization for the request side, when I build a POJO and send it as the body:
+
+java
+String json = mapper.writeValueAsString(bookingRequest);
+
+or simply .body(bookingRequest) in REST Assured, which serializes it automatically. I use deserialization on the response side, when I convert the response into a POJO:
+
+java
+Booking booking = mapper.readValue(jsonString, Booking.class);
+// or
+Booking booking = response.as(Booking.class);
+
+A good way to verify both are working is a round trip: serialize, deserialize, and assert that the objects are equal, which needs equals() and hashCode() implemented, and Lombok’s @Data gives me that.”
+
+4. Does Jackson need a no-arg constructor?
+
+“By default, yes. Jackson creates the object using the no-arg constructor, then populates fields through setters, or directly through fields if they’re public or annotated with @JsonProperty. If a class has only a parameterized constructor, I get an InvalidDefinitionException, saying no suitable constructor was found.
+
+There are a few ways around it. For immutable classes, I use @JsonCreator on the constructor with @JsonProperty on each parameter:
+
+java
+public class Address {
+    private final String city;
+    private final String pincode;
+
+    @JsonCreator
+    public Address(@JsonProperty("city") String city,
+                   @JsonProperty("pincode") String pincode) {
+        this.city = city;
+        this.pincode = pincode;
+    }
+}
+
+With Lombok, I add @NoArgsConstructor and @AllArgsConstructor together with @Data. And on Java 16+ with Jackson 2.12 or later, I can use a record, which Jackson supports directly without extra annotations:
+
+java
+public record Address(String city, String pincode) {}
+
+Records are a good fit for response models since they’re immutable and have no boilerplate.”
 
 #===================================================================================
-# Q : 
+# Q : 1. Header appears multiple times, like Set-Cookie?
 
+“response.getHeader("Set-Cookie") returns only one value, so it’s not reliable when a header is repeated. I use getHeaders().getValues(...) to get all of them:
 
+java
+List<String> setCookies = response.getHeaders().getValues("Set-Cookie");
+Assert.assertTrue(setCookies.stream().anyMatch(c -> c.startsWith("session_id=")));
 
-#===================================================================================
-# Q : 
+I use the same approach for headers like Via or Warning. In the DSL, a matcher such as .header("Set-Cookie", containsString("session_id")) can be unreliable with multiple values, so I switch to extraction.”
 
+2. How do you assert a header is absent?
 
+“I assert it’s null in the DSL, or check for the header name on the response:
 
+java
+.then().header("X-Powered-By", nullValue());
+
+Assert.assertFalse(response.getHeaders().hasHeaderWithName("X-Powered-By"));
+
+I use this for security hygiene. For example, Server or X-Powered-By shouldn’t leak version details like Apache/2.4.1 or Express, since that helps attackers. The same check works for confirming that a sensitive header isn’t returned on certain endpoints.”
+
+3. Content-Type exact match fails?
+
+“This happens because the server often returns application/json; charset=utf-8, so an exact match against application/json fails. I avoid exact string matching here:
+
+java
+.header("Content-Type", containsString("application/json"))
+// or
+.contentType(ContentType.JSON)
+
+ContentType.JSON tolerates the charset suffix. The same applies to text/html; charset=UTF-8. I only use exact matching when the contract specifically requires a charset.”
+
+4. How do you check SameSite?
+
+“Depending on the REST Assured version, the Cookie object may not expose SameSite, so I assert on the raw Set-Cookie header:
+
+java
+String raw = response.getHeaders().getValues("Set-Cookie").stream()
+        .filter(c -> c.startsWith("session_id="))
+        .findFirst().orElseThrow();
+
+Assert.assertTrue(raw.contains("SameSite=Strict"));
+Assert.assertTrue(raw.contains("HttpOnly"));
+Assert.assertTrue(raw.contains("Secure"));
+
+I filter by cookie name first because a response can set several cookies, and I don’t want to assert against the wrong one.”
+
+5. header() vs headers()?
+
+“header(name, value) validates a single header. headers(...) takes alternating name/value pairs, so I can validate several in one call:
+
+java
+.header("Content-Type", containsString("json"))
+
+.headers("Connection", "keep-alive",
+         "Cache-Control", "no-cache",
+         "X-Content-Type-Options", "nosniff");
+
+On the request side, there’s also headers(Map) and headers(Headers), which I use to send a set of common headers from a shared spec. For readability, I use headers() when I’m validating a group of related headers, like all security headers together.”
+
+6. Security headers I validate
+
+“I check the standard set on key endpoints:
+
+java
+.then()
+    .header("Strict-Transport-Security", containsString("max-age"))
+    .header("X-Content-Type-Options", "nosniff")
+    .header("X-Frame-Options", anyOf(equalTo("DENY"), equalTo("SAMEORIGIN")))
+    .header("Cache-Control", containsString("no-store"))   // for sensitive responses
+    .header("X-Powered-By", nullValue());
+
+For cookies, I verify Secure, HttpOnly and SameSite. Strict-Transport-Security forces HTTPS, nosniff stops MIME sniffing, X-Frame-Options or CSP frame-ancestors protects against clickjacking, and Cache-Control: no-store stops sensitive data being cached. These are quick, cheap checks that catch config regressions.”
+
+7. How is this done in Playwright API testing?
+
+“With Playwright’s APIRequestContext, the response is an APIResponse, and response.headers() returns an object with lowercase keys, so I assert on headers['content-type']:
+
+ts
+const response = await request.get('/booking/1');
+expect(response.status()).toBe(200);
+
+const headers = response.headers();
+expect(headers['content-type']).toContain('application/json');
+expect(headers['x-powered-by']).toBeUndefined();   // absent header
+
+// Repeated headers like Set-Cookie
+const setCookies = response.headersArray()
+    			.filter(h => h.name.toLowerCase() === 'set-cookie');
+expect(setCookies.length).toBeGreaterThan(0);
+
+headers() merges repeated headers into one value, so I use headersArray() when a header appears more than once.
+
+For cookies, APIRequestContext stores them automatically and sends them on later calls, so login-then-call flows work without extra code. To inspect them, I use await request.storageState(), which returns the cookies. If I’m working with a browser context, it’s context.cookies():
+
+ts
+const state = await request.storageState();
+const session = state.cookies.find(c => c.name === 'session_id');
+expect(session?.httpOnly).toBe(true);
+expect(session?.secure).toBe(true);
+expect(session?.sameSite).toBe('Strict');
+
+Playwright exposes sameSite directly on the cookie object, which is a small advantage over REST Assured, where I parse the raw header.”
+
+One correction to my earlier answer: for pure API tests, the cookie read is request.storageState(). context.cookies() applies when you’re using a browser context.
 
 #===================================================================================
 # Q : 

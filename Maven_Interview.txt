@@ -68,16 +68,15 @@ This is the root element of the POM file. It contains all project-related metada
 2. Project Coordinates
 Defines unique identifiers for your project in a Maven repository.
 
-
 <groupId>com.geeks</groupId>
 <artifactId>maven-pom-example</artifactId>
 <version>1.0-SNAPSHOT</version>
 groupId: Usually your organization’s domain in reverse.
 artifactId: Project or module name.
 version: Current version of the project.
+
 3. Properties Section
 Defines reusable variables to maintain consistency and simplify version updates.
-
 
 <properties>
     <java.version>1.8</java.version>
@@ -88,8 +87,6 @@ Using ${property.name} lets you reference these values across the file.
 
 4. Dependencies Section
 Lists all external libraries your project depends on. Maven automatically downloads them from configured repositories.
-
-
 <dependencies>
     <dependency>
         <groupId>org.seleniumhq.selenium</groupId>
@@ -102,9 +99,9 @@ Each dependency includes:
 groupId: Library’s organization.
 artifactId: Library name.
 version: Library version.
+
 5. Repositories Section
 Defines remote repositories from where Maven retrieves dependencies.
-
 
 <repositories>
     <repository>
@@ -116,7 +113,6 @@ If no repository is specified, Maven defaults to Maven Central.
 
 6. Build Section
 Controls how the project is compiled, packaged, and deployed.
-
 
 <build>
     <plugins>
@@ -133,9 +129,9 @@ Controls how the project is compiled, packaged, and deployed.
 </build>
 Plugins: Define build tools such as compiler, JAR packager, or reporting tools.
 Configuration: Customizes how each plugin behaves.
+
 7. Profiles Section
 Allows defining environment-specific configurations such as development, testing, or production.
-
 
 <profiles>
     <profile>
@@ -153,7 +149,6 @@ mvn clean install -Pdev
 8. Plugin Management Section
 Defines default versions and configurations of plugins to ensure consistency across modules.
 
-
 <pluginManagement>
     <plugins>
         <plugin>
@@ -163,9 +158,9 @@ Defines default versions and configurations of plugins to ensure consistency acr
         </plugin>
     </plugins>
 </pluginManagement>
+
 9. Reporting Section
 Specifies plugins used to generate reports like Javadoc or test coverage.
-
 
 <reporting>
     <plugins>

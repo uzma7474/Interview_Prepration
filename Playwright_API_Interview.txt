@@ -1,0 +1,3495 @@
+#==============================================================================================================================
+# Q : Deserializing nested JSON API response  in Playwright typescript or javascript
+==> “In Playwright, APIResponse gives me the body through response.json(), which parses it into a plain JavaScript object. There’s no built-in POJO deserialization like Jackson in Java. In TypeScript I define interfaces that mirror the JSON structure, then type the parsed result with them. That gives me autocomplete and compile-time checks on the fields.
+
+Sample JSON
+
+json
+{
+  "id": 101,
+  "name": "Uzma",
+  "address": { "city": "Pune", "pincode": "411001" },
+  "orders": [
+    { "orderId": "A1", "amount": 499.5 },
+    { "orderId": "A2", "amount": 120.0 }
+  ]
+}
+
+Interfaces (models/user.ts)
+
+ts
+export interface Address {
+  city: string;
+  pincode: string;
+}
+
+export interface Order {
+  orderId: string;
+  amount: number;
+}
+
+export interface User {
+  id: number;
+  name: string;
+  address: Address;
+  orders: Order[];
+  nickname?: string;   // optional field
+}
+
+Each nested object becomes its own interface, and arrays become Order[], which is the same idea as nested POJOs and List<T> in Java.
+
+Using it in a test
+
+ts
+import { test, expect } from '@playwright/test';
+import { User } from '../models/user';
+
+test('get user and validate nested response', async ({ request }) => {
+  const response = await request.get('/users/101');
+  expect(response.status()).toBe(200);
+
+  const user: User = await response.json();
+
+  expect(user.name).toBe('Uzma');
+  expect(user.address.city).toBe('Pune');
+  expect(user.orders).toHaveLength(2);
+  expect(user.orders[0].orderId).toBe('A1');
+});
+
+Important point: interfaces are compile-time only
+
+TypeScript interfaces are erased at runtime. response.json() returns any, so annotating const user: User does not validate anything. If the backend returns a wrong shape or a missing field, the test won’t fail at deserialization. It only fails later at an assertion, or silently gives undefined. In Java, Jackson would throw an exception for a mismatch, but here nothing does.
+
+So for real contract validation, I add runtime validation with a schema library like Zod:
+
+ts
+import { z } from 'zod';
+
+const AddressSchema = z.object({
+  city: z.string(),
+  pincode: z.string(),
+});
+
+const OrderSchema = z.object({
+  orderId: z.string(),
+  amount: z.number(),
+});
+
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  address: AddressSchema,
+  orders: z.array(OrderSchema),
+  nickname: z.string().optional(),
+});
+
+type User = z.infer<typeof UserSchema>;   // type derived from the schema
+
+const body = await response.json();
+const user = UserSchema.parse(body);      // throws if the shape is wrong
+
+parse() throws a detailed error if a field is missing or has the wrong type, and z.infer generates the TypeScript type from the schema, so I don’t maintain interface and schema separately. I can also use safeParse() if I don’t want it to throw. Ajv with JSON Schema is another option.
+
+Reusable typed helper
+
+ts
+async function getJson<T>(response: APIResponse, schema?: z.ZodType<T>): Promise<T> {
+  const body = await response.json();
+  return schema ? schema.parse(body) : (body as T);
+}
+
+const user = await getJson(response, UserSchema);
+
+Things I’ve handled in practice
+
+Different key names: if the JSON uses order_id but I want orderId, I map it manually after parsing, or use Zod’s .transform(). There’s no @JsonProperty equivalent.
+Reserved words: keys like class or default are fine as object properties (product.class), so no workaround is needed unlike Java.
+Dates: JSON has no date type, so dates arrive as strings. I convert with new Date(user.createdAt), or use z.coerce.date() in Zod.
+Dynamic structures: I use Record<string, unknown> or unknown and narrow it, which is safer than any.
+Nested part only: I destructure, for example const { address, orders } = await response.json();.
+Request payloads: I use the same interfaces for request bodies, passing them as data: bookingPayload in request.post(), and Playwright serializes it automatically.
+Top-level array: const users: User[] = await response.json();
+
+In plain JavaScript
+
+There are no types, so I just access the parsed object directly:
+
+js
+const user = await response.json();
+expect(user.address.city).toBe('Pune');
+
+For safety I use optional chaining (user.address?.city) when a nested object might be missing, and I can still use Zod or Ajv for runtime validation.”
+
+Likely follow-ups and short answers
+
+Difference from Jackson in Java? Jackson does real runtime binding to classes and fails on a mismatch. TypeScript interfaces are only compile-time hints, so I add Zod to get similar runtime safety.
+response.json() vs response.text()? json() parses and throws if the body isn’t valid JSON. I use text() when I need the raw string or the response may be non-JSON.
+Why not just use any? It disables type checking, so typos in field names go unnoticed. I prefer typed interfaces or unknown with narrowing.
+How do you keep models in sync with the API? I generate types from an OpenAPI/Swagger spec with tools like openapi-typescript, or from sample JSON with quicktype, instead of writing them by hand.
+How do you validate the whole response structure without deserializing? With expect(body).toMatchObject({...}) for partial matching, or toEqual for exact matching. Both work on nested objects
+
+#==============================================================================================================================
+# Q : 1. Difference from Jackson in Java?
+
+“The main difference is when and how the type check happens.
+
+In Java, Jackson does real runtime binding. When I call readValue(json, User.class), it builds an actual User object, converts types, and throws an exception if something doesn’t fit. For example, if a field expected to be int arrives as "abc", I get an InvalidFormatException, and an unknown field throws unless I’ve configured it to be ignored. So the test fails right at deserialization.
+
+In TypeScript, interfaces exist only at compile time and are erased when the code runs as JavaScript. response.json() returns any, so this line validates nothing:
+
+ts
+const user: User = await response.json();
+
+If the backend sends id as a string or drops the address object, TypeScript won’t complain. I’d only see an undefined or a failure later in an assertion, often with a confusing error message.
+
+To get similar runtime safety, I add a schema validator like Zod:
+
+ts
+const user = UserSchema.parse(await response.json());   // throws with a clear message on mismatch
+
+Other differences: Jackson creates real class instances with methods, while in TypeScript I get plain objects. Jackson uses annotations like @JsonProperty for renaming, while in TypeScript I map manually or use Zod’s .transform(). And Jackson’s strictness is configurable, whereas with Zod, objects strip unknown keys by default and I can use .strict() to reject them.”
+
+2. response.json() vs response.text()?
+
+“response.json() reads the body and parses it into a JavaScript object. It throws an error if the body isn’t valid JSON, for example when a server returns an HTML error page or an empty body on a 204. response.text() returns the raw body as a string without parsing.
+
+I use json() for normal JSON endpoints, since it’s the common case. I use text() in a few situations:
+
+When the response may not be JSON, such as a 500 error page, a plain-text health check, or XML.
+When I need to log or debug the raw payload.
+When I want to control parsing myself, for example to check the body is valid JSON before parsing:
+ts
+const raw = await response.text();
+let body;
+try {
+  body = JSON.parse(raw);
+} catch {
+  throw new Error(`Response was not JSON: ${raw}`);
+}
+
+One practical point: the body can be read more than once on APIResponse, since Playwright buffers it, so calling text() and then json() works. I also check the status before parsing, because calling json() on an error response often hides the real failure behind a parse error.”
+
+3. Why not just use any?
+
+“any turns off TypeScript’s checking for that value, so I lose the main benefit of using TypeScript. With any, a typo like user.adress.city compiles fine and fails only at runtime, or worse, silently returns undefined and a wrong assertion passes. I also lose autocomplete, and refactoring tools can’t find usages when a field is renamed.
+
+I prefer two alternatives:
+
+ts
+const user: User = await response.json();           // typed interface
+
+or, when the shape is unknown, unknown with narrowing:
+
+ts
+const body: unknown = await response.json();
+if (typeof body === 'object' && body !== null && 'id' in body) {
+  // safely narrowed here
+}
+
+unknown forces me to check the type before using the value, which is much safer than any. In practice, I use interfaces for known responses, Zod when I want runtime validation too, and Record<string, unknown> for truly dynamic data. I also enable strict mode in tsconfig.json and can use the no-explicit-any ESLint rule to stop any creeping into the framework.”
+
+4. How do you keep models in sync with the API?
+
+“Hand-written models drift out of date when the API changes, so I try to generate them from a source of truth.
+
+From an OpenAPI/Swagger spec: I use openapi-typescript, which generates TypeScript types from the spec file or URL:
+bash
+npx openapi-typescript https://petstore.swagger.io/v2/swagger.json -o models/api-types.ts
+
+I can run this as an npm script, so regenerating types is one command, and a spec change shows up as compile errors in tests that no longer match.
+
+From a sample response: when there’s no spec, I use quicktype to generate interfaces or even Zod-style schemas from a sample JSON:
+bash
+npx quicktype sample.json -o user.ts --lang ts
+Contract checks: I validate responses against the schema at runtime with Zod or Ajv, so a contract change fails the test immediately instead of going unnoticed.
+
+Generated types are a starting point. For ones I use a lot, I wrap them in cleaner, named types. Where the tests run in CI, I regenerate periodically so drift is caught early.”
+
+5. How do you validate the whole response structure without deserializing?
+
+“I can assert directly on the parsed body using Playwright’s matchers, without defining any models. For partial matching, I use toMatchObject, which checks only the properties I specify and works on nested objects and arrays:
+
+ts
+const body = await response.json();
+
+expect(body).toMatchObject({
+  id: 101,
+  name: 'Uzma',
+  address: { city: 'Pune' },          // other address fields are ignored
+  orders: [{ orderId: 'A1' }],        // first element must match, extras ignored
+});
+
+For an exact match of the entire structure, I use toEqual, which fails on any extra or missing field:
+
+ts
+expect(body).toEqual({
+  id: 101,
+  name: 'Uzma',
+  address: { city: 'Pune', pincode: '411001' },
+  orders: [
+    { orderId: 'A1', amount: 499.5 },
+    { orderId: 'A2', amount: 120.0 },
+  ],
+});
+
+For dynamic values like IDs and timestamps, I use asymmetric matchers inside either one:
+
+ts
+expect(body).toMatchObject({
+  id: expect.any(Number),
+  createdAt: expect.any(String),
+  orders: expect.arrayContaining([expect.objectContaining({ orderId: 'A1' })]),
+});
+
+I choose toMatchObject for most tests, since it’s less brittle when the API adds fields, and toEqual when the exact contract matters. For strict structural validation across many endpoints, I use a JSON schema with Ajv or Zod instead, since that checks types and required fields without hardcoding values.”
+
+Quick corrections to my earlier points:
+
+toEqual on undefined properties is lenient (it ignores them), so use toStrictEqual if you want to catch those too.
+For Zod, the default object behavior is to strip unknown keys, not reject them, so mention .strict() if you need rejection.
+
+
+#==============================================================================================================================
+# Q :  What are the important validation you will put on a API ?
+==> For every API test, I validate more than just the status code. I cover these layers, and I try to keep them in a reusable helper so the checks are consistent across tests.
+
+1. Status code
+
+ts
+expect(response.status()).toBe(200);
+expect(response.ok()).toBeTruthy();   // 2xx check
+
+I assert the exact code the contract specifies: 201 for create, 204 for delete, 400 for bad input, 401/403 for auth failures, 404 for missing resources.
+
+2. Response headers
+
+ts
+const headers = response.headers();
+expect(headers['content-type']).toContain('application/json');
+expect(headers['cache-control']).toBeDefined();
+expect(headers['x-powered-by']).toBeUndefined();   // no server info leak
+
+Playwright lowercases header names, so I read them in lowercase.
+
+3. Response body: data and structure
+
+ts
+const body = await response.json();
+
+expect(body).toMatchObject({
+  id: expect.any(Number),
+  name: 'Uzma',
+  address: { city: 'Pune' },
+});
+expect(body.orders).toHaveLength(2);
+
+I check required fields are present, data types are right, values match what I sent, and nested objects and arrays are correct. For dynamic values like IDs and timestamps, I use expect.any(Type).
+
+4. Schema or contract validation
+
+ts
+const user = UserSchema.parse(body);   // Zod, throws on mismatch
+
+TypeScript interfaces are not checked at runtime, so I use Zod or Ajv to confirm required fields, types and formats. This catches contract-breaking changes immediately.
+
+5. Response time (basic performance)
+
+ts
+const start = Date.now();
+const response = await request.get('/users/101');
+expect(Date.now() - start).toBeLessThan(2000);
+
+I use a sensible threshold. This is a smoke-level check, not a replacement for load testing.
+
+6. Negative scenarios
+
+ts
+// Invalid input
+const res = await request.post('/users', { data: { name: '' } });
+expect(res.status()).toBe(400);
+expect(await res.json()).toMatchObject({ error: expect.any(String) });
+
+// Not found
+expect((await request.get('/users/99999')).status()).toBe(404);
+
+I test missing mandatory fields, wrong data types, boundary values, duplicate records, and invalid IDs. I also validate that the error message and error code are meaningful.
+
+7. Authentication and authorization
+
+ts
+// No token
+const noAuth = await request.get('/orders', { headers: {} });
+expect(noAuth.status()).toBe(401);
+
+// Expired or invalid token
+const badAuth = await request.get('/orders', {
+  headers: { Authorization: 'Bearer invalid' },
+});
+expect(badAuth.status()).toBe(401);
+
+// Valid user, wrong role
+expect(forbiddenResponse.status()).toBe(403);
+
+I confirm protected endpoints reject missing or invalid tokens, and that role-based access works, for example a normal user can’t reach admin endpoints or another user’s data.
+
+8. Data persistence (end-to-end check)
+
+ts
+const created = await request.post('/users', { data: payload });
+const { id } = await created.json();
+
+const fetched = await request.get(`/users/${id}`);
+expect(await fetched.json()).toMatchObject(payload);   // POST data was really saved
+
+await request.delete(`/users/${id}`);
+expect((await request.get(`/users/${id}`)).status()).toBe(404);   // really deleted
+
+A 200 or 201 doesn’t prove the data was saved, so I verify with a follow-up GET. If a database is accessible, I also verify directly in it.
+
+9. Idempotency and side effects
+
+I check that GET, PUT and DELETE behave idempotently, so repeating the same PUT gives the same result, and that POST doesn’t create duplicates when it shouldn’t. I also check that other fields aren’t unintentionally modified by an update.
+
+10. Pagination, filtering and sorting
+
+ts
+const res = await request.get('/users', { params: { page: 2, limit: 10 } });
+const body = await res.json();
+expect(body.data.length).toBeLessThanOrEqual(10);
+
+I validate page size, total count, boundary pages, and that sort order and filters really apply to the results.
+
+11. Security basics
+
+I check that sensitive fields like passwords or tokens aren’t returned in responses, security headers are present, error messages don’t leak stack traces, and inputs like SQL injection strings or oversized payloads are handled safely.
+
+How I organize it in the framework
+
+A shared helper such as validateResponse(response, { status, schema }) runs status, headers and schema checks, so every test gets the baseline automatically.
+Test data comes from fixtures or factories, and I clean up created data in afterEach or afterAll.
+I use test.step() for readable reports, and expect.soft() when I want to collect several assertion failures in one run instead of stopping at the first.”
+
+#==============================================================================================================================
+# Q : 1. Which validations do you consider mandatory?
+
+“I treat four checks as the baseline for every endpoint, and I put them in a shared helper so no test skips them:
+
+Status code: the exact code from the contract, not just ‘any 2xx’.
+Key fields in the response body: IDs, names and values I sent, plus required fields being present and correctly typed.
+Schema validation: with Zod or Ajv, so a contract change fails immediately.
+At least one negative case per endpoint: invalid input, missing auth, or a nonexistent ID.
+ts
+test('create user', async ({ request }) => {
+  const response = await request.post('/users', { data: payload });
+
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  UserSchema.parse(body);                       // schema
+  expect(body).toMatchObject({ name: payload.name });   // key fields
+});
+
+test('create user with empty name returns 400', async ({ request }) => {
+  const response = await request.post('/users', { data: { name: '' } });
+  expect(response.status()).toBe(400);          // negative
+});
+
+Beyond that, I add checks based on risk. Payment or user-data endpoints get auth and authorization checks, a follow-up GET to confirm persistence, and security header checks. A low-risk read-only endpoint may only need the baseline. This keeps the suite fast and focused instead of adding every check everywhere.”
+
+2. expect vs expect.soft?
+
+“A normal expect throws on failure, so the test stops at the first failed assertion and I only see that one problem. expect.soft records the failure, marks the test as failed, but keeps running, so one run shows all the failing assertions.
+
+ts
+const body = await response.json();
+
+await expect.soft(response.status()).toBe(200);
+await expect.soft(body.name).toBe('Uzma');
+await expect.soft(body.address.city).toBe('Pune');
+await expect.soft(body.orders).toHaveLength(2);
+// all four are evaluated even if the first fails
+
+I use soft assertions when validating many independent fields in one response, because it saves repeated reruns. I use a hard expect when later steps depend on the result, for example asserting the status is 201 before reading the id from the body, since continuing would just cause confusing follow-up errors. If I need to stop after soft failures, I can check test.info().errors.length and bail out.”
+
+3. How do you validate a 204 No Content?
+
+“A 204 response has no body by definition, so I assert the status and confirm the body is empty. I don’t call response.json(), because parsing an empty body throws an error.
+
+ts
+const response = await request.delete(`/users/${id}`);
+
+expect(response.status()).toBe(204);
+expect(await response.text()).toBe('');
+
+I also check headers if relevant, and a 204 should not have a Content-Type body. Then I verify the side effect with a follow-up call, since a 204 alone doesn’t prove the action happened:
+
+ts
+const check = await request.get(`/users/${id}`);
+expect(check.status()).toBe(404);   // really deleted
+
+The same applies to PUT or PATCH endpoints that return 204 instead of the updated object.”
+
+4. How do you handle flaky response-time checks?
+
+“Response-time assertions are flaky by nature because of network variation, cold starts and shared environments, so I keep them simple and tolerant:
+
+Generous thresholds: for example 2 to 3 seconds for a smoke-level check, based on the agreed SLA, not an ideal number.
+Skip the cold call: I make a warm-up request first, or ignore the first call after a deployment.
+Measure just the request:
+ts
+const start = Date.now();
+const response = await request.get('/users/101');
+const elapsed = Date.now() - start;
+
+expect(response.status()).toBe(200);
+expect(elapsed).toBeLessThan(3000);
+Retries or multiple samples: I can take the median of a few calls, or rely on Playwright’s retries setting in CI for occasional noise.
+Right tool for real performance testing: load, stress and percentile checks (p95, p99) belong in k6, JMeter or Gatling. In Playwright, I only guard against obvious regressions.”
+
+5. How do you validate dynamic values like timestamps?
+
+“I can’t assert exact values for things generated at runtime, such as IDs, timestamps and tokens, so I validate their type and format instead.
+
+ts
+const body = await response.json();
+
+expect(body.id).toEqual(expect.any(Number));
+expect(body.createdAt).toEqual(expect.any(String));
+expect(body.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);   // ISO format
+
+For a stronger check, I parse the date and confirm it’s close to now, allowing for clock differences between the test machine and the server:
+
+ts
+const created = new Date(body.createdAt).getTime();
+expect(Math.abs(Date.now() - created)).toBeLessThan(60_000);   // within 1 minute
+
+For inline use inside object matching, I combine asymmetric matchers:
+
+ts
+expect(body).toMatchObject({
+  id: expect.any(Number),
+  createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+});
+
+For UUIDs or tokens, I use a regex for the expected format, and I always make sure I’m comparing in the same time zone (usually UTC).”
+
+Small correction to my earlier answers: expect.soft doesn’t need await for non-async values like response.status(), since it’s only needed for web-first assertions such as expect(locator). Using it does no harm, but it isn’t required in API tests
+
+
+#==============================================================================================================================
+# Q : Explain how do you pick which test cases to automate ?
+==>  I don’t automate everything. I automate where the return is highest, and I decide using a few clear criteria.
+
+1. Criteria I use to pick candidates
+
+Repetitive and run often: regression, smoke and sanity suites that run on every build or PR. The more often a test runs, the faster automation pays for itself.
+Business-critical flows: login, checkout, payments, order placement, onboarding. If these break, the business is hurt, so they get automated first.
+Stable functionality: features that aren’t changing every sprint. Automating a UI that gets redesigned each week means constant rework.
+Data-driven tests: the same flow with many input combinations (validation rules, roles, pricing tiers). Running these manually is slow and error-prone, but with parameterized tests it’s cheap.
+High-risk or defect-prone areas: modules with a history of production bugs or frequent regressions.
+Cross-browser or cross-device checks: the same flow on Chromium, Firefox and WebKit, or on different viewports.
+Tests that are hard or tedious manually: large data sets, many API combinations, performance-sensitive checks, or long end-to-end flows.
+Deterministic results: a clear expected outcome that a script can verify without human judgment.
+
+2. What I don’t automate (or defer)
+
+One-time or rarely executed tests, for example a one-off data migration check.
+Exploratory, usability and visual-appeal testing, which need human judgment.
+Unstable or changing features still under heavy development. I wait until requirements settle.
+Tests with unreliable dependencies, such as CAPTCHA, hardware interactions, or third-party systems I can’t control, unless I can mock them.
+Tests where the effort to automate is greater than the manual effort over the product’s lifetime.
+
+3. Prioritization approach
+
+I score each candidate roughly on:
+
+Factor			| Question I ask
+1. Business risk	| What’s the impact if this fails in production?
+2. Frequency		| How often will it run?
+3. Stability	 	| Will the feature change soon?
+4. Effort		| How hard is it to automate and maintain?
+5. Manual cost		| How long does it take manually, and how error-prone is it?
+
+High risk, high frequency, stable and low effort goes first. Low risk, rarely run and high effort goes last or stays manual.
+
+4. Right layer of the test pyramid
+
+Before automating through the UI, I ask whether the check belongs at a lower layer:
+
+Unit and API tests for business logic, validations and data rules, since they’re faster and more stable.
+UI tests only for real user journeys and things that need a browser.
+
+In Playwright, I often use the request fixture for API-level checks and create test data through the API, which keeps UI tests short and focused. I’d rather have a few reliable end-to-end tests than hundreds of slow, brittle ones.
+
+5. Process I follow in practice
+
+Start with the smoke suite for critical paths, so every build gets quick feedback.
+Add regression coverage for core modules in priority order.
+Automate bugs found in production so they don’t return.
+Review with the team (QA, developers, product owner) when a story is done, to decide what to automate in that sprint.
+Regularly review the suite: remove obsolete tests, fix or quarantine flaky ones, and refactor duplicated steps.
+
+6. Measuring whether I chose well
+
+Defects caught by automation before release
+Time saved compared to manual regression
+Flakiness rate and maintenance effort
+Coverage of critical business flows, not just a raw test count
+
+Example from my work: for a new module, I automated the login, search and order-placement flows in the smoke suite first, since they were critical and stable. Field validations went in as data-driven API tests, and I left layout and look-and-feel checks to manual exploratory testing. That gave us fast regression feedback without a heavy maintenance burden.
+
+So the short version is that I automate what’s repetitive, stable, high-risk and deterministic, I push checks down to the API layer when possible, and I leave judgment-heavy or rapidly changing areas to manual testing.”
+
+Possible next follow-up: “What are the challenges you faced in test automation and how did you overcome them?” Short answer: flaky tests (fixed with auto-waiting, stable locators and trace analysis), test data management (API-created, unique data), slow runs (parallelism and sharding), and environment instability (mocking and health checks)
+
+#==============================================================================================================================
+# Q : What are the challenges you faced in test automation and how did you overcome them?
+==> Over 3.6 years I’ve hit a handful of recurring challenges. I’ll go through the main ones and how I solved each.
+
+1. Flaky tests
+
+Problem: Tests passed locally but failed randomly in CI because of hard waits, dynamic elements and race conditions with network calls.
+Fix:
+ 1. Replaced waitForTimeout with auto-waiting, web-first assertions and waitForResponse.
+ 2. Moved to stable locators (getByRole, getByTestId).
+ 3. Used trace: 'on-first-retry' with retries to find the root cause, and confirmed fixes with --repeat-each=20.
+ 4. Result: Flaky failures dropped sharply, and the CI pipeline became trustworthy again.
+
+2. Test data management
+
+Problem: Tests depended on shared data, so parallel runs collided, and tests failed when someone changed or deleted a record.
+Fix:
+ 1. Created data through the API in setup or fixtures, instead of long UI flows.
+ 2. Used unique data per run (timestamp or UUID in usernames and order names).
+ 3. Cleaned up in teardown or afterEach.
+ 4. Used separate accounts per worker where tests mutate user data.
+
+3. Slow execution
+
+Problem: The full regression suite took too long, which delayed feedback on PRs.
+Fix:
+ 1. Enabled fullyParallel and tuned the worker count.
+ 2. Sharded the suite across CI machines and merged blob reports.
+ 3. Reused login with storageState through a setup project.
+ 4. Moved checks that didn’t need a browser to API tests.
+ 5. Ran a tagged @smoke subset on every PR and the full regression nightly.
+
+4. Unstable environments and third-party dependencies
+
+Problem: Tests failed because the test environment was down, slow, or a third-party service was unreliable. These weren’t real bugs.
+Fix:
+ 1. Added health-check steps before the run.
+ 2. Mocked unstable external calls with page.route().
+ 3. Kept a few unmocked end-to-end tests for real integration coverage.
+ 4. Separated environment failures from product failures in the reports, so the team didn’t chase false defects.
+
+5. Frequent UI changes and locator maintenance
+
+Problem: Developers changed the UI and the locators broke, which meant constant rework.
+Fix:
+ 1. Agreed with developers on data-testid attributes for key elements.
+ 2. Used the Page Object Model so each locator lives in one place.
+ 3. Kept tests reading as business flows, so a UI change means updating a page object, not 50 tests.
+ 4. Joined sprint planning and grooming early, so I knew about UI changes before they landed.
+
+6. Authentication, MFA and CAPTCHA
+
+Problem: Login steps slowed every test, and MFA and CAPTCHA blocked automation.
+Fix: Logged in once and saved the state with storageState. For MFA and CAPTCHA, I asked for a test environment with them disabled, or a test account with a fixed OTP. I don’t try to automate CAPTCHA.
+
+7. Debugging failures in CI
+
+Problem: A failure in the pipeline couldn’t be reproduced locally, and the logs alone didn’t explain it.
+Fix:
+ 1. Configured screenshot: 'only-on-failure', video: 'retain-on-failure' and traces.
+ 2. Published the HTML report and traces as CI artifacts.
+ 3. Used the trace viewer to see DOM snapshots, network calls and console errors at the failing step.
+ 4. Added a failure summary with only the failed tests and error messages.
+
+8. Deciding what to automate and keeping the suite healthy
+
+Problem: The suite grew with duplicated and low-value tests, which increased maintenance cost.
+Fix:
+ 1. Prioritized by business risk, frequency and stability.
+ 2. Reviewed the suite regularly to remove obsolete tests and refactor duplicate steps.
+ 3. Quarantined flaky tests with test.fixme() and a ticket, so they didn’t block the pipeline.
+
+9. Team and process challenges
+
+Problem: Automation lagged behind development, and there was little visibility into results.
+Fix:
+ 1. Automated tests in the same sprint as the feature where possible.
+ 2. Shared reports and trends with developers and managers.
+ 3. Added automation to the definition of done and ran it in the PR pipeline.
+
+What I took from this: most automation problems come from test design and process, not from the tool. Independent tests, stable locators, API-driven data, good reporting and early team communication prevent most of them. I also learned to measure flakiness and run time, because what isn’t tracked doesn’t get fixed.”
+
+Possible next follow-up: “How do you integrate Playwright tests with a CI/CD pipeline?” Short answer: run tests in a GitHub Actions, Jenkins or Azure DevOps job using the Playwright Docker image or npx playwright install --with-deps. Use secrets for credentials, shard across jobs, upload the HTML report and traces as artifacts with if: always(), and trigger smoke tests on PRs and full regression on a nightly schedule.
+
+
+#==============================================================================================================================
+# Q : You have 10 links how will you print title of each link using Playwright typescript. Give Optimal approach 
+==> “First I’d clarify what ‘title’ means, because there are three readings and the optimal approach differs. I’d say which one I’m assuming and cover the others briefly.
+
+Case 1: the visible text of each link (most common)
+
+ts
+import { test, expect } from '@playwright/test';
+
+test('print link texts', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  const links = page.locator('#menu a');        // scoped locator for the 10 links
+  await expect(links).toHaveCount(10);          // wait until all links are rendered
+
+  const texts = await links.allInnerTexts();    // one call, returns string[]
+  texts.forEach((text, i) => console.log(`${i + 1}. ${text.trim()}`));
+});
+
+Why this is optimal
+
+allInnerTexts() gets all 10 values in a single round-trip to the browser. Looping with .nth(i).textContent() makes 10 separate calls.
+allInnerTexts() and allTextContents() don’t auto-wait, so I assert the count first with toHaveCount(10). Without it, I could read an empty or partial list and get a flaky test.
+I scope the locator (#menu a) instead of using a generic a, which would also match header and footer links.
+I avoid $$ and ElementHandle, which are discouraged in favour of locators.
+
+Case 2: the title attribute of each anchor (tooltip text)
+
+ts
+const titleAttrs = await links.evaluateAll(
+  els => els.map(el => el.getAttribute('title'))
+);
+console.log(titleAttrs);
+
+evaluateAll runs once in the browser and returns everything together, which is again a single round-trip.
+
+Case 3: the page title of each linked page
+
+The optimal approach is to collect the hrefs first, then visit them. I don’t click and go back in a loop, because that is slow and fragile.
+
+ts
+test('print page titles of links', async ({ page, context }) => {
+  await page.goto('https://example.com');
+  const links = page.locator('#menu a');
+  await expect(links).toHaveCount(10);
+
+  const hrefs = await links.evaluateAll(els => els.map(el => (el as HTMLAnchorElement).href));
+
+  const titles = await Promise.all(
+    hrefs.map(async (href) => {
+      const tab = await context.newPage();
+      await tab.goto(href, { waitUntil: 'domcontentloaded' });
+      const title = await tab.title();
+      await tab.close();
+      return `${href} -> ${title}`;
+    })
+  );
+
+  titles.forEach(t => console.log(t));
+});
+
+Why this works well
+
+The pages open in parallel in the same context, so 10 pages take roughly as long as the slowest one, not the sum of all.
+waitUntil: 'domcontentloaded' is enough for reading a title and is faster than the default load.
+Reading hrefs first means the DOM can’t go stale during navigation.
+If the list were much bigger, I’d limit concurrency, for example by processing in batches of 5, so I don’t overload the machine or the server.
+
+Even faster option, if the pages are static HTML
+
+ts
+const titles = await Promise.all(hrefs.map(async href => {
+  const res = await request.get(href);
+  const html = await res.text();
+  return html.match(/<title>(.*?)<\/title>/i)?.[1] ?? 'No title';
+}));
+
+This uses the request fixture, so there’s no browser rendering at all. It only works when the title is in the server-rendered HTML. For JavaScript-rendered pages, the browser approach is the correct one.
+
+Edge cases I’d mention
+
+Links with target="_blank" open a new tab, so I’d use const popup = page.waitForEvent('popup') before the click.
+Hidden or duplicate links can be filtered by scoping the locator or using :visible.
+If a link is broken, I’d check response.status() from goto so I don’t print a title for an error page.
+I’d use test.step or an assertion on each title when this is a real check, so the test fails on a wrong title and doesn’t just print it.
+
+In short: for link text I use allInnerTexts() after asserting the count. For page titles I collect the hrefs first and open them in parallel tabs, and I use the request fixture if the titles are in static HTML.”
+
+Possible next follow-up: “How do you handle multiple tabs or windows in Playwright?” Short answer: each tab is a Page in the same BrowserContext. I use context.waitForEvent('page') or page.waitForEvent('popup') registered before the triggering click, then work with the new page object and bring the original page back to the front with bringToFront() if needed.
+
+#==============================================================================================================================
+# Q : How do you handle multiple tabs or windows in Playwright
+==> In Playwright, every tab or window is a Page object inside a BrowserContext. There’s no ‘switch to window’ step like in Selenium. I simply hold a reference to each page and call methods on whichever one I need.
+
+1. Link or button that opens a new tab
+
+ts
+const popupPromise = page.waitForEvent('popup');   // register BEFORE the click
+await page.getByRole('link', { name: 'Terms' }).click();
+const popup = await popupPromise;
+
+await popup.waitForLoadState();
+await expect(popup).toHaveURL(/terms/);
+await expect(popup.getByRole('heading', { name: 'Terms' })).toBeVisible();
+
+Registering the listener before the click matters. If I register it after, the event can fire first and I miss it, which causes a timeout or flaky test.
+
+2. Any new page in the context
+
+ts
+const [newPage] = await Promise.all([
+  context.waitForEvent('page'),
+  page.getByText('Open report').click(),
+]);
+page.waitForEvent('popup') catches pages opened by that specific page (window.open, target="_blank").
+context.waitForEvent('page') catches any new page in the context, including ones opened by other pages or by a keyboard shortcut.
+
+3. Working with both tabs
+
+ts
+await popup.getByRole('button', { name: 'Accept' }).click();   // act on the new tab
+await popup.close();                                           // close it
+await page.bringToFront();                                     // optional, only needed for focus-dependent behaviour
+await expect(page.getByText('Accepted')).toBeVisible();        // continue on the original page
+
+Because I’m holding both objects, I don’t need to switch. bringToFront() is only needed if the app depends on tab focus or visibility, for example document.visibilityState.
+
+4. Opening tabs myself
+
+ts
+const page2 = await context.newPage();
+await page2.goto('/dashboard');
+
+I can open as many pages as I need in the same context. They share cookies and session, so if I’m logged in on one, I’m logged in on all.
+
+5. Listing all open pages
+
+ts
+const pages = context.pages();
+console.log(pages.length);
+for (const p of pages) console.log(await p.title());
+
+This helps when a page opens unexpectedly and I need to find it, or when I want to assert how many tabs are open.
+
+6. Multiple windows with separate sessions (isolation)
+
+ts
+const adminContext = await browser.newContext({ storageState: 'playwright/.auth/admin.json' });
+const userContext  = await browser.newContext({ storageState: 'playwright/.auth/user.json' });
+
+const adminPage = await adminContext.newPage();
+const userPage  = await userContext.newPage();
+Tabs in the same context share cookies and storage.
+Different contexts are isolated, like separate incognito windows.
+This is how I test two users interacting, for example a user submits a request and an admin approves it, in one test.
+
+7. Popups that open and close on their own (for example OAuth login)
+
+ts
+const popupPromise = page.waitForEvent('popup');
+await page.getByRole('button', { name: 'Sign in with Google' }).click();
+const popup = await popupPromise;
+
+await popup.getByLabel('Email').fill('test@example.com');
+// ...complete login...
+await popup.waitForEvent('close');   // popup closes itself after auth
+await expect(page.getByText('Welcome')).toBeVisible();
+
+8. Things I watch out for
+
+Wait for the new page to be ready. waitForLoadState() or an assertion on its content before interacting, because the page object is returned as soon as it’s created.
+Registering listeners early, as mentioned, to avoid race conditions.
+Dialogs are different from tabs. JavaScript alerts and confirms are handled with page.on('dialog', d => d.accept()), not popup.
+Downloads and file pickers have their own events (waitForEvent('download'), 'filechooser').
+Cleanup: I close extra pages I opened manually. The context is closed automatically at the end of each test by the Playwright test runner.
+Real browser windows vs tabs: Playwright treats both the same way, so the same code works either way.
+
+Comparison with Selenium (useful if asked)
+
+In Selenium I’d collect window handles and call driver.switchTo().window(handle), and only one window is active at a time. In Playwright, I get a separate Page object for each tab, so I can interact with several tabs without switching, and there’s less chance of acting on the wrong window.
+
+In short: wait for the popup or page event before the triggering action, use the returned Page object directly, use separate contexts when I need isolated sessions, and close pages I created.”
+
+Possible next follow-up: “How do you handle iframes, alerts and file uploads or downloads in Playwright?” Short answer: iframes use page.frameLocator(), JavaScript dialogs use page.on('dialog'), uploads use setInputFiles(), and downloads use page.waitForEvent('download') followed by download.saveAs()
+
+#==============================================================================================================================
+# Q : “How do you handle iframes, alerts and file uploads or downloads in Playwright
+==> “These are four different mechanisms in Playwright, and none of them need the ‘switch context’ step you’d have in Selenium. I’ll take each one.
+
+1. Iframes: frameLocator
+
+ts
+const frame = page.frameLocator('#payment-iframe');
+
+await frame.getByLabel('Card number').fill('4242 4242 4242 4242');
+await frame.getByRole('button', { name: 'Pay' }).click();
+await expect(frame.getByText('Payment successful')).toBeVisible();
+frameLocator gives a locator scoped inside the iframe, and I use it like a normal locator, so auto-waiting and web-first assertions still work.
+I don’t switch into the frame and back out. I can use elements from the main page and from the iframe in the same test.
+Nested iframes: chain them, for example page.frameLocator('#outer').frameLocator('#inner').
+Iframe without a stable selector: page.frameLocator('iframe').first() or page.frameLocator('iframe[title="Payment"]').
+Older API: page.frame({ name: 'x' }) returns a Frame object, but I only use it when I need frame-level methods like frame.url(). For element interaction, frameLocator is the recommended way.
+
+2. Alerts, confirms and prompts: the dialog event
+
+JavaScript dialogs aren’t part of the DOM, so they’re handled with an event. By default, Playwright auto-dismisses them, so if my test needs to read or accept one, I register a handler before the action that triggers it.
+
+ts
+page.once('dialog', async dialog => {
+  console.log(dialog.type());      // 'alert' | 'confirm' | 'prompt' | 'beforeunload'
+  console.log(dialog.message());
+  expect(dialog.message()).toContain('Are you sure');
+  await dialog.accept();           // or dialog.dismiss()
+});
+
+await page.getByRole('button', { name: 'Delete' }).click();
+For a prompt, I pass the text: await dialog.accept('my input').
+I use page.once for a single dialog and page.on if several will appear.
+If a handler is registered but never calls accept or dismiss, the page hangs, so I always resolve it.
+Custom modals (Bootstrap, Material UI) are not JavaScript dialogs. They’re normal DOM elements, so I use regular locators for them.
+
+3. File uploads: setInputFiles
+
+ts
+// Standard <input type="file">
+await page.getByLabel('Upload resume').setInputFiles('tests/data/resume.pdf');
+
+// Multiple files
+await page.locator('input[type=file]').setInputFiles(['a.png', 'b.png']);
+
+// Clear the selection
+await page.locator('input[type=file]').setInputFiles([]);
+setInputFiles works even if the input is hidden, so I don’t need to click the upload button.
+When the file chooser opens only after a click (custom upload button with no visible input):
+ts
+const chooserPromise = page.waitForEvent('filechooser');
+await page.getByRole('button', { name: 'Upload' }).click();
+const chooser = await chooserPromise;
+await chooser.setFiles('tests/data/resume.pdf');
+In-memory file with no file on disk:
+ts
+await page.locator('input[type=file]').setInputFiles({
+  name: 'test.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('hello'),
+});
+After uploading, I assert the result in the UI, such as the file name or a success message, and not just that the step passed.
+I keep test files in a tests/data folder and reference them with path.join(__dirname, ...) so the path works on any machine or CI.
+
+4. File downloads: the download event
+
+ts
+const downloadPromise = page.waitForEvent('download');   // register BEFORE the click
+await page.getByRole('button', { name: 'Export CSV' }).click();
+const download = await downloadPromise;
+
+expect(download.suggestedFilename()).toBe('report.csv');
+await download.saveAs('downloads/' + download.suggestedFilename());
+As with popups, the listener goes before the click, otherwise I can miss the event.
+download.path() gives the temporary location, and saveAs() stores it where I want.
+Verifying content: I read the saved file with fs.readFileSync and assert on it, for example row count or header names for a CSV. For Excel or PDF I’d use a library like xlsx or pdf-parse.
+ts
+import fs from 'fs';
+const content = fs.readFileSync('downloads/report.csv', 'utf-8');
+expect(content.split('\n')[0]).toBe('id,name,status');
+If the download fails, await download.failure() returns the error message.
+Downloads are cleaned up when the browser context closes, so I save any file I need to keep.
+
+5. Things I watch out for
+
+Register listeners before the trigger action for dialogs, downloads, file choosers and popups. This is the most common cause of flaky tests here.
+Dialogs are not locator-based, and iframes are not handled with page.locator. Using the wrong mechanism is the usual source of “element not found” errors.
+Cross-origin iframes work with frameLocator too, so there’s no same-origin limitation like with some other tools.
+Headless vs headed differences: downloads and file choosers behave the same in both, which is useful on CI.
+Cleanup: I delete downloaded and generated files after the test, or write them to a gitignored folder.
+
+Quick comparison with Selenium (if asked)
+
+Iframes: Selenium needs switchTo().frame() and defaultContent(), while Playwright uses frameLocator with no switching.
+Alerts: Selenium uses switchTo().alert(), while Playwright uses the dialog event.
+Uploads: Selenium uses sendKeys(path), while Playwright uses setInputFiles.
+Downloads: Selenium needs browser profile preferences and polling the download folder, while Playwright has a direct download event.
+
+In short: iframes use frameLocator, dialogs use the dialog event, uploads use setInputFiles or the filechooser event, and downloads use the download event. In each case, I register the listener before the action that triggers it.”
+
+
+#==============================================================================================================================
+# Q :  How do you handle authentication (token-based API)?
+==>  “For token-based APIs, I authenticate once through the login endpoint, extract the token, and attach it to every request automatically. I never hardcode it or repeat the login call in each test.
+
+The flow
+
+Call the auth endpoint with credentials from environment variables.
+Extract the token from the response.
+Inject it into an APIRequestContext through extraHTTPHeaders.
+Reuse that context in all tests.
+
+Credentials and base URL (never hardcoded)
+
+ts
+// playwright.config.ts
+import 'dotenv/config';
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: { baseURL: process.env.BASE_URL },
+});
+
+Credentials live in .env locally and in CI secrets in the pipeline, and .env is in .gitignore.
+
+My preferred approach: a worker-scoped fixture
+
+ts
+// fixtures/auth.ts
+import { test as base, expect, APIRequestContext } from '@playwright/test';
+
+type TestFixtures = { authRequest: APIRequestContext };
+type WorkerFixtures = { authToken: string };
+
+export const test = base.extend<TestFixtures, WorkerFixtures>({
+  // Login once per worker, not once per test
+  authToken: [async ({ playwright }, use) => {
+    const ctx = await playwright.request.newContext({ baseURL: process.env.BASE_URL });
+    const res = await ctx.post('/auth', {
+      data: { username: process.env.API_USER, password: process.env.API_PASS },
+    });
+    expect(res.status()).toBe(200);
+    const { token } = await res.json();
+    await ctx.dispose();
+    await use(token);
+  }, { scope: 'worker' }],
+
+  // Authenticated request context for each test
+  authRequest: async ({ playwright, authToken }, use) => {
+    const ctx = await playwright.request.newContext({
+      baseURL: process.env.BASE_URL,
+      extraHTTPHeaders: {
+        Authorization: `Bearer ${authToken}`,
+        Accept: 'application/json',
+      },
+    });
+    await use(ctx);
+    await ctx.dispose();
+  },
+});
+
+export { expect } from '@playwright/test';
+
+Using it in a test
+
+ts
+import { test, expect } from '../fixtures/auth';
+
+test('get orders with valid token', async ({ authRequest }) => {
+  const response = await authRequest.get('/orders');
+  expect(response.status()).toBe(200);
+});
+
+No test contains login code, and changing the auth logic later means editing one file.
+
+Alternative: setup project
+
+When many spec files share one token, I use a setup project that logs in once and saves the token to a file:
+
+ts
+// auth.setup.ts
+import { test as setup, expect } from '@playwright/test';
+import fs from 'fs';
+
+setup('authenticate', async ({ request }) => {
+  const res = await request.post('/auth', {
+    data: { username: process.env.API_USER, password: process.env.API_PASS },
+  });
+  expect(res.ok()).toBeTruthy();
+  const { token } = await res.json();
+  fs.mkdirSync('.auth', { recursive: true });
+  fs.writeFileSync('.auth/token.json', JSON.stringify({ token }));
+});
+ts
+// playwright.config.ts
+projects: [
+  { name: 'setup', testMatch: /auth\.setup\.ts/ },
+  { name: 'api', dependencies: ['setup'] },
+],
+
+The tests then read the token from the file. I add .auth/ to .gitignore.
+
+Negative authentication tests
+
+ts
+test('no token returns 401', async ({ playwright }) => {
+  const ctx = await playwright.request.newContext({ baseURL: process.env.BASE_URL });
+  const res = await ctx.get('/orders');
+  expect(res.status()).toBe(401);
+});
+
+test('invalid token returns 401', async ({ playwright }) => {
+  const ctx = await playwright.request.newContext({
+    baseURL: process.env.BASE_URL,
+    extraHTTPHeaders: { Authorization: 'Bearer invalid-token' },
+  });
+  expect((await ctx.get('/orders')).status()).toBe(401);
+});
+
+I also test wrong credentials on the login endpoint itself, and the 403 case where a valid user hits an endpoint their role doesn’t allow.”
+
+Likely follow-ups and short answers
+
+1. Why a worker-scoped fixture instead of logging in per test? It cuts login calls from one per test to one per worker, which is faster and avoids rate limits on the auth endpoint. A test-scoped fixture is only needed when tests must be fully isolated by user.
+
+2. How do you handle token expiry? For short-lived tokens, I keep the login inside the worker fixture so each worker gets a fresh one. If a run is long, I wrap calls in a helper that retries once after re-authenticating on a 401. For refresh-token flows, I call the refresh endpoint and update the header.
+
+3. How do you test multiple roles, like admin and user? I create one fixture per role (adminRequest, userRequest), each logging in with its own credentials. That makes permission tests easy to read.
+
+4. How do you pass the token if the API uses a different scheme? It depends on the contract. Bearer tokens go in Authorization, API keys in a custom header like api_key (Petstore), and some APIs expect a cookie, for example Restful Booker accepts Cookie: token=<value>. I set whichever one in extraHTTPHeaders.
+
+5. What about cookie or session-based auth? APIRequestContext stores cookies from the login response and sends them on later calls automatically. I can save the state with request.storageState({ path: '.auth/state.json' }) and load it via storageState in the config.
+
+6. How do you keep secrets safe? In .env locally (gitignored) and in CI secrets in the pipeline. I never commit tokens, and I avoid logging the Authorization header in reports or traces.
+extraHTTPHeaders in config vs in the context? In config, it applies to every request in the project, which works if the token is known upfront. When the token comes from a login call, I set it on a context created at runtime, as in the fixture above.
+
+7. How is this different from REST Assured? In REST Assured, I’d extract the token from the login response and add it to a shared RequestSpecification with .header("Authorization", "Bearer " + token). In Playwright, the equivalent is the context with extraHTTPHeaders, and fixtures give me the lifecycle management that I’d otherwise build manually with TestNG @BeforeSuite.
+
+#==============================================================================================================================
+# Q : Why a worker-scoped fixture instead of logging in per test?
+==> Authentication is an important part of a Playwright automation framework. Instead of logging in through the UI before every test, I prefer using reusable authentication fixtures, API-based login, and Playwright's storageState() wherever appropriate.
+
+This improves execution speed, reduces unnecessary UI interactions, and makes the framework easier to maintain.
+
+Let's understand each question with reasons, implementation, and practical interview examples.
+
+1. Why a worker-scoped fixture instead of logging in per test?
+Interview question
+Why do you use a worker-scoped fixture for authentication instead of performing login in every test?
+Answer
+I use a worker-scoped fixture when multiple tests can safely share the same authenticated account and authentication state.
+
+If I perform login through the UI before every test, it introduces unnecessary browser interactions, increases execution time, and can make tests flaky because of network delays or UI-related issues.
+
+Instead, I authenticate once per worker and reuse the authentication state across tests running in that worker.
+Understanding fixture scopes
+Playwright supports different fixture scopes:
+Scope	Execution	Use case
+Test-scoped	Once per test	Independent browser context, page
+Worker-scoped	Once per worker	Shared account setup, expensive resources
+
+Example: Test-scoped login
+import { test, expect } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/login');
+
+  await page.getByLabel('Email').fill('test@example.com');
+  await page.getByLabel('Password').fill('password123');
+
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  await expect(page).toHaveURL(/dashboard/);
+});
+
+test('verify dashboard', async ({ page }) => {
+  await expect(page.getByText('Dashboard')).toBeVisible();
+});
+
+test('verify profile', async ({ page }) => {
+  await page.goto('/profile');
+
+  await expect(page.getByText('My Profile')).toBeVisible();
+});
+
+
+Problem:
+
+For 100 tests, login is performed 100 times. This increases execution time and introduces unnecessary dependencies on the login UI.
+Example: Worker-scoped authentication fixture
+I can authenticate through an API and create a reusable storage state for each worker.
+
+fixtures/auth.fixture.ts
+import {
+  test as base,
+  expect,
+  BrowserContext
+} from '@playwright/test';
+
+type AuthFixtures = {
+  workerStorageState: string;
+};
+
+export const test = base.extend<AuthFixtures, {
+  workerStorageState: string;
+}>({
+
+  storageState: async ({ workerStorageState }, use) => {
+    await use(workerStorageState);
+  },
+
+  workerStorageState: [
+    async ({ browser }, use, workerInfo) => {
+
+      const fileName =
+        `.auth/worker-${workerInfo.parallelIndex}.json`;
+
+      const response = await fetch(
+        `${process.env.BASE_URL}/api/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: process.env.USER_EMAIL,
+            password: process.env.USER_PASSWORD
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      const result = await response.json();
+
+      const context = await browser.newContext();
+
+      await context.addCookies([
+        {
+          name: 'authToken',
+          value: result.token,
+          domain: 'localhost',
+          path: '/',
+          httpOnly: true,
+          secure: false,
+          sameSite: 'Lax'
+        }
+      ]);
+
+      await context.storageState({
+        path: fileName
+      });
+
+      await context.close();
+
+      await use(fileName);
+    },
+    { scope: 'worker' }
+  ]
+});
+
+export { expect };
+
+
+This example assumes the application authenticates using an authToken cookie. If it uses local storage, initialize local storage using addInitScript() or an appropriate storage-state setup instead.
+
+How it works:
+1. A worker starts execution.
+2. The worker authenticates through the login API.
+3. The authentication token is obtained.
+4. The token is saved into browser storage state.
+5. Each test in that worker receives the storage state.
+6. Playwright creates a separate browser context for each test using the shared authentication state.
+Why worker scope?
+Suppose I execute 100 tests with 4 workers.
+- Test-scoped login: potentially 100 login operations.
+- Worker-scoped login: 4 login operations.
+Performance benefit
+ Authentication setup is reduced from 100 logins to 4, assuming one worker per parallel execution slot.
+
+Important considerations:
+- Worker-scoped fixtures are not shared across different workers.
+- Each test still gets its own isolated browser context.
+- Use separate test accounts or isolated data when tests modify shared account state.
+- Do not use worker-shared authentication if the application invalidates previous sessions whenever a new login occurs.
+For example, if logging in from another worker invalidates the previous session, I would use separate accounts for each worker.
+
+2. How do you handle token expiry?
+Interview question
+Suppose your authentication token expires while your Playwright test suite is executing. How do you handle it?
+Answer
+In my framework, I handle token expiry by understanding the authentication mechanism used by the application.
+
+Usually, there are two types of tokens:
+1. Access token: A short-lived token used to authenticate API requests.
+2. Refresh token: A longer-lived token used to generate a new access token without asking the user to log in again.
+I generally follow three approaches:
+- Generate a fresh token before the test execution.
+- Use a refresh token when the access token expires.
+- Re-authenticate through the login API if the refresh token is also expired or invalid.
+Approach 1: Generate a fresh token using the login API
+async function generateAccessToken() {
+
+  const response = await fetch(
+    `${process.env.BASE_URL}/api/login`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: process.env.USER_EMAIL,
+        password: process.env.USER_PASSWORD
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Unable to generate access token');
+  }
+
+  const result = await response.json();
+
+  return result.accessToken;
+}
+
+
+I can call this function during worker fixture initialization to obtain a valid token.
+Approach 2: Refresh an expired token
+Suppose the API returns HTTP 401 because the access token has expired.
+
+I call the refresh-token endpoint to generate a new access token.
+async function refreshAccessToken(refreshToken: string) {
+
+  const response = await fetch(
+    `${process.env.BASE_URL}/api/refresh-token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        refreshToken
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Token refresh failed');
+  }
+
+  const result = await response.json();
+
+  return result.accessToken;
+}
+
+
+I can then update the authorization header or browser storage with the newly generated token.
+Approach 3: Automatically refresh on 401 responses
+For API requests made using Playwright's APIRequestContext, I can implement a reusable API client.
+import {
+  APIRequestContext,
+  expect
+} from '@playwright/test';
+
+class ApiClient {
+
+  private accessToken: string;
+
+  constructor(
+    private request: APIRequestContext,
+    token: string
+  ) {
+    this.accessToken = token;
+  }
+
+  async getProfile() {
+
+    let response = await this.request.get('/api/profile', {
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`
+      }
+    });
+
+    if (response.status() === 401) {
+
+      this.accessToken = await refreshAccessToken(
+        process.env.REFRESH_TOKEN!
+      );
+
+      response = await this.request.get('/api/profile', {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`
+        }
+      });
+    }
+
+    return response;
+  }
+}
+
+
+The example assumes the refresh token is stored securely and that the API accepts the new access token in a Bearer header.
+Important interview points
+- I do not refresh the token before every request unnecessarily.
+- I refresh only when required, or shortly before a known expiry.
+- I retry the failed request only once after successful refresh.
+- If refresh fails, I fail the authentication setup rather than continuing with an invalid session.
+- I avoid blindly retrying business operations such as payment or order creation because a 401 response does not always prove that the operation had no side effects.
+My practical approach: In a worker-scoped fixture, I prefer obtaining a fresh token for every worker execution. If tests run for a long duration, I implement token refresh in a centralized authentication or API client layer.
+
+3. How do you test multiple roles, like Admin and User?
+Interview question
+Suppose your application has Admin, Manager, and User roles. How do you manage authentication and execute tests for different roles in Playwright?
+Answer
+I use role-based authentication fixtures or separate storage-state files for each role.
+
+Instead of logging in through the UI for every test, I generate authenticated sessions for each role using the authentication API.
+
+For example:
+Role	Permissions
+Admin	Create, update, delete, view
+Manager	Create, update, view
+User	View only
+
+I maintain separate authentication states for each role.
+Step 1: Create role-based authentication
+utils/auth.ts
+import { request } from '@playwright/test';
+
+export async function authenticate(role: string) {
+
+  const credentials: Record<string, {
+    email: string;
+    password: string;
+  }> = {
+    admin: {
+      email: process.env.ADMIN_EMAIL!,
+      password: process.env.ADMIN_PASSWORD!
+    },
+
+    user: {
+      email: process.env.USER_EMAIL!,
+      password: process.env.USER_PASSWORD!
+    }
+  };
+
+  const user = credentials[role];
+
+  if (!user) {
+    throw new Error(`Unknown role: ${role}`);
+  }
+
+  const apiContext = await request.newContext();
+
+  const response = await apiContext.post(
+    `${process.env.BASE_URL}/api/login`,
+    {
+      data: user
+    }
+  );
+
+  if (!response.ok()) {
+    throw new Error(`Login failed for ${role}`);
+  }
+
+  const result = await response.json();
+
+  await apiContext.dispose();
+
+  return result.token;
+}
+
+
+Step 2: Create separate storage states
+auth.setup.ts
+import {
+  test as setup
+} from '@playwright/test';
+
+import { authenticate } from './utils/auth';
+
+const roles = ['admin', 'user'];
+
+for (const role of roles) {
+
+  setup(`authenticate as ${role}`, async ({ browser }) => {
+
+    const token = await authenticate(role);
+
+    const context = await browser.newContext();
+
+    await context.addInitScript((token) => {
+      localStorage.setItem('token', token);
+    }, token);
+
+    const page = await context.newPage();
+
+    await page.goto(process.env.BASE_URL!);
+
+    await context.storageState({
+      path: `.auth/${role}.json`
+    });
+
+    await context.close();
+  });
+}
+
+
+This example assumes the application reads its authentication token from local storage. If authentication requires an initial navigation or cookie-based login flow, I would adapt the setup accordingly.
+Step 3: Configure role-based projects
+playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+
+  projects: [
+
+    {
+      name: 'admin',
+      use: {
+        storageState: '.auth/admin.json'
+      }
+    },
+
+    {
+      name: 'user',
+      use: {
+        storageState: '.auth/user.json'
+      }
+    }
+
+  ]
+
+});
+
+
+Step 4: Write role-specific test cases
+import { test, expect } from '@playwright/test';
+
+test('Admin can create a user', async ({ page }) => {
+
+  await page.goto('/dashboard');
+
+  await page.getByRole('button', {
+    name: 'Create User'
+  }).click();
+
+  await expect(
+    page.getByText('Create User Form')
+  ).toBeVisible();
+});
+
+
+For the user role:
+test('User cannot create another user', async ({ page }) => {
+
+  await page.goto('/dashboard');
+
+  await expect(
+    page.getByRole('button', {
+      name: 'Create User'
+    })
+  ).toBeHidden();
+});
+
+
+Why do I prefer this approach?
+1. Each role has an independent authentication state.
+2. I avoid repeated UI login operations.
+3. I can execute role-specific tests independently.
+4. I can validate authorization and permission boundaries.
+5. I can run different role projects in parallel.
+Important: Hiding a button is not sufficient to prove authorization. I also validate that a normal user receives HTTP 403 or another expected authorization response when directly accessing a restricted API.
+
+For tests that modify data, I use separate test accounts or isolated test data to avoid conflicts between roles.
+
+4. How do you pass the token if the API uses a different authentication scheme?
+Interview question
+What if your API does not use the standard Bearer token? How do you handle different authentication schemes in Playwright?
+Answer
+In my framework, I first understand the authentication contract from the API documentation.
+
+Not every API uses:
+Authorization: Bearer <token>
+
+
+Different applications may use different authentication mechanisms.
+Common authentication schemes
+Authentication type	Example
+Bearer Token	Authorization: Bearer abc123
+Basic Authentication	Authorization: Basic <base64>
+Token Authentication	Authorization: Token abc123
+API Key	x-api-key: abc123
+Custom Authentication	X-Auth-Token: abc123
+
+Example 1: Bearer token
+await page.setExtraHTTPHeaders({
+  Authorization: `Bearer ${token}`
+});
+
+
+Example 2: Token authentication
+Some APIs expect Token instead of Bearer.
+await page.setExtraHTTPHeaders({
+  Authorization: `Token ${token}`
+});
+
+
+Example 3: API Key authentication
+await page.setExtraHTTPHeaders({
+  'x-api-key': process.env.API_KEY!
+});
+
+
+Example 4: Basic authentication
+Basic authentication requires Base64 encoding of the username and password.
+const username = process.env.API_USERNAME!;
+const password = process.env.API_PASSWORD!;
+
+const credentials = Buffer
+  .from(`${username}:${password}`)
+  .toString('base64');
+
+await page.setExtraHTTPHeaders({
+  Authorization: `Basic ${credentials}`
+});
+
+
+Example 5: Custom authentication header
+await page.setExtraHTTPHeaders({
+  'X-Auth-Token': token,
+  'X-Client-ID': process.env.CLIENT_ID!
+});
+
+
+How I make this reusable in my framework
+Instead of hardcoding authentication headers in individual test cases, I create a reusable authentication helper.
+type AuthType =
+  | 'Bearer'
+  | 'Token'
+  | 'Basic'
+  | 'ApiKey';
+
+function getAuthHeaders(
+  type: AuthType,
+  token: string
+): Record<string, string> {
+
+  switch (type) {
+
+    case 'Bearer':
+      return {
+        Authorization: `Bearer ${token}`
+      };
+
+    case 'Token':
+      return {
+        Authorization: `Token ${token}`
+      };
+
+    case 'Basic':
+      return {
+        Authorization: `Basic ${token}`
+      };
+
+    case 'ApiKey':
+      return {
+        'x-api-key': token
+      };
+
+    default:
+      throw new Error('Unsupported authentication type');
+  }
+}
+
+
+Usage:
+const headers = getAuthHeaders('Bearer', token);
+
+await page.setExtraHTTPHeaders(headers);
+
+
+Important interview point: page.setExtraHTTPHeaders() applies headers to requests made by that page. For API requests through APIRequestContext, I pass headers through the API request context or individual request options. Also, I avoid sending credentials to unrelated third-party origins.
+
+My approach is to centralize authentication handling so that changing the authentication scheme does not require modifying every test case.
+
+5. What about cookie-based or session-based authentication?
+Interview question
+What if your application does not use JWT tokens in local storage but uses cookies or server-side sessions? How do you handle authentication in Playwright?
+Answer
+Not every application uses token-based authentication.
+
+Some applications use:
+- HTTP cookies.
+- HTTP-only cookies.
+- Server-side session IDs.
+- Session storage.
+- Combination of cookies and tokens.
+In these cases, I use Playwright's browserContext.addCookies(), storageState(), and addInitScript() depending on the authentication mechanism.
+Approach 1: Cookie-based authentication
+Suppose the login API returns an authentication cookie.
+
+I can create an authenticated browser context by adding the cookie.
+import { test, expect } from '@playwright/test';
+
+test('login using authentication cookie', async ({ browser }) => {
+
+  const context = await browser.newContext();
+
+  await context.addCookies([
+    {
+      name: 'sessionId',
+      value: 'test-session-123',
+      domain: 'example.com',
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax'
+    }
+  ]);
+
+  const page = await context.newPage();
+
+  await page.goto('https://example.com/dashboard');
+
+  await expect(
+    page.getByText('Dashboard')
+  ).toBeVisible();
+
+  await context.close();
+});
+
+
+How it works:
+1. Create a browser context.
+2. Add the authentication cookie.
+3. Open the application.
+4. The browser automatically sends the cookie to the matching domain.
+5. The backend validates the session and grants access.
+Important: An HTTP-only cookie cannot be created or read through JavaScript running in the page. Playwright's context.addCookies() can set it directly.
+Approach 2: Save and reuse authentication using storageState()
+If I perform login once, I can save the browser authentication state.
+test('save authentication state', async ({ browser }) => {
+
+  const context = await browser.newContext();
+
+  const page = await context.newPage();
+
+  await page.goto('https://example.com/login');
+
+  await page.getByLabel('Username').fill('testuser');
+
+  await page.getByLabel('Password').fill('password123');
+
+  await page.getByRole('button', {
+    name: 'Login'
+  }).click();
+
+  await expect(page).toHaveURL(/dashboard/);
+
+  await context.storageState({
+    path: '.auth/user.json'
+  });
+
+  await context.close();
+});
+
+
+Reuse it in another test:
+test('reuse authenticated session', async ({ browser }) => {
+
+  const context = await browser.newContext({
+    storageState: '.auth/user.json'
+  });
+
+  const page = await context.newPage();
+
+  await page.goto('https://example.com/dashboard');
+
+  await expect(
+    page.getByText('Dashboard')
+  ).toBeVisible();
+
+  await context.close();
+});
+
+
+What does storageState() store?
+Playwright storage state supports:
+- Cookies.
+- Local storage.
+- IndexedDB, when explicitly enabled with the relevant option.
+Important: sessionStorage is not automatically included in storageState().
+Approach 3: Handle sessionStorage authentication
+If the application stores its authentication token in sessionStorage, I use addInitScript() to initialize it before application scripts execute.
+const context = await browser.newContext();
+
+await context.addInitScript((token) => {
+
+  window.sessionStorage.setItem('token', token);
+
+}, process.env.AUTH_TOKEN!);
+
+const page = await context.newPage();
+
+await page.goto('https://example.com/dashboard');
+
+
+The initialization script runs before page scripts on navigation, allowing the application to access the session token during startup.
+
+Important distinction:
+Method	What it does
+context.addCookies()	Adds cookies directly to browser context
+context.storageState()	Saves cookies and supported persistent storage
+context.addInitScript()	Executes JavaScript before page scripts
+page.evaluate()	Executes JavaScript in the current page
+
+When do I choose which approach?
+- If the application uses HTTP-only cookies, I prefer cookie-based authentication or storageState().
+- If the application uses local storage, I use storageState() or addInitScript().
+- If the application uses session storage, I use addInitScript().
+- If authentication is server-session-based, I ensure the corresponding valid session cookie is present.
+My objective is to reproduce the same authentication mechanism that the actual application expects rather than forcing every application to use JWT authentication.
+
+6. How do you keep secrets safe?
+Interview question
+How do you manage sensitive information such as usernames, passwords, API keys, and authentication tokens in your Playwright automation framework?
+Answer
+In my framework, I never hardcode credentials, API keys, or authentication tokens directly into test scripts or configuration files.
+
+I use environment variables and Jenkins Credentials Management to securely manage sensitive information.
+
+I follow these practices:
+1. Store credentials in Jenkins Credentials.
+2. Access them through environment variables.
+3. Avoid committing .env files to Git.
+4. Avoid printing tokens and passwords in console logs.
+5. Protect authentication state files.
+6. Rotate credentials periodically.
+7. Use separate credentials for different environments.
+Approach 1: Use environment variables
+For local development, I can use a .env file.
+
+.env
+BASE_URL=https://example.com
+USER_EMAIL=test@example.com
+USER_PASSWORD=MySecretPassword
+API_KEY=secret-api-key
+
+
+Install dotenv:
+npm install dotenv
+
+
+Load the environment variables:
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const baseURL = process.env.BASE_URL;
+
+const email = process.env.USER_EMAIL;
+
+const password = process.env.USER_PASSWORD;
+
+if (!baseURL || !email || !password) {
+  throw new Error('Required environment variables are missing');
+}
+
+
+Add .env to .gitignore:
+.env
+.env.*
+!.env.example
+.auth/
+playwright/.auth/
+
+
+An .env.example file can contain placeholder values without actual credentials.
+Approach 2: Store credentials in Jenkins
+In Jenkins:
+1. Open Manage Jenkins.
+2. Navigate to Credentials.
+3. Select the appropriate credentials store and domain.
+4. Add username/password or secret text credentials.
+5. Reference the credentials inside the Jenkins pipeline.
+Example Jenkinsfile:
+pipeline {
+
+    agent any
+
+    environment {
+        BASE_URL = 'https://example.com'
+    }
+
+    stages {
+
+        stage('Run Playwright Tests') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'test-user-credentials',
+                        usernameVariable: 'USER_EMAIL',
+                        passwordVariable: 'USER_PASSWORD'
+                    ),
+
+                    string(
+                        credentialsId: 'api-secret',
+                        variable: 'API_KEY'
+                    )
+                ]) {
+
+                    sh 'npm ci'
+
+                    sh 'npx playwright test'
+
+                }
+            }
+        }
+    }
+}
+
+
+Here:
+- credentialsId identifies the stored Jenkins credential.
+- usernameVariable exposes the username to the test process.
+- passwordVariable exposes the password.
+- string injects a secret API key.
+In Playwright:
+const email = process.env.USER_EMAIL!;
+const password = process.env.USER_PASSWORD!;
+const apiKey = process.env.API_KEY!;
+
+
+Jenkins injects these variables into the build environment, and the Playwright scripts read them without storing actual secrets in the repository.
+Approach 3: Protect authentication state files
+One important point is that storageState() files can contain valid authentication cookies and tokens.
+
+For example:
+await context.storageState({
+  path: '.auth/user.json'
+});
+
+
+I treat this file as sensitive because anyone who obtains a valid session token may be able to access the application.
+
+Therefore:
+- I add .auth/ to .gitignore.
+- I restrict access to Jenkins workspace and archived artifacts.
+- I avoid publishing authentication files as build artifacts.
+- I delete temporary authentication files after execution where appropriate.
+- I use short-lived tokens and separate test accounts.
+Security best practices
+Security practice	Reason
+Jenkins Credentials	Centralized secret management
+Environment variables	Avoid hardcoded credentials
+.gitignore	Prevent accidental Git commits
+Masked console output	Reduce credential exposure
+Separate test accounts	Limit access and data conflicts
+Token rotation	Reduce risk from leaked credentials
+Restricted file permissions	Protect authentication state
+
+My interview conclusion:
+
+"I use Jenkins Credentials and environment variables to manage sensitive information. I never hardcode passwords or tokens, and I make sure authentication state files are excluded from Git and protected in CI. I also avoid logging sensitive information and prefer short-lived authentication tokens."
+
+
+7. How I would design authentication in a real Playwright framework
+For a maintainable framework, I would organize authentication-related code separately instead of putting everything inside individual test files.
+Recommended folder structure
+playwright-framework/
+│
+├── tests/
+│   ├── admin/
+│   │   └── admin.spec.ts
+│   │
+│   └── user/
+│       └── user.spec.ts
+│
+├── fixtures/
+│   └── auth.fixture.ts
+│
+├── utils/
+│   ├── auth.ts
+│   ├── tokenManager.ts
+│   └── apiClient.ts
+│
+├── .auth/
+│   ├── admin.json
+│   └── user.json
+│
+├── playwright.config.ts
+├── .env
+├── .gitignore
+└── package.json
+
+#==============================================================================================================================
+# Q :  What is the difference between storageState() and addInitScript()?
+==>  As an Automation Engineer with 3.6 years of experience in Playwright TypeScript, I use both storageState() and addInitScript() for authentication and browser storage management. However, they serve different purposes.
+
+The key difference is:
+- storageState() captures and restores browser authentication state, such as cookies and local storage, so we can reuse a logged-in session.
+- addInitScript() executes JavaScript in the browser before the page's scripts run. It is useful for setting values in browser storage, mocking browser APIs, and initializing application state.
+
+1. What is storageState()?
+storageState() is a Playwright API used to save and reuse browser authentication state.
+
+It captures:
+- Cookies
+- Local Storage
+- IndexedDB (when explicitly enabled)
+It does not automatically capture sessionStorage.
+Syntax
+1. Save the authentication state:
+await page.context().storageState({
+    path: 'auth.json'
+});
+
+2. Reuse the saved authentication state:
+const context = await browser.newContext({
+    storageState: 'auth.json'
+});
+
+const page = await context.newPage();
+
+await page.goto('https://example.com/dashboard');
+
+
+Practical example: Login once and reuse authentication
+Suppose my application requires users to log in before accessing the dashboard.
+
+Instead of logging in before every test, I can save the authentication state and reuse it.
+
+Step 1: Login and save the state
+import { test, expect } from '@playwright/test';
+
+test('Login and save authentication state', async ({ page }) => {
+
+    await page.goto('https://example.com/login');
+
+    await page.locator('#username').fill('testuser');
+    await page.locator('#password').fill('password123');
+
+    await page.locator('#login').click();
+
+    await expect(page).toHaveURL(/dashboard/);
+
+    await page.context().storageState({
+        path: 'auth.json'
+    });
+});
+
+
+Step 2: Reuse authentication in another test
+import { test, expect } from '@playwright/test';
+
+test.use({
+    storageState: 'auth.json'
+});
+
+test('Access dashboard without login', async ({ page }) => {
+
+    await page.goto('https://example.com/dashboard');
+
+    await expect(page.locator('h1')).toHaveText('Dashboard');
+});
+
+
+How it works:
+1. User logs in successfully.
+2. Application generates authentication cookies or local storage tokens.
+3. Playwright saves the browser state in auth.json.
+4. Another test creates a browser context using that saved state.
+5. The application recognizes the user as authenticated.
+Best use case
+ Reusing login sessions across multiple tests without repeating the UI login process.
+
+2. What is addInitScript()?
+addInitScript() executes JavaScript in the browser context before the page's JavaScript executes.
+
+It is particularly useful when we need to initialize browser-side values before an application loads.
+Syntax
+await page.addInitScript(() => {
+    localStorage.setItem('token', 'my-auth-token');
+});
+
+
+You can also pass external values as arguments:
+const token = 'my-auth-token';
+
+await page.addInitScript((value) => {
+
+    localStorage.setItem('token', value);
+
+}, token);
+
+
+Practical example: Set authentication token before application loads
+Suppose the application stores its authentication token in localStorage.
+
+We want to avoid the login UI and directly access the dashboard.
+import { test, expect } from '@playwright/test';
+
+test('Set token before application loads', async ({ page }) => {
+
+    const token = 'sample-auth-token';
+
+    await page.addInitScript((value) => {
+
+        localStorage.setItem('token', value);
+
+    }, token);
+
+    await page.goto('https://example.com/dashboard');
+
+    await expect(page).toHaveURL(/dashboard/);
+});
+
+
+How it works:
+1. Playwright registers the initialization script.
+2. We navigate to the application.
+3. Before the application's JavaScript executes, Playwright executes our initialization script.
+4. The token is added to localStorage.
+5. The application reads the token during initialization.
+6. The application can recognize the user as authenticated, provided the token is valid and the application uses that storage key.
+Important: addInitScript() does not generate or validate an authentication token. We must provide a valid token obtained through an API login or another authentication mechanism.
+
+3. Difference between storageState() and addInitScript()
+Feature			| storageState()			| addInitScript()
+1. Purpose		| Save and restore browser state	| Execute JavaScript before page scripts
+2. Cookies		| Supported				| Can manipulate accessible browser APIs, but cannot directly set HTTP-only cookies
+3. Local Storage	| Supported				| Can set or modify
+4. Session Storage	| Not automatically captured		| Can initialize
+5. IndexedDB		| Supported when enabled		| Can interact with it through browser APIs
+6. Execution		| Saves state or loads saved state into a context	| Executes before page scripts
+7. Reusability		| Excellent for sharing authentication state across tests	| Useful for custom browser initialization
+8. Authentication	| Reuses an existing authenticated session	| Can inject an existing token before application startup
+9. HTTP-only cookies	| Supported				| Cannot set directly using document.cookie
+10. Typical use	Login once, | reuse session			| Set local/session storage before application loads
+
+4. Important: How to use addInitScript() with sessionStorage
+One important limitation of storageState() is that it does not automatically save sessionStorage.
+
+If my application uses sessionStorage for authentication, I can initialize it using addInitScript().
+const token = 'sample-session-token';
+
+await page.addInitScript((value) => {
+
+    sessionStorage.setItem('token', value);
+
+}, token);
+
+await page.goto('https://example.com/dashboard');
+
+
+This ensures that the session storage value is available before the application JavaScript executes on the page.
+
+Note that session storage is scoped to an origin and a browser tab. addInitScript() runs on newly navigated pages and frames in its registered scope, so make sure the initialization runs on the intended application origin.
+
+5. Can we use both together?
+Yes. In real-time automation frameworks, I often use both depending on the authentication requirement.
+
+For example:
+- Use API login to obtain a token.
+- Use addInitScript() to set the token in local storage.
+- Navigate to the application.
+- Use storageState() to save the authenticated browser state.
+- Reuse that state in subsequent tests.
+Example:
+import { test, expect } from '@playwright/test';
+
+test('Generate and save authentication state', async ({  browser }) => {
+
+    const context = await browser.newContext();
+
+    const page = await context.newPage();
+
+    const token = 'valid-api-generated-token';
+
+    await page.addInitScript((value) => {
+
+        localStorage.setItem('token', value);
+
+    }, token);
+
+    await page.goto('https://example.com/dashboard');
+
+    await expect(page).toHaveURL(/dashboard/);
+
+    await context.storageState({
+        path: '.auth/user.json'
+    });
+
+    await context.close();
+});
+
+
+Now subsequent tests can reuse the state:
+import { test, expect } from '@playwright/test';
+
+test.use({
+    storageState: '.auth/user.json'
+});
+
+test('Verify authenticated dashboard', async ({ page }) => {
+
+    await page.goto('https://example.com/dashboard');
+
+    await expect(page).toHaveURL(/dashboard/);
+
+});
+
+
+This example assumes the application accepts the local storage token and that the token is valid.
+
+6. When would I choose which one in a real-time framework?
+Scenario							| My choice
+1. Login once and reuse authentication across tests		| storageState()
+2. Application uses HTTP-only authentication cookies		| storageState()
+3. Application stores token in localStorage			| Either, depending on whether I am restoring or initializing
+4. Application stores token in sessionStorage			| addInitScript()
+5. Need to mock browser APIs before application startup		| addInitScript()
+6. Need to reuse authentication across multiple workers		| Worker-specific storageState() files
+7. Need to set browser configuration before application scripts execute | addInitScript()
+
+7. Interview-ready answer
+"In my Playwright framework, I use storageState() mainly for authentication reuse and addInitScript() for browser initialization.
+
+For example, if I have 100 test cases, I don't want to perform UI login in every test. I perform login once, save the authentication state using storageState(), and reuse that state in subsequent tests. This reduces execution time and avoids unnecessary login operations.
+
+On the other hand, if my application expects an authentication token in localStorage or sessionStorage before its JavaScript initializes, I use addInitScript() to inject that token before the application scripts execute.
+
+One important difference is that storageState() supports cookies, localStorage, and optionally IndexedDB, whereas it does not automatically capture sessionStorage.
+
+So, I choose storageState() for session persistence and reuse, and addInitScript() for custom browser-side initialization."
+
+My recommendation: In a real-world Playwright framework, prefer storageState() for reusable authentication and use addInitScript() when you specifically need to initialize browser-side values before application startup. Protect authentication files and never commit real tokens or credentials to Git.
+
+#==============================================================================================================================
+# Q : Does storageState() store sessionStorage?
+==> In my automation framework, I handle authentication using API-based login, storageState(), browser contexts, worker-scoped fixtures, and APIRequestContext.
+
+My main objective is to make authentication:
+- Reusable across tests.
+- Safe during parallel execution.
+- Independent for different users and roles.
+- Reliable when access tokens expire or refresh tokens rotate.
+- Secure so that one user's session never affects another user's tests.
+2. Does storageState() store sessionStorage?
+No. Playwright's storageState() does not automatically capture or restore sessionStorage.
+
+It supports:
+1. Cookies.
+2. Local Storage.
+3. IndexedDB, when explicitly enabled.
+Session storage is scoped to a particular origin and browser tab, so it requires separate handling.
+Example: Save sessionStorage manually
+We can use page.evaluate() to extract session storage and save it separately.
+import { test } from '@playwright/test';
+import fs from 'fs';
+
+test('Save session storage', async ({ page }) => {
+
+    await page.goto('https://example.com');
+
+    const sessionStorageData = await page.evaluate(() => {
+
+        return Object.fromEntries(
+            Object.entries(sessionStorage)
+        );
+
+    });
+
+    fs.writeFileSync(
+        '.auth/session-storage.json',
+        JSON.stringify(sessionStorageData)
+    );
+
+});
+
+
+Restore sessionStorage using addInitScript()
+import { test, expect } from '@playwright/test';
+import fs from 'fs';
+
+test('Restore session storage', async ({ browser }) => {
+
+    const context = await browser.newContext();
+
+    const page = await context.newPage();
+
+    const sessionData = JSON.parse(
+        fs.readFileSync(
+            '.auth/session-storage.json',
+            'utf-8'
+        )
+    );
+
+    await page.addInitScript((data) => {
+
+        if (window.location.origin === 'https://example.com') {
+
+            for (const [key, value] of Object.entries(data)) {
+
+                sessionStorage.setItem(key, String(value));
+
+            }
+        }
+
+    }, sessionData);
+
+    await page.goto('https://example.com/dashboard');
+
+    await expect(page).toHaveURL(/dashboard/);
+
+});
+
+
+Important points:
+- Register addInitScript() before navigating to the application.
+- Restore session storage only for the intended origin.
+- Session storage is tab-specific; don't assume a new tab automatically inherits the same state.
+- Treat session storage files as sensitive if they contain authentication tokens.
+Interview answer: I use storageState() for cookies and local storage, but when an application depends on session storage, I manually capture and restore it using page.evaluate() and addInitScript().
+
+3. Can two workers share the same authentication state?
+Yes. Multiple Playwright workers can use the same authentication state file, but whether they should share it depends on the application's session-management behavior.
+
+For example, suppose I execute 100 test cases using four workers.
+
+Each worker can create its own browser context using the same storageState file.
+import { test } from '@playwright/test';
+
+test.use({
+    storageState: '.auth/user.json'
+});
+
+test('Test 1', async ({ page }) => {
+
+    await page.goto('/dashboard');
+
+});
+
+test('Test 2', async ({ page }) => {
+
+    await page.goto('/profile');
+
+});
+
+
+Each test normally receives an isolated browser context. Workers do not share the same live browser context merely because they use the same state file.
+What problems can occur when sharing authentication?
+Consider these situations:
+1. The application allows only one active session per user.
+2. Logging in from another worker invalidates the previous session.
+3. One test logs out while another test is running.
+4. One test changes account settings or permissions.
+5. The backend rotates or revokes tokens.
+These situations can cause intermittent failures during parallel execution.
+My preferred approach: Worker-specific authentication
+For parallel tests, I prefer generating a separate authentication state for each worker when the application has session conflicts or shared-account data issues.
+import {
+    test as base,
+    expect,
+    type Browser,
+    type WorkerInfo
+} from '@playwright/test';
+
+import fs from 'fs';
+
+type WorkerFixtures = {
+    workerStorageState: string;
+};
+
+export const test = base.extend<{}, WorkerFixtures>({
+
+    storageState: async ({ workerStorageState }, use) => {
+
+        await use(workerStorageState);
+
+    },
+
+    workerStorageState: [async ({ browser }, use, workerInfo) => {
+
+        const authFile =
+            `.auth/worker-${workerInfo.parallelIndex}.json`;
+
+        if (!fs.existsSync(authFile)) {
+
+            const page = await browser.newPage();
+
+            await page.goto('/login');
+
+            await page.locator('#username').fill(
+                process.env.USERNAME!
+            );
+
+            await page.locator('#password').fill(
+                process.env.PASSWORD!
+            );
+
+            await page.locator('#login').click();
+
+            await page.context().storageState({
+                path: authFile
+            });
+
+            await page.context().close();
+
+        }
+
+        await use(authFile);
+
+    }, { scope: 'worker' }]
+
+});
+
+export { expect };
+
+
+This is a simplified illustration; in a production framework, I would use a dedicated API login helper, create the authentication directory, validate the saved state, and use a distinct account per worker if sessions can invalidate one another.
+
+Interview answer: Yes, workers can reuse the same authentication state file because each test creates an isolated browser context. However, for applications with single-session restrictions or token rotation, I prefer worker-specific authentication states and separate test accounts.
+
+4. What happens if an access token expires during parallel execution?
+When an access token expires during parallel execution, API requests or application requests using that token may start returning 401 Unauthorized.
+
+For example, assume four workers are executing tests:
+- Worker 1 is accessing the dashboard.
+- Worker 2 is creating a user.
+- Worker 3 is updating a profile.
+- Worker 4 is validating reports.
+If all workers use the same expired token, multiple tests may fail at approximately the same time.
+How I handle this scenario
+My strategy is:
+1. Detect an authentication failure, usually HTTP 401.
+2. Check whether the access token has expired.
+3. Use the refresh token to obtain a new access token.
+4. Update the token used by the relevant worker.
+5. Retry the failed request once, if it is safe to retry.
+6. If refresh fails, perform a fresh login or fail with a clear authentication error.
+Example: Token refresh using TypeScript
+import { request, APIRequestContext } from '@playwright/test';
+
+class AuthManager {
+
+    private accessToken: string;
+    private refreshToken: string;
+
+    constructor(accessToken: string, refreshToken: string) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+    }
+
+    getAccessToken(): string {
+        return this.accessToken;
+    }
+
+    async refreshAccessToken(): Promise<void> {
+
+        const apiContext = await request.newContext();
+
+        const response = await apiContext.post(
+            'https://example.com/api/auth/refresh',
+            {
+                data: {
+                    refreshToken: this.refreshToken
+                }
+            }
+        );
+
+        if (!response.ok()) {
+            await apiContext.dispose();
+            throw new Error('Unable to refresh access token');
+        }
+
+        const result = await response.json();
+
+        this.accessToken = result.accessToken;
+
+        if (result.refreshToken) {
+            this.refreshToken = result.refreshToken;
+        }
+
+        await apiContext.dispose();
+    }
+}
+
+
+Example: Retry an API request after refreshing the token
+async function getUserDetails(
+    apiContext: APIRequestContext,
+    authManager: AuthManager
+) {
+
+    let response = await apiContext.get(
+        '/users/profile',
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${authManager.getAccessToken()}`
+            }
+        }
+    );
+
+    if (response.status() === 401) {
+
+        await authManager.refreshAccessToken();
+
+        response = await apiContext.get(
+            '/users/profile',
+            {
+                headers: {
+                    Authorization:
+                        `Bearer ${authManager.getAccessToken()}`
+                }
+            }
+        );
+    }
+
+    return response;
+}
+
+
+Important consideration during parallel execution
+If multiple workers share the same refresh token, refresh-token rotation can create a race condition.
+
+For example:
+- Worker 1 refreshes the token and receives a new refresh token.
+- The server invalidates the previous refresh token.
+- Worker 2 tries to refresh using the old token.
+- Worker 2 receives 401 or an invalid refresh-token response.
+To avoid this, I prefer:
+- Separate authentication sessions for independent workers.
+- Worker-specific refresh-token management.
+- A synchronized refresh mechanism if a session genuinely must be shared.
+- Avoiding unnecessary refresh requests by checking token expiry where possible.
+Interview answer: I handle token expiry by detecting 401 responses, refreshing the access token, and retrying the request once. During parallel execution, I avoid uncontrolled sharing of refresh tokens because token rotation can cause race conditions between workers.
+
+5. How do you handle authentication in API testing using APIRequestContext?
+In Playwright, I use APIRequestContext to perform API requests independently of the browser UI.
+
+For authentication, I generally follow this approach:
+1. Send a login API request.
+2. Extract the access token from the response.
+3. Store the token securely in the test fixture or authentication manager.
+4. Pass the token in the Authorization header.
+5. Execute authenticated API requests.
+6. Validate status codes, response body, and authorization behavior.
+Example: Login through API
+import {
+    test,
+    expect,
+    request,
+    APIRequestContext
+} from '@playwright/test';
+
+test('API authentication example', async () => {
+
+    const apiContext = await request.newContext({
+        baseURL: 'https://example.com/api'
+    });
+
+    // Step 1: Login
+    const loginResponse = await apiContext.post('/login', {
+
+        data: {
+            username: 'testuser',
+            password: 'password123'
+        }
+
+    });
+
+    expect(loginResponse.status()).toBe(200);
+
+    // Step 2: Extract token
+    const loginData = await loginResponse.json();
+
+    const accessToken = loginData.accessToken;
+
+    expect(accessToken).toBeTruthy();
+
+    // Step 3: Authenticated API request
+    const userResponse = await apiContext.get('/users/profile', {
+
+        headers: {
+            Authorization: `Bearer ${accessToken}`
+        }
+
+    });
+
+    // Step 4: Validate response
+    expect(userResponse.status()).toBe(200);
+
+    const userData = await userResponse.json();
+
+    expect(userData.username).toBe('testuser');
+
+    await apiContext.dispose();
+
+});
+
+
+Alternative: Create an authenticated API context
+If multiple API requests need the same authentication, I create an API context with default authorization headers.
+const authenticatedApi = await request.newContext({
+
+    baseURL: 'https://example.com/api',
+
+    extraHTTPHeaders: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+    }
+
+});
+
+const response = await authenticatedApi.get('/users');
+
+expect(response.status()).toBe(200);
+
+await authenticatedApi.dispose();
+
+
+This avoids passing the authorization header in every request.
+How do I reuse API authentication in UI testing?
+Suppose I want to create a user through an API and verify that the user appears in the UI.
+
+I can authenticate through the API, initialize browser storage, and then navigate to the application.
+const loginResponse = await apiContext.post('/login', {
+    data: {
+        username: 'testuser',
+        password: 'password123'
+    }
+});
+
+const { accessToken } = await loginResponse.json();
+
+await page.addInitScript((token) => {
+
+    localStorage.setItem('token', token);
+
+}, accessToken);
+
+await page.goto('https://example.com/dashboard');
+
+
+This assumes the application reads the token from local storage and accepts the same token issued by the API.
+
+Important distinction:
+- APIRequestContext is useful for API testing and API-based setup.
+- page is useful for browser UI testing.
+- API authentication does not automatically authenticate an independently created browser context. I must explicitly transfer the appropriate authentication state when the application requires it.
+Interview answer: I use API-based authentication to avoid unnecessary UI login steps. I extract the access token from the login response and pass it through the Authorization header for subsequent API requests. If I need to validate the authenticated UI, I initialize the browser's required authentication storage before navigating to the application.
+
+6. How do you prevent one user's authentication state from leaking into another user's tests?
+This is an important scenario when testing applications with multiple roles, such as Admin, Manager, and Standard User.
+
+My approach is to maintain separate browser contexts, authentication states, and test data for each user.
+Problems that can occur
+Suppose I have two tests:
+- Test 1: Login as Admin.
+- Test 2: Login as Standard User.
+If both tests accidentally share the same browser context, the second test might inherit the Admin's cookies or local storage.
+
+This can cause:
+- Incorrect permission validation.
+- Tests passing with the wrong user role.
+- Session conflicts.
+- Security-related defects going undetected.
+Solution 1: Separate authentication state files
+import { test, expect } from '@playwright/test';
+
+// Admin authentication
+test.describe('Admin Tests', () => {
+
+    test.use({
+        storageState: '.auth/admin.json'
+    });
+
+    test('Admin dashboard', async ({ page }) => {
+
+        await page.goto('/dashboard');
+
+        await expect(
+            page.locator('#admin-dashboard')
+        ).toBeVisible();
+
+    });
+
+});
+
+// Standard user authentication
+test.describe('User Tests', () => {
+
+    test.use({
+        storageState: '.auth/user.json'
+    });
+
+    test('User dashboard', async ({ page }) => {
+
+        await page.goto('/dashboard');
+
+        await expect(
+            page.locator('#user-dashboard')
+        ).toBeVisible();
+
+    });
+
+});
+
+
+Here, Admin and Standard User have separate authentication files.
+Solution 2: Create independent browser contexts
+If I need to test multiple users within the same test, I create separate browser contexts.
+import { test, expect } from '@playwright/test';
+
+test('Verify Admin and User access independently', async ({
+    browser
+}) => {
+
+    // Admin context
+    const adminContext = await browser.newContext({
+        storageState: '.auth/admin.json'
+    });
+
+    const adminPage = await adminContext.newPage();
+
+    await adminPage.goto('/dashboard');
+
+    await expect(
+        adminPage.locator('#admin-dashboard')
+    ).toBeVisible();
+
+
+    // Standard user context
+    const userContext = await browser.newContext({
+        storageState: '.auth/user.json'
+    });
+
+    const userPage = await userContext.newPage();
+
+    await userPage.goto('/dashboard');
+
+    await expect(
+        userPage.locator('#user-dashboard')
+    ).toBeVisible();
+
+
+    // Cleanup
+    await adminContext.close();
+    await userContext.close();
+
+});
+
+
+My framework-level practices
+Practice	Purpose
+Separate storage state files	Prevent authentication overlap
+Separate browser contexts	Isolate cookies and local storage
+Separate test accounts	Avoid shared account conflicts
+Worker-specific authentication	Avoid parallel session conflicts
+Avoid global mutable tokens	Prevent accidental token replacement
+Clean up test data	Prevent tests affecting each other
+Never commit auth files	Protect sensitive credentials
+
+Interview answer: I prevent authentication leakage by maintaining separate storage state files and browser contexts for different users. I also use independent test accounts and avoid sharing mutable authentication tokens between tests. This ensures that Admin, Manager, and Standard User scenarios execute independently, even during parallel execution.
+
+7. How do you handle refresh-token rotation?
+First, let's understand refresh-token rotation.
+
+In many applications, authentication uses two tokens:
+- Access token: Used to access protected APIs. Usually has a short expiration time.
+- Refresh token: Used to obtain a new access token without asking the user to log in again.
+In refresh-token rotation, whenever the client uses a refresh token, the server issues a new refresh token and invalidates the old one.
+Refresh-token rotation flow
+Login
+
+Server returns Access Token A + Refresh Token A
+
+
+Access Token A expires
+
+Client sends Refresh Token A
+
+
+Refresh API
+
+Server returns Access Token B + Refresh Token B
+
+
+Old Refresh Token A invalidated
+
+Client must use Refresh Token B next time
+
+
+How I handle this in automation
+I maintain the latest access and refresh tokens in an authentication manager.
+
+Whenever the refresh API returns new tokens, I replace both old values.
+Example: Token manager
+import { request } from '@playwright/test';
+
+class TokenManager {
+
+    private accessToken: string;
+    private refreshToken: string;
+
+    constructor(accessToken: string, refreshToken: string) {
+
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+
+    }
+
+    getAccessToken(): string {
+        return this.accessToken;
+    }
+
+    async refreshTokens(): Promise<void> {
+
+        const api = await request.newContext({
+            baseURL: 'https://example.com/api'
+        });
+
+        try {
+
+            const response = await api.post('/auth/refresh', {
+
+                data: {
+                    refreshToken: this.refreshToken
+                }
+
+            });
+
+            if (!response.ok()) {
+
+                throw new Error(
+                    `Token refresh failed: ${response.status()}`
+                );
+
+            }
+
+            const result = await response.json();
+
+            // Replace both tokens
+            this.accessToken = result.accessToken;
+
+            this.refreshToken = result.refreshToken;
+
+        } finally {
+
+            await api.dispose();
+
+        }
+
+    }
+}
+
+
+Important: Parallel execution and token rotation
+Consider two workers using the same refresh token:
+Worker	Action	Result
+Worker 1	Refreshes Token A	Receives Token B
+Worker 2	Refreshes Token A	May receive invalid-token error
+Worker 1	Uses Token B	Successful
+Worker 2	Uses Token A	Fails
+
+To avoid this problem, I use one of these approaches:
+1. Generate independent login sessions for each worker.
+2. Use a separate refresh token for each worker.
+3. If the application requires a shared session, coordinate refresh operations through a synchronized token manager.
+4. Never allow multiple workers to independently refresh the same rotating refresh token.
+I also test important negative scenarios:
+- Reusing an old refresh token.
+- Using an expired refresh token.
+- Using an invalid refresh token.
+- Refreshing after logout.
+- Refreshing when the refresh token has been revoked.
+- Concurrent refresh requests.
+Interview answer: I handle refresh-token rotation by replacing both the access token and refresh token whenever the refresh API returns new values. Since the old refresh token becomes invalid, I make sure the latest token is used for subsequent requests. During parallel execution, I prefer independent authentication sessions for each worker to avoid refresh-token race conditions.
+
+8. How do you test a user who has permission to view a page but not edit it?
+This is a Role-Based Access Control (RBAC) testing scenario.
+
+Suppose my application has three roles:
+Role	View	Create	Edit	Delete
+Admin	Yes	Yes	Yes	Yes
+Manager	Yes	Yes	Yes	No
+Viewer	Yes	No	No	No
+
+My requirement is to verify that a Viewer can access the page and see its data but cannot modify it.
+
+I validate this at two levels:
+1. UI-level authorization.
+2. API/backend-level authorization.
+Scenario 1: Verify that the Viewer can access the page
+import { test, expect } from '@playwright/test';
+
+test.use({
+    storageState: '.auth/viewer.json'
+});
+
+test('Viewer can access the user management page', async ({
+    page
+}) => {
+
+    await page.goto('/users');
+
+    await expect(
+        page.locator('h1')
+    ).toHaveText('User Management');
+
+    await expect(
+        page.locator('#user-table')
+    ).toBeVisible();
+
+});
+
+
+Scenario 2: Verify that the Viewer cannot edit
+test('Viewer cannot edit user details', async ({ page }) => {
+
+    await page.goto('/users');
+
+    // Edit button should not be visible
+    await expect(
+        page.locator('#edit-user')
+    ).toBeHidden();
+
+});
+
+
+Depending on the application, the Edit button may be disabled instead of hidden.
+
+In that case:
+await expect(
+    page.locator('#edit-user')
+).toBeDisabled();
+
+
+Scenario 3: Verify backend authorization
+This is especially important.
+
+Even if the application hides the Edit button, a user might still directly call the update API.
+
+Therefore, I validate the backend permission independently.
+import { test, expect, request } from '@playwright/test';
+
+test('Viewer cannot update user details', async () => {
+
+    const api = await request.newContext({
+
+        baseURL: 'https://example.com/api',
+
+        extraHTTPHeaders: {
+            Authorization:
+                `Bearer ${process.env.VIEWER_TOKEN}`
+        }
+
+    });
+
+    const response = await api.put('/users/101', {
+
+        data: {
+            name: 'Updated User'
+        }
+
+    });
+
+    // Backend should reject the unauthorized update
+    expect(response.status()).toBe(403);
+
+    await api.dispose();
+
+});
+
+
+A 403 Forbidden response is the expected result when the user is authenticated but lacks permission.
+
+A 401 Unauthorized response usually means the user is not authenticated or the credentials are invalid.
+Scenario 4: Verify that the data remains unchanged
+I also verify that the unauthorized request did not modify the database record.
+
+For example:
+const getResponse = await api.get('/users/101');
+
+expect(getResponse.status()).toBe(200);
+
+const userData = await getResponse.json();
+
+expect(userData.name).toBe('Original User');
+
+
+For reliable validation, I would use a separate authorized API context or a trusted test-data setup mechanism to retrieve the record after the rejected update.
+Scenario 5: Cucumber BDD implementation
+Feature file:
+Feature: Viewer Role Permissions
+
+  Scenario: Viewer can view but cannot edit user details
+
+    Given I am logged in as a Viewer
+    When I navigate to the user management page
+    Then I should be able to view user details
+    And I should not see the Edit button
+    And the update API should return 403
+
+
+Step definition:
+import {
+    Given,
+    When,
+    Then
+} from '@cucumber/cucumber';
+
+import { expect } from '@playwright/test';
+
+Given('I am logged in as a Viewer', async function () {
+
+    // Load or initialize Viewer authentication
+    await this.loginAs('viewer');
+
+});
+
+When('I navigate to the user management page', async function () {
+
+    await this.page.goto('/users');
+
+});
+
+Then('I should be able to view user details', async function () {
+
+    await expect(
+        this.page.locator('#user-table')
+    ).toBeVisible();
+
+});
+
+Then('I should not see the Edit button', async function () {
+
+    await expect(
+        this.page.locator('#edit-user')
+    ).toBeHidden();
+
+});
+
+Then('the update API should return 403', async function () {
+
+    const response = await this.apiContext.put('/users/101', {
+
+        data: {
+            name: 'Updated User'
+        }
+
+    });
+
+    expect(response.status()).toBe(403);
+
+});
+
+
+Here, this.loginAs() and this.apiContext are assumed to be implemented in the custom Cucumber World and authentication helper.
+
+Interview answer: I validate role-based access control at both UI and API levels. For example, if a Viewer has read-only permission, I verify that the user can access the page and view records, but the Edit and Delete actions are hidden or disabled. I also directly call the update API using the Viewer token and verify that the backend returns 403 Forbidden. This ensures that permissions are enforced by the backend, not just by hiding UI elements.
+
+Quick interview revision
+Question					Key point to remember
+2. Does storageState() store sessionStorage? =>	No, manually capture and restore it using addInitScript().
+3. Can two workers share authentication? =>	Yes, but separate sessions are safer when sessions or tokens are mutable.
+4. What if access token expires? =>	Detect 401, refresh token, retry safely.
+5. API authentication?	=> Login API, extract token, pass Bearer token through APIRequestContext.
+6. Prevent authentication leakage? => 	Separate contexts, storage files, accounts, and tokens.
+7. Refresh-token rotation? => 	Replace both tokens and prevent concurrent refresh races.
+8. View but not edit?	 => Validate UI restrictions and backend 403 responses.
+
+A strong point to mention in your interview: Authentication testing is not just about successfully logging in. It also includes session isolation, token lifecycle management, parallel execution, role-based authorization, and backend security validation.
+
+
+#==============================================================================================================================
+# Q :  How will you test negative scenarios in API?
+==> In my API automation framework using Playwright TypeScript, I test negative scenarios by intentionally sending invalid, incomplete, or unauthorized requests to verify how the application handles errors.
+
+My main objective is to ensure that the API does not accept invalid data, exposes appropriate error messages, returns correct HTTP status codes, and maintains data integrity.
+
+I generally cover the following negative scenarios:
+1. Different negative scenarios I validate
+Scenario	Test input	Expected status code
+Missing mandatory field	Remove required email	400 Bad Request
+Invalid data type	Send number instead of string	400 Bad Request
+Invalid email format	email: "abc123"	400 Bad Request
+Invalid authentication	Send an invalid token	401 Unauthorized
+Insufficient permissions	Access admin API as normal user	403 Forbidden
+Non-existing resource	Request invalid user ID	404 Not Found
+Duplicate record	Register existing email	409 Conflict
+Invalid HTTP method	Use DELETE instead of GET	405 Method Not Allowed
+Invalid request payload	Send malformed JSON	400 Bad Request
+Boundary validation	Send values beyond maximum length	400 Bad Request
+
+Note: Actual status codes depend on the API contract.
+2. Playwright TypeScript example
+Suppose we have a POST API for user registration.
+
+Positive request:
+const response = await request.post('/api/users', {
+    data: {
+        name: 'John',
+        email: 'john@gmail.com',
+        password: 'Password@123'
+    }
+});
+
+expect(response.status()).toBe(201);
+
+
+Negative scenario 1: Missing mandatory field
+
+Here, I intentionally remove the email field and verify that the API rejects the request.
+import { test, expect } from '@playwright/test';
+
+test('Verify API rejects missing email', async ({ request }) => {
+
+    const response = await request.post('/api/users', {
+        data: {
+            name: 'John',
+            password: 'Password@123'
+        }
+    });
+
+    expect(response.status()).toBe(400);
+
+    const responseBody = await response.json();
+
+    expect(responseBody).toHaveProperty('message');
+    expect(responseBody.message).toContain('email');
+
+});
+
+
+Negative scenario 2: Invalid authentication token
+
+I verify that the API does not allow unauthorized users to access protected endpoints.
+test('Verify API rejects invalid token', async ({ request }) => {
+
+    const response = await request.get('/api/users/profile', {
+        headers: {
+            Authorization: 'Bearer invalid_token'
+        }
+    });
+
+    expect(response.status()).toBe(401);
+
+    const responseBody = await response.json();
+
+    expect(responseBody).toHaveProperty('message');
+
+});
+
+
+Negative scenario 3: Duplicate user registration
+
+I verify that the API does not allow duplicate user registration with the same email address.
+test('Verify duplicate user registration', async ({ request }) => {
+
+    const userData = {
+        name: 'John',
+        email: 'john@gmail.com',
+        password: 'Password@123'
+    };
+
+    // First registration
+    const firstResponse = await request.post('/api/users', {
+        data: userData
+    });
+
+    expect(firstResponse.status()).toBe(201);
+
+    // Second registration with the same email
+    const secondResponse = await request.post('/api/users', {
+        data: userData
+    });
+
+    expect(secondResponse.status()).toBe(409);
+
+    const responseBody = await secondResponse.json();
+
+    expect(responseBody.message).toContain('already exists');
+
+});
+
+
+3. Data-driven negative testing
+In my framework, instead of writing separate test cases for every invalid input, I use data-driven testing to execute multiple negative scenarios.
+
+For example:
+const negativeTestData = [
+    {
+        scenario: 'Missing name',
+        payload: {
+            email: 'john@gmail.com',
+            password: 'Password@123'
+        }
+    },
+    {
+        scenario: 'Invalid email',
+        payload: {
+            name: 'John',
+            email: 'invalid-email',
+            password: 'Password@123'
+        }
+    },
+    {
+        scenario: 'Missing password',
+        payload: {
+            name: 'John',
+            email: 'john@gmail.com'
+        }
+    },
+    {
+        scenario: 'Invalid password type',
+        payload: {
+            name: 'John',
+            email: 'john@gmail.com',
+            password: 12345
+        }
+    }
+];
+
+for (const testData of negativeTestData) {
+
+    test(`Verify API negative scenario: ${testData.scenario}`, async ({ request }) => {
+
+        const response = await request.post('/api/users', {
+            data: testData.payload
+        });
+
+        expect(response.status()).toBe(400);
+
+        const responseBody = await response.json();
+
+        expect(responseBody).toHaveProperty('message');
+
+    });
+}
+
+
+4. Additional validations I perform
+Apart from checking HTTP status codes, I also validate:
+1. Error response schema: Verify that the error response follows the expected JSON structure.
+2. Error message: Verify meaningful error messages are returned.
+3. Data integrity: Ensure invalid requests do not create or modify records in the database.
+4. Security: Ensure sensitive information like passwords, tokens, and internal stack traces is not exposed.
+5. Response time: Verify that invalid requests are handled within acceptable response-time limits.
+6. Authorization: Verify that users cannot access resources belonging to other users.
+7. Boundary conditions: Test empty strings, null values, special characters, maximum lengths, and unexpected data types.
+5. How I organize negative API tests in my framework
+I maintain separate test suites for different types of API validations.
+tests/
+│
+├── api/
+│   ├── positive/
+│   │   └── user-create.spec.ts
+│   │
+│   ├── negative/
+│   │   ├── validation.spec.ts
+│   │   ├── authentication.spec.ts
+│   │   ├── authorization.spec.ts
+│   │   └── boundary.spec.ts
+│
+├── test-data/
+│   └── negative-user-data.ts
+│
+├── utils/
+│   └── api-helper.ts
+│
+└── playwright.config.ts
+
+
+This separation makes the framework maintainable and helps us execute positive and negative API test suites independently.
+
+Final interview summary
+Interviewer: How will you test negative scenarios in API?
+
+My answer:
+
+"In my 3.6 years of experience with Playwright TypeScript API automation, I handle negative scenarios by intentionally passing invalid inputs, missing mandatory fields, incorrect data types, invalid authentication tokens, duplicate records, and unauthorized requests.
+
+I use Playwright's APIRequestContext to send these requests and validate the expected HTTP status codes, error response messages, response schema, and data integrity.
+
+I also implement data-driven testing to execute multiple negative scenarios using different payloads without duplicating code.
+
+Additionally, I validate security-related scenarios to ensure that APIs do not expose sensitive information or allow unauthorized access.
+
+My main focus is not just verifying that an API returns an error, but ensuring that it handles invalid requests gracefully, securely, and according to the API requirements."
+
+Interview tip: One important point that makes your answer stronger: Always mention that you verify the API's side effects after a negative request. For example, after sending an invalid POST request, verify that no unwanted record was inserted into the database. This demonstrates end-to-end API testing knowledge.
+
+#==============================================================================================================================
+# Q :  How do you chain multiple API requests?
+==> In Playwright TypeScript API automation, I use API chaining when the execution of one API depends on the response of another API.
+
+In API chaining, we execute multiple API requests sequentially and pass the response data from one request as input to the next request.
+
+For example, consider an application where we need to:
+1. Create a new user using POST API.
+2. Extract the generated userId from the response.
+3. Get user details using GET API.
+4. Update user details using PUT API.
+5. Delete the user using DELETE API.
+Here, each API depends on the data returned by the previous API.
+1. API chaining using Playwright TypeScript
+Real-world example
+Let's assume we have the following API endpoints:
+API request	Endpoint	Purpose
+POST	/api/users	Create user
+GET	/api/users/{id}	Get user details
+PUT	/api/users/{id}	Update user
+DELETE	/api/users/{id}	Delete user
+
+Implementation:
+import { test, expect } from '@playwright/test';
+
+test('API Chaining - Create, Get, Update and Delete User',
+    async ({ request }) => {
+
+    // 1. Create User - POST API
+    const createResponse = await request.post('/api/users', {
+        data: {
+            name: 'John',
+            email: 'john@gmail.com',
+            job: 'Automation Engineer'
+        }
+    });
+
+    expect(createResponse.status()).toBe(201);
+
+    const createResponseBody = await createResponse.json();
+
+    // Extract dynamically generated user ID
+    const userId = createResponseBody.id;
+
+    expect(userId).toBeTruthy();
+
+    console.log('Created User ID:', userId);
+
+
+    // 2. Get User - GET API
+    const getResponse = await request.get(`/api/users/${userId}`);
+
+    expect(getResponse.status()).toBe(200);
+
+    const getResponseBody = await getResponse.json();
+
+    expect(getResponseBody.id).toBe(userId);
+    expect(getResponseBody.name).toBe('John');
+
+
+    // 3. Update User - PUT API
+    const updateResponse = await request.put(`/api/users/${userId}`, {
+        data: {
+            name: 'John Updated',
+            email: 'john@gmail.com',
+            job: 'Senior Automation Engineer'
+        }
+    });
+
+    expect(updateResponse.status()).toBe(200);
+
+    const updateResponseBody = await updateResponse.json();
+
+    expect(updateResponseBody.name).toBe('John Updated');
+
+
+    // 4. Delete User - DELETE API
+    const deleteResponse = await request.delete(`/api/users/${userId}`);
+
+    expect(deleteResponse.status()).toBe(204);
+
+
+    // 5. Verify user is deleted
+    const verifyResponse = await request.get(`/api/users/${userId}`);
+
+    expect(verifyResponse.status()).toBe(404);
+
+});
+
+
+Note: The endpoint paths, response fields, and status codes are illustrative. They should match the actual API contract.
+2. How does API chaining work internally?
+Let's understand the execution flow.
+1. POST API – Create User
+
+Returns: userId = 101
+
+
+Extract userId = 101
+
+2. GET API – Get User
+
+GET /api/users/101
+
+Reuse userId = 101
+
+3. PUT API – Update User
+
+PUT /api/users/101
+
+Reuse userId = 101
+
+4. DELETE API – Delete User
+
+DELETE /api/users/101
+
+
+5. GET API – Verify deletion
+Expected: 404 Not Found
+
+
+The important concept is that I extract the dynamic value from one API response and reuse it in subsequent API requests.
+3. API chaining using authentication tokens
+Another common real-world example is authentication-based API chaining.
+
+For example:
+1. Call the Login API using username and password.
+2. Extract the access token from the response.
+3. Pass that token in the Authorization header of subsequent requests.
+4. Access protected APIs.
+test('API chaining using authentication token', async ({ request }) => {
+
+    // Login API
+    const loginResponse = await request.post('/api/login', {
+        data: {
+            username: 'admin',
+            password: 'admin123'
+        }
+    });
+
+    expect(loginResponse.status()).toBe(200);
+
+    const loginBody = await loginResponse.json();
+
+    const token = loginBody.accessToken;
+
+    expect(token).toBeTruthy();
+
+
+    // Get profile using extracted token
+    const profileResponse = await request.get('/api/profile', {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+
+    expect(profileResponse.status()).toBe(200);
+
+    const profileBody = await profileResponse.json();
+
+    expect(profileBody.username).toBe('admin');
+
+});
+
+
+Here, the token generated by the Login API is dynamically passed to the Profile API.
+4. Best practices I follow in API chaining
+In my automation framework, I follow these practices:
+1. Dynamic data extraction: I never hardcode generated IDs, tokens, or other response-dependent values.
+2. Sequential execution: I use async/await to ensure the previous API completes before executing the dependent API.
+3. Response validation: I validate status codes, response body, and important fields after every request.
+4. Reusable methods: I create common API helper methods for GET, POST, PUT, and DELETE operations.
+5. Authentication handling: I extract access tokens dynamically and pass them through headers.
+6. Test data management: I generate unique test data to avoid duplicate-record conflicts.
+7. Cleanup: I delete test-created records after execution wherever possible.
+8. Test independence: I avoid depending on the execution order of separate test cases. If APIs are dependent, I keep their workflow in one test or manage dependencies through fixtures.
+5. Important Playwright methods used
+Method			| Purpose
+request.get()		| Send GET request
+request.post()		| Send POST request
+request.put()		| Send PUT request
+request.patch()		| Send PATCH request
+request.delete()	| Send DELETE request
+response.json()		| Extract JSON response
+response.status()	| Get HTTP status code
+response.headers()	| Get response headers
+expect()		| Validate API response
+
+Final interview answer
+"In my Playwright TypeScript API automation framework, I implement API chaining using Playwright's APIRequestContext.
+
+For example, if I have to test a user management workflow, first I execute the POST API to create a user. From its response, I dynamically extract the user ID and pass it to the GET API to retrieve user details.
+
+Then I execute the PUT API using the same user ID to update the user information, followed by the DELETE API to remove the user.
+
+Similarly, for authentication-based chaining, I execute the login API, extract the access token, and pass it in the Authorization header of subsequent requests.
+
+I use async/await to maintain sequential execution and assertions to validate every API response.
+
+I also focus on reusable API methods, dynamic test data, proper error handling, and cleanup to make the framework scalable and maintainable."
+
+Important interview point: API chaining is different from simply executing multiple APIs. The key concept is passing dynamic data, such as IDs, tokens, or response values, from one API request to another.
+
+#==============================================================================================================================
+# Q :
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q :  
+
+
+#==============================================================================================================================
+# Q :
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q :  
+
+
+#==============================================================================================================================
+# Q :
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q :  
+
+
+#==============================================================================================================================
+# Q :
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q : 
+
+
+#==============================================================================================================================
+# Q :    

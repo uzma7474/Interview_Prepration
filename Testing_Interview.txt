@@ -597,15 +597,144 @@ Strong closing statement for the interview
 
 
 #===================================================================================================
-#  Q  : 
+#  Q  : What is 3 Amigos ? in software  testing
+==> The Three Amigos is a collaborative practice, common in Agile and BDD (Behavior-Driven Development), where three perspectives meet to discuss a user story before development starts. The goal is for everyone to share the same understanding of what is being built.
 
+The three roles
+
+Business (Product Owner / Business Analyst): explains the problem to solve and why it matters, and defines the acceptance criteria from the business side.
+Development (Developer): explains how it could be built, and raises technical constraints, dependencies and risks.
+Testing (QA / Tester): asks “what if” questions, covers edge cases and negative scenarios, and checks that the requirement is testable.
+
+What happens in the meeting
+
+The story is walked through, usually 15 to 30 minutes per story.
+Questions and ambiguities are raised early.
+Concrete examples are written, often in Given/When/Then (Gherkin) format.
+Out-of-scope items and open questions are noted.
+
+Example
+
+Story: “As a user, I want to log in so that I can see my dashboard.”
+
+Business: a user is locked after 3 failed attempts.
+Tester: what if the password is correct but the account is locked? What about a blank username? Is there a session timeout?
+Developer: the lockout needs a counter stored in the DB, and we need to decide how long the lock lasts.
+
+The outcome might be:
+
+gherkin
+Scenario: Account locked after 3 failed attempts
+  Given a registered user with a valid account
+  When the user enters a wrong password 3 times
+  Then the account should be locked
+  And an error message "Account locked" is displayed
+
+Benefits
+
+Defects are found at the requirement stage, which is far cheaper than finding them later (shift-left testing).
+It reduces misunderstandings and rework.
+It produces ready-made scenarios that become automated tests in Cucumber, with Selenium, Playwright or REST Assured.
+It builds shared ownership of quality across the team.
+
+Interview-ready one-liner
+
+“Three Amigos is a short collaboration session between Business, Development and QA to clarify a user story, define acceptance criteria and examples before development begins, so that everyone has a shared understanding and fewer defects slip through.”
+
+Common follow-up questions
+
+When is it held? Before development starts, typically during backlog refinement or just before sprint planning.
+Is it only three people? No. The name is symbolic. It is about three perspectives, and more people can join.
+How does it relate to BDD? It is the discovery step. The examples from the session become Gherkin feature files, which drive automation.
+
+Given your automation background, you can strengthen your answer by saying you use the Three Amigos output to write the feature files that your Cucumber framework runs.
 
 #===================================================================================================
-#  Q  : 
+#  Q  : Difference between Scrum and Kanban
+==> Scrum and Kanban are both Agile frameworks, but they organize work differently. Scrum works in fixed time-boxed iterations, while Kanban is a continuous flow system.
 
+Aspect			| Scrum						| Kanban
+1. Cadence		| Fixed-length sprints (usually 2 to 4 weeks)	| Continuous flow, no fixed iterations
+2. Roles		| Defined roles: Product Owner, Scrum Master,   | Development Team	No mandatory roles
+3. Planning		| Sprint planning at the start of each sprint	| Planned just-in-time, whenever capacity frees up
+4. Changes mid-cycle	| Scope is normally frozen during a sprint	| New work can be added at any time (if the WIP limit allows)
+5. Work limit		| Limited by sprint capacity (velocity)		| Limited by WIP (Work In Progress) limits per column
+6. Key metrics		| Velocity, burndown chart			| Cycle time, lead time, throughput, cumulative flow diagram
+7. Board		| Reset after each sprint			| Persistent, always in use
+8. Ceremonies		| Sprint planning, daily stand-up, 		| sprint review, retrospective	None required (stand-ups and retros are optional)
+9. Delivery		| At the end of each sprint 			| Continuously, as each item finishes
+			| (potentially shippable increment)		|
+10. Estimation		| Story points are commonly used		| Optional, often not used
+11. Best suited for	| Product development with a planned roadmap	| Support, maintenance, and ops work with unpredictable priorities
+
+Key ideas
+
+Scrum: “Commit to a set of stories for a sprint, deliver them, then review and improve.”
+Kanban: “Visualize the work, limit WIP, and optimize the flow.”
+
+Example
+
+In Scrum, the team picks 8 stories for a 2-week sprint. A new urgent request usually waits for the next sprint unless it is critical.
+In Kanban, the board has columns such as To Do, In Progress (limit 3), Testing (limit 2), Done. When a slot frees up, the team pulls the next highest-priority item, urgent or not.
+
+QA perspective
+
+In Scrum, testing happens inside the sprint, so QA must finish testing and regression before the sprint ends, which puts pressure on automation.
+In Kanban, testing is a column on the board, and WIP limits prevent a pile of untested work from building up.
+
+Interview-ready one-liner
+
+“Scrum is an iterative framework with fixed-length sprints, defined roles, and ceremonies, whereas Kanban is a flow-based approach with no fixed iterations, where we visualize work on a board and limit work in progress to improve cycle time. Scrum suits planned product work, and Kanban suits continuous or support-type work.”
+
+Bonus: Scrumban
+
+Some teams combine the two: sprints and roles from Scrum, with WIP limits and a flow board from Kanban. Interviewers sometimes ask about this as a follow-up.
 
 #===================================================================================================
-#  Q  : 
+#  Q  : Smoke VS Sanity Testing , Regression vs Retesting .
+Smoke vs Sanity Testing
+
+Aspect	Smoke Testing	Sanity Testing
+1. Purpose	Check whether the build is stable enough for further testing	Check whether a specific change or bug fix works and hasn’t broken related areas
+Scope	Broad and shallow, covers the critical end-to-end functions	Narrow and deep, focused on the changed module
+When	On every new build, before detailed testing	After a minor change or fix, on a build that already passed smoke
+Done by	Developers or testers	Mostly testers
+Scripted?	Usually scripted and often automated	Usually unscripted or a quick manual check
+Subset of	Acceptance testing (build verification)	Regression testing
+Outcome	Build rejected if it fails	Further testing stops if the change fails
+
+Example (e-commerce app)
+
+Smoke: a new build arrives. Check that the app launches, login works, search works, add to cart works, and checkout opens. If any of these fail, reject the build.
+Sanity: a bug in the coupon code calculation is fixed. Verify that the coupon discount now works, plus the cart total and the payment amount around it. You don’t test the whole app.
+
+Memory trick: Smoke asks “Is the build healthy enough to test?” Sanity asks “Is the fix or change reasonable enough to continue testing?”
+
+Regression vs Retesting
+
+Aspect	Regression Testing	Retesting
+Purpose	Ensure recent changes haven’t broken existing functionality	Confirm that a specific reported defect is fixed
+Based on	Existing passed test cases	The failed test cases that raised the defect
+Scope	Wide, covers impacted and related areas	Narrow, only the failed scenario
+Defect-driven?	No, done even when no defect was logged	Yes, always tied to a specific bug
+Automation	Highly suitable, since the suite is repeated often	Usually not worth automating, since it runs once per fix
+Execution order	Can run in parallel with retesting	Has higher priority and runs before regression
+Test cases	Can be reused many times	Same failed test case, executed once after the fix
+
+Example
+
+Retesting: the login test failed because of a wrong error message, and the developer fixed it. You re-run that exact failed test case to confirm the fix.
+Regression: after that fix, you run the other tests (forgot password, logout, session handling, registration) to confirm nothing else broke.
+
+Interview-ready one-liners
+
+“Smoke testing is a quick, broad check of critical functionality to decide whether a build is stable enough for deeper testing. Sanity testing is a narrow, focused check after a minor change or fix to confirm it works and hasn’t affected related functionality.”
+
+“Retesting verifies that a specific defect has been fixed by re-running the failed test case. Regression testing verifies that recent changes haven’t broken existing functionality, by running a broader set of previously passing tests.”
+
+Automation angle for your interviews
+
+In your framework, you can tag Cucumber scenarios with @smoke and @regression and run them selectively in CI. For example, a smoke suite runs on every commit, and the full regression suite runs nightly. Retesting is typically a manual re-run of the failed test, or a targeted run using a tag like @bug-123.
 
 
 

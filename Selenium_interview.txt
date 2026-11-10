@@ -20124,55 +20124,788 @@ XPath				| Purpose
 My recommendation for interviews: Understand why SVG requires namespace-aware XPath, the difference between name() and local-name(), and how to combine SVG locators with Actions and WebDriverWait. These are the most important practical concepts for Selenium automation involving charts and dashboards.
 
 #====================================================================================================
-# Q :
+# Q : . How do you get all options from a dropdown?
+==> Why the approach depends on the dropdown type
+
+A native <select> exposes its options through the browser’s own model, and Selenium’s Select class knows how to read it. A custom dropdown is just generic HTML, so Selenium has no special knowledge of it. You must locate the option elements yourself.
+
+Native <select>
+java
+Select select = new Select(driver.findElement(By.id("state")));
+List<WebElement> options = select.getOptions();
+
+for (WebElement opt : options) {
+    System.out.println(opt.getText() + " | value=" + opt.getAttribute("value"));
+}
+
+Collect them into a list of strings for assertions:
+
+java
+List<String> texts = select.getOptions().stream()
+        .map(WebElement::getText)
+        .map(String::trim)
+        .collect(Collectors.toList());
+
+Related methods:
+
+Method	Returns
+getOptions()	Every <option>
+getAllSelectedOptions()	All selected (multi-select)
+getFirstSelectedOption()	The selected one (single select)
+Custom dropdown (div / ul / li)
+java
+driver.findElement(By.id("cityDropdown")).click();   // open it first
+
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+List<WebElement> options = wait.until(
+    ExpectedConditions.visibilityOfAllElementsLocatedBy(
+        By.xpath("//ul[@role='listbox']/li")));
+
+options.forEach(o -> System.out.println(o.getText()));
+Reasoning and pitfalls
+Open the dropdown first. Many custom dropdowns only render <li> items after the click, so findElements before opening returns an empty list.
+Wait before collecting. findElements never waits and never throws. It returns an empty list immediately if nothing has loaded, which can look like “the dropdown has no options” when it only hasn’t rendered yet.
+getText() returns only visible text. Options hidden by CSS or scrolled out of a virtualised list may return an empty string. Use getAttribute("textContent") for hidden text.
+Placeholder options such as “Select one” are counted too, so skip index 0 when validating real data.
+Typical use: verifying the option list, checking sort order, or checking that no duplicates exist:
+java
+List<String> sorted = new ArrayList<>(texts);
+Collections.sort(sorted);
+Assert.assertEquals(texts, sorted, "Options are not sorted");
+Assert.assertEquals(new HashSet<>(texts).size(), texts.size(), "Duplicates found");
+
+#====================================================================================================
+# Q : Why can’t Select handle a Bootstrap or React dropdown?
+What Select actually does
+
+The constructor checks the element’s tag name:
+
+java
+public Select(WebElement element) {
+    String tagName = element.getTagName();
+    if (null == tagName || !"select".equals(tagName.toLowerCase())) {
+        throw new UnexpectedTagNameException("select", tagName);
+    }
+    ...
+}
+
+If the tag is anything other than <select>, you get UnexpectedTagNameException.
+
+Why that check exists
+
+Select is built around the native element’s behavior: <option> children, the selected property, the multiple attribute, and the browser’s own way of changing the selected option. Its methods find <option> descendants, so on any other markup they would have nothing to operate on.
+
+What Bootstrap, React and similar libraries render instead
+
+Libraries like React-Select, Material UI, Ant Design and Bootstrap dropdowns draw their own UI so they can be styled, searched and animated. The result is usually:
+
+html
+<div class="dropdown">
+  <button class="dropdown-toggle">Select city</button>
+  <ul class="dropdown-menu">
+    <li><a class="dropdown-item">Pune</a></li>
+    <li><a class="dropdown-item">Mumbai</a></li>
+  </ul>
+</div>
+
+There is no <select> and no <option>. Selection is handled by JavaScript click handlers and CSS classes such as active, not by the browser’s native selected state.
+
+The fix
+
+Treat it like any other UI: click to open, wait, click the option.
+
+java
+driver.findElement(By.cssSelector(".dropdown-toggle")).click();
+wait.until(ExpectedConditions.elementToBeClickable(
+    By.xpath("//ul[contains(@class,'dropdown-menu')]//a[normalize-space()='Pune']"))).click();
+Special cases
+Some libraries keep a hidden native <select> in the DOM for form submission and show a custom UI on top. Using Select on the hidden one may change the value without updating the visible UI, or throw ElementNotInteractableException. Always interact with what the user sees.
+To verify the choice, assert on the displayed text of the trigger, not on a Select call.
+How to tell quickly
+
+Inspect the element. If you see <select>, use Select. If you see div, ul, button or input, use the click-and-pick approach.
+
+#====================================================================================================
+# Q : How do you handle a dropdown that loads on scroll?
+Why it happens
+
+Long lists are often loaded in pages (“infinite scroll”) or virtualised, meaning only the rows currently visible exist in the DOM. Rows are created and destroyed as you scroll. So findElements shows only a window of options, and the one you want may not exist until you scroll.
+
+Approach A: scroll the list container with JavaScript
+java
+WebElement list = driver.findElement(By.cssSelector("ul.dropdown-menu"));
+JavascriptExecutor js = (JavascriptExecutor) driver;
+By target = By.xpath("//li[normalize-space()='Zambia']");
+
+boolean found = false;
+for (int i = 0; i < 30 && !found; i++) {
+    if (!driver.findElements(target).isEmpty()) {
+        found = true;
+        break;
+    }
+    js.executeScript("arguments[0].scrollTop = arguments[0].scrollTop + 300;", list);
+    Thread.sleep(300);   // better: wait for the item count to change
+}
+
+Assert.assertTrue(found, "Option not found after scrolling");
+driver.findElement(target).click();
+
+Key points:
+
+Scroll the list container, not the page. window.scrollBy scrolls the page behind the dropdown and the list stays put.
+Scroll in steps rather than jumping to the bottom, otherwise a virtualised list may skip over the row you need.
+Re-check for the target after each step, and stop when it appears.
+Always bound the loop. Otherwise a missing option causes an infinite loop.
+
+Approach B: stop when the list stops growing
+
+int previous = -1;
+List<WebElement> items;
+do {
+    items = driver.findElements(By.cssSelector("ul.dropdown-menu li"));
+    if (items.size() == previous) break;       // no new items loaded, reached the end
+    previous = items.size();
+    js.executeScript("arguments[0].scrollTop = arguments[0].scrollHeight;", list);
+    wait.until(d -> d.findElements(By.cssSelector("ul.dropdown-menu li")).size() > items.size()
+                     || true);                 // see note below
+} while (true);
+
+A simpler, safer version of the wait is a short FluentWait that returns false on timeout rather than failing. This pattern suits lists that append items (lazy loading), not virtualised ones, since a virtualised list’s count stays roughly constant.
+
+Approach C: keyboard navigation
+
+WebElement input = driver.findElement(By.id("country"));
+input.click();
+for (int i = 0; i < 50; i++) {
+    if (!driver.findElements(By.xpath("//li[normalize-space()='Zambia']")).isEmpty()) break;
+    input.sendKeys(Keys.ARROW_DOWN);
+}
+input.sendKeys(Keys.ENTER);
+
+Why it works: moving the highlight down makes the component scroll itself and load more rows. Why it is a second choice: it is slow for long lists, and some libraries select on highlight, so you may select the wrong item along the way.
+
+Approach D: type to filter (best when available)
+
+input.sendKeys("Zambia");
+wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//li[normalize-space()='Zambia']"))).click();
+
+Many searchable dropdowns filter server side. This avoids scrolling entirely and is the most stable approach, so check for it first.
+
+Approach E: scrollIntoView once the element exists
+
+js.executeScript("arguments[0].scrollIntoView({block:'center'});", element);
+
+This works only when the element is already in the DOM (lazy-appended but not virtualised).
+
+Reasoning summary
+1. List type			| What exists in DOM	| Best approach
+2. Fully loaded, just long	| All items		| scrollIntoView or normal wait and click
+3. Lazy / infinite scroll	| Grows as you scroll	| Scroll container in steps until target appears
+4. Virtualised			| Only visible window	| Scroll in small steps, or type to filter
+5. Searchable			| Server filtered	| Type, wait, click
+
+#====================================================================================================
+# Q : How do you make the wait robust against AJAX?
+The root problem
+
+After a user action, the page sends a request, and the DOM changes a moment later. You cannot know how long that takes. A fixed Thread.sleep(3000) is wrong both ways: it wastes time when the response is fast and still fails when the server is slow. So you wait for a condition that proves the new data has arrived.
+
+1. Wait on the option itself
+java
+WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+wait.until(ExpectedConditions.elementToBeClickable(
+    By.xpath("//li[normalize-space()='Pune']"))).click();
+
+elementToBeClickable checks presence, visibility and enabled state, and it keeps polling (every 500 ms by default) until the option is ready or the timeout expires. This is the best default because it waits for exactly the thing you need.
+
+2. Wait on the option count changing
+
+Useful for dependent dropdowns, where the child list is replaced after you pick the parent:
+
+java
+Select state = new Select(driver.findElement(By.id("state")));
+int before = state.getOptions().size();
+
+new Select(driver.findElement(By.id("country"))).selectByVisibleText("India");
+
+wait.until(d -> new Select(d.findElement(By.id("state"))).getOptions().size() > before);
+
+Re-locating the element inside the lambda matters: if the child dropdown is replaced in the DOM, the old reference would be stale.
+
+3. Wait for the old content to go away
+java
+WebElement oldOption = driver.findElement(By.xpath("//li[text()='Loading...']"));
+wait.until(ExpectedConditions.stalenessOf(oldOption));
+
+or
+
+java
+wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector(".spinner")));
+
+A loading spinner disappearing is a reliable signal that the request has finished, provided the app uses one.
+
+4. Wait for pending network calls to finish
+
+For jQuery-based pages:
+
+java
+wait.until(d -> (Boolean) ((JavascriptExecutor) d)
+        .executeScript("return window.jQuery != undefined && jQuery.active == 0"));
+
+jQuery.active is the number of in-flight AJAX calls. For other frameworks it does not apply. Combine it with a wait on the actual element, because “no requests in flight” does not mean the DOM has rendered the result.
+
+5. FluentWait for finer control
+java
+Wait<WebDriver> fluent = new FluentWait<>(driver)
+        .withTimeout(Duration.ofSeconds(15))
+        .pollingEvery(Duration.ofMillis(250))
+        .ignoring(NoSuchElementException.class)
+        .ignoring(StaleElementReferenceException.class);
+
+WebElement opt = fluent.until(d -> d.findElement(By.xpath("//li[normalize-space()='Pune']")));
+
+Ignoring StaleElementReferenceException is what makes this robust when the list re-renders during polling.
+
+6. Avoid mixing implicit and explicit waits
+
+If an implicit wait is set (say 10 seconds), explicit waits can behave unpredictably and wait much longer than expected, because each lookup inside the condition also waits implicitly. Pick explicit waits and leave the implicit wait at zero.
+
+Reasoning: why these conditions are “robust”
+Choice				| Why it holds up
+1. Condition-based wait		| Returns as soon as the condition is true, so fast runs stay fast
+2. Clickability, not just presence	| The element can exist but still be hidden or animating
+3. Count change / staleness	| Proves the new data has replaced the old data
+4. Ignoring stale exceptions	| Tolerates re-rendering mid-poll
+5. Re-locating inside the lambda | Avoids holding a reference to a replaced element
+6. Bounded timeout	| Fails with a clear message instead of hanging
+
+Common mistakes
+1. Thread.sleep() in place of a condition.
+2. Waiting for presence and then immediately clicking, which hits an element that is still animating.
+3. Storing an element before the AJAX call and using it after, which causes a stale element error.
+4. Waiting for an element that was already there from the previous state, so the wait passes instantly with old data. The count-change and staleness waits fix this.
+5. Timeouts that are too short for slow environments. Make them configurable.
+
+Interview-ready answers
+1. Get all options: “For a native select I use new Select(el).getOptions(). For a custom dropdown I open it, wait for the items to be visible, and use findElements on the li locator, since findElements does not wait on its own.”
+
+2. Why Select fails on Bootstrap/React: “Select verifies that the tag is <select> and throws UnexpectedTagNameException otherwise. Those libraries render divs and lists with JavaScript handlers, so I click the trigger and then click the option instead.”
+
+3. Dropdown that loads on scroll: “I scroll the list container, not the page, in small steps with scrollTop until the target option appears, with a bounded loop. If the dropdown supports search I type to filter, which is more stable. Keyboard arrow-down is a fallback.”
+
+4. Robust AJAX waits: “I use explicit waits on a condition that proves the new data is there: the option being clickable, the option count changing, a spinner disappearing, or the old element going stale. I avoid Thread.sleep and keep the implicit wait at zero so the two don’t interfere.”
+
+#====================================================================================================
+# Q : How does polymorphism help in framework design?
+==> The idea in one line
+
+Polymorphism lets your framework code depend on an abstraction (an interface or parent class) while the actual behavior is decided at runtime by whichever concrete class you plug in. Test code stays the same, and only the implementation changes.
+
+Java has two kinds, and a framework uses both:
+
+Type	Also called	Decided	Example
+Compile-time	Method overloading	By the compiler, based on parameters	click(By) vs click(WebElement)
+Runtime	Method overriding	By the JVM, based on the actual object	WebDriver d = new ChromeDriver();
+1. You already use it: WebDriver
+java
+WebDriver driver = new ChromeDriver();   // or FirefoxDriver, EdgeDriver, RemoteWebDriver
+driver.get("https://example.com");
+
+WebDriver is an interface, and each browser class implements it. Your test code calls driver.get() and never knows which browser is behind it. Swapping browsers is a one-line change, which is exactly why Selenium is designed this way.
+
+2. Cross-browser support through a factory
+java
+public class DriverFactory {
+    public static WebDriver create(String browser) {
+        switch (browser.toLowerCase()) {
+            case "chrome":  return new ChromeDriver();
+            case "firefox": return new FirefoxDriver();
+            case "edge":    return new EdgeDriver();
+            default: throw new IllegalArgumentException("Unsupported browser: " + browser);
+        }
+    }
+}
+
+Return type is WebDriver, so everything above this class is browser-agnostic. Adding Safari means one new case, and no test or page object changes.
+
+3. Page Object Model with a common base
+java
+public abstract class BasePage {
+    protected WebDriver driver;
+    protected WebDriverWait wait;
+
+    public BasePage(WebDriver driver) {
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    }
+
+    protected void click(By locator) {
+        wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
+    }
+
+    public abstract boolean isLoaded();     // each page defines its own check
+}
+
+public class LoginPage extends BasePage {
+    public LoginPage(WebDriver d) { super(d); }
+
+    @Override
+    public boolean isLoaded() {
+        return driver.findElement(By.id("loginBtn")).isDisplayed();
+    }
+}
+
+public class HomePage extends BasePage {
+    public HomePage(WebDriver d) { super(d); }
+
+    @Override
+    public boolean isLoaded() {
+        return driver.getTitle().contains("Home");
+    }
+}
+
+Framework code can now treat all pages the same way:
+
+java
+public void assertPageLoaded(BasePage page) {
+    Assert.assertTrue(page.isLoaded());
+}
+
+It works for LoginPage, HomePage or any future page, without modification.
+
+4. Swappable strategies behind an interface
+
+Say test data can come from Excel, JSON or a database:
+
+java
+public interface DataReader {
+    Map<String, String> read(String key);
+}
+
+public class ExcelReader implements DataReader { ... }
+public class JsonReader  implements DataReader { ... }
+public class DbReader    implements DataReader { ... }
+java
+DataReader reader = new JsonReader();     // chosen from config
+String user = reader.read("login").get("username");
+
+Tests call reader.read() and never care about the source. Switching from Excel to JSON is a config change.
+
+The same pattern fits reporting (Extent, Allure), logging, API clients and environment configs.
+
+5. Method overloading for a friendlier API
+java
+public void click(By locator)        { ... }
+public void click(WebElement element){ ... }
+public void type(By locator, String text)           { ... }
+public void type(By locator, String text, boolean clearFirst) { ... }
+
+Callers pick whichever form is convenient, and the compiler chooses the right one. This keeps utility classes small and readable.
+
+6. Web and mobile in one framework
+java
+public interface Screen {
+    void tapLogin();
+}
+
+public class WebLoginScreen    implements Screen { ... uses Selenium }
+public class AndroidLoginScreen implements Screen { ... uses Appium }
+
+Step definitions call screen.tapLogin() and a factory decides the implementation per platform. This is how one set of Cucumber features can drive several platforms.
+
+7. Cucumber and TestNG connection
+Dependency injection relies on the same idea: step classes depend on types, and the container supplies the instances.
+TestNG listeners are interfaces (ITestListener). Your class implements them, and TestNG calls your overridden methods without knowing your class in advance.
+Benefits
+Benefit			| How polymorphism delivers it
+1. Extensibility	| Add a new browser, reader or page by adding a class, not editing existing code (Open/Closed Principle)
+2. Loose coupling	| Code depends on interfaces, not concrete classes
+3. Maintainability	| Common behavior lives in the base class, specifics in subclasses
+4. Reusability		| One utility method works for every subtype
+5. Testability		| A mock or stub can replace a real implementation
+6. Configurability	| Behavior is chosen at runtime from config or parameters
+
+Pitfalls
+1. Over-abstraction. Do not create an interface with a single implementation that will never change.
+2. Deep inheritance trees. Prefer composition (a page object has a driver) over long extends chains.
+3. Fat interfaces. If implementers must leave methods empty, split the interface.
+4. Casting back to concrete types ((ChromeDriver) driver) defeats the purpose. Do it only when you need something browser-specific, such as CDP commands, and guard it with instanceof.
+
+Interview answer
+
+“Polymorphism lets my framework code depend on abstractions, such as WebDriver, a DataReader interface or a BasePage, while the concrete behavior is chosen at runtime. For example, a driver factory returns WebDriver, so tests run on Chrome, Firefox or a remote grid without any code change. Page objects share a base class and override page-specific behavior, and data readers for Excel, JSON or a database sit behind one interface. This makes the framework extensible, since I add a class instead of modifying existing code, and it keeps coupling low and the code easy to maintain.”
+
+#====================================================================================================
+# Q : How have you implemented OOPS concepts in your automation framework?
+==> Use this as a model answer. Swap the class names for the ones in your own code, because interviewers often ask you to open the project and show them.
+
+The four pillars, with framework examples
+1. Encapsulation: hiding data and internals behind methods
+
+Where I used it
+
+Page objects keep locators private and expose only actions such as login(user, pass).
+API request builders in REST Assured keep base URI, headers and auth token private and expose methods such as createBooking(payload).
+The config reader loads the .properties file once and exposes getBaseUrl() and getBrowser(). Tests never touch the file.
+ScenarioContext keeps its map private and exposes set() and get().
+java
+public class LoginPage extends BasePage {
+    private final By username = By.id("user-name");      // hidden
+    private final By password = By.id("password");
+    private final By loginBtn = By.id("login-button");
+
+    public LoginPage(WebDriver driver) { super(driver); }
+
+    public InventoryPage login(String user, String pass) {   // public behavior
+        type(username, user);
+        type(password, pass);
+        click(loginBtn);
+        return new InventoryPage(driver);
+    }
+}
+
+Why it matters: if a locator or endpoint changes, I fix it in one class and no test changes.
+
+2. Inheritance: reuse through a base class
+
+Where I used it
+
+BasePage holds the driver, the wait and common actions (click, type, getText). Every page extends it.
+BaseTest or Hooks handles setup and teardown.
+BaseApi holds the request specification (base URI, content type, logging filters). AuthApi, BookingApi and PingApi extend it.
+java
+public abstract class BaseApi {
+    protected RequestSpecification spec = new RequestSpecBuilder()
+            .setBaseUri(Config.get("base.url"))
+            .setContentType(ContentType.JSON)
+            .addFilter(new RequestLoggingFilter())
+            .addFilter(new ResponseLoggingFilter())
+            .build();
+}
+
+public class BookingApi extends BaseApi {
+    public Response getBooking(int id) {
+        return given().spec(spec).get("/booking/" + id);
+    }
+}
+
+Why it matters: common code is written once. I keep the hierarchy shallow (one level) and prefer composition beyond that.
+
+3. Polymorphism: swappable behavior behind an abstraction
+
+Where I used it
+
+DriverFactory returns WebDriver, so the same tests run on Chrome, Firefox, Edge or a grid.
+A DataReader interface with JsonReader and ExcelReader implementations. The tests call read() and the source comes from config. This is the “hybrid” part of the design.
+Overloading in utilities: click(By) and click(WebElement).
+Overriding isLoaded() in each page class.
+java
+DataReader reader = DataReaderFactory.get(Config.get("data.source"));   // json or excel
+Map<String, String> data = reader.read("createBooking");
+
+Why it matters: adding a new data source or browser means adding a class, not editing existing code.
+
+4. Abstraction: exposing what, hiding how
+
+Where I used it
+
+Step definitions say what happens (bookingApi.createBooking(data)), while the REST Assured calls, serialization and logging sit in the API layer.
+The test layer never sees driver.findElement or given().when().then().
+Interfaces (DataReader) and abstract classes (BasePage) define the contract that subclasses fill in.
+Utility classes such as ExcelUtil, JsonUtil, WaitUtil and ReportUtil hide the Apache POI, Jackson and Extent details.
+
+Why it matters: the layers (tests, steps, pages or API classes, utilities) can change independently.
+
+How it maps to the layers
+Layer			| OOP concept	| Example
+1. Test / feature files	| Abstraction	| Business-readable steps
+2. Step definitions	| Encapsulation	| Call page or API methods only
+3. Page / API classes	| Inheritance, encapsulation	| Extend BasePage or BaseApi, private locators and specs
+4. Factories		| Polymorphism	| DriverFactory, DataReaderFactory
+5. Utilities		| Abstraction, encapsulation	| Excel, JSON, config, logger
+6. Context / DI		| Encapsulation	| ScenarioContext shared by PicoContainer
+
+Related design patterns
+
+1. Page Object Model: encapsulation plus inheritance.
+2. Factory: polymorphism, for drivers and data readers.
+3. Singleton (carefully): config reader. For the driver I use ThreadLocal so parallel runs stay isolated.
+4. Builder: request specs and test-data objects (POJOs for booking payloads).
+5. Strategy: swappable readers or wait policies.
+
+A beyond-web example
+
+In the Forvia connected-services framework, the same ideas apply to non-UI components. Each interface the framework talks to (the Leshan server, serial logging, video capture, defect logging) can sit behind its own class with a clear contract, and a test-runner class coordinates them. Logging and defect creation are then independent modules that can be swapped or extended without touching the test cases. Describe only the classes you actually wrote there.
+
+60-second spoken answer
+
+“My framework is layered: feature files, step definitions, page or API classes, and utilities. For encapsulation, locators and request specs are private inside page and API classes, and tests use only public methods like login() or createBooking(). For inheritance, every page extends a BasePage and every API class extends a BaseApi, which hold the common waits, request spec and logging. For polymorphism, a DriverFactory returns WebDriver, so the same suite runs on different browsers, and a DataReader interface has JSON and Excel implementations selected from config. For abstraction, the test layer only describes business actions, while Selenium or REST Assured calls, Excel parsing and reporting are hidden in lower layers. This keeps the framework easy to maintain, since a locator or endpoint change is fixed in one place, and easy to extend, since a new browser or data source is just a new class.”
+
+#====================================================================================================
+# Q : 1. Interface vs abstract class in your framework
+The core difference
+Aspect	Interface	Abstract class
+Purpose	A contract: what a class can do	A partial implementation: what a family of classes share
+State (fields)	Only constants (public static final)	Instance fields allowed (driver, wait)
+Constructor	None	Yes, subclasses call it via super(...)
+Method bodies	Abstract by default. default and static methods are allowed since Java 8	Mix of abstract and concrete methods
+Inheritance	A class can implement many	A class can extend only one
+Access modifiers	Methods are public	Any (protected helpers are common)
+Relationship	“can do” (capability)	“is a” (type hierarchy)
+Where I used an interface: DataReader
+java
+public interface DataReader {
+    Map<String, String> read(String key);
+}
+
+public class JsonReader  implements DataReader { ... }
+public class ExcelReader implements DataReader { ... }
+
+Reasoning: JSON and Excel readers share no code and no state. They only share the promise “give me a map for this key”. An interface describes exactly that and nothing more. It also lets any class, even one that already extends something else, implement it. Tests depend on DataReader, so I can add a DB reader without touching them.
+
+Other natural interface uses: ITestListener and IRetryAnalyzer (TestNG’s own interfaces), a ReportManager contract, an ApiClient contract so a mock can replace the real one.
+
+Where I used an abstract class: BasePage and BaseApi
+java
+public abstract class BasePage {
+    protected WebDriver driver;            // shared state
+    protected WebDriverWait wait;
+
+    protected BasePage(WebDriver driver) { // shared construction
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    }
+
+    protected void click(By by) {          // shared behavior
+        wait.until(ExpectedConditions.elementToBeClickable(by)).click();
+    }
+
+    public abstract boolean isLoaded();    // each page must define its own
+}
+
+Reasoning: every page needs the same driver, wait and click logic. An interface cannot hold the driver field or the constructor, so I would repeat that code in every page. An abstract class lets me write it once and still force each subclass to implement isLoaded(). It is abstract (not concrete) because a standalone BasePage makes no sense.
+
+How I decide
+Is there shared state or code? Abstract class.
+Is it only a capability or contract, or do unrelated classes need it? Interface.
+Do I need multiple behaviors on one class? Interfaces, since Java allows only one parent class.
+Might I need to change the implementation or mock it later? Interface.
+They work together
+java
+public interface Loadable { boolean isLoaded(); }
+
+public abstract class BasePage implements Loadable { ... }
+
+The interface gives the contract and the abstract class supplies the shared plumbing.
+
+Pitfalls
+A “fat” interface forces implementers to write empty methods. Split it into smaller ones.
+An abstract class with only abstract methods is really an interface.
+Adding a method to an interface breaks every implementer unless it is a default method.
+2. Why composition over deep inheritance
+What each means
+Inheritance is an “is-a” relationship: LoginPage extends BasePage.
+Composition is a “has-a” relationship: LoginPage has a WaitUtil, a ScreenshotUtil and a Logger as fields.
+The problem with deep chains
+java
+BasePage → AuthenticatedPage → DashboardBasePage → ReportsPage → SalesReportsPage
+Rigid. A change in BasePage ripples through every class below it. A fix for one page can break five others.
+Tight coupling. A subclass depends on every protected detail of its parents.
+Hard to read. To know what SalesReportsPage.click() does, you have to climb four levels.
+Forced reuse. A page that needs only WaitUtil also inherits everything else in the chain.
+Single inheritance limit. If a page needs behaviors from two branches, Java cannot combine them. You end up duplicating code or inventing awkward intermediate classes.
+Fragile base class problem. Overriding a method and relying on how the parent calls it makes the subclass break when the parent changes internally.
+Composition version
+java
+public class SalesReportsPage extends BasePage {
+    private final WaitUtil waitUtil;
+    private final TableUtil tableUtil;
+    private final ScreenshotUtil screenshots;
+
+    public SalesReportsPage(WebDriver driver) {
+        super(driver);
+        this.waitUtil = new WaitUtil(driver);
+        this.tableUtil = new TableUtil(driver);
+        this.screenshots = new ScreenshotUtil(driver);
+    }
+}
+Each helper is small, focused, and tested on its own.
+A page takes only the helpers it needs.
+A helper can be swapped (say, WaitUtil for a FluentWaitUtil) by changing one line, or by injecting an interface.
+The same helper is reused by pages, API tests and hooks, which are unrelated in the class hierarchy.
+Changes stay local, so the risk of regression is low.
+What I keep as inheritance
+
+I keep one level: BasePage and BaseApi. This is a genuine “is-a” with shared infrastructure. Everything optional (tables, file upload, date pickers, screenshots) is a composed helper.
+
+Rule of thumb
+
+Use inheritance for “is a kind of” with a stable parent, and composition for “uses a” or “has a”. If you are extending a class only to get its methods, compose instead.
+
+Interview line
+
+“Inheritance couples a child to its parent’s internals, and deep chains become rigid and hard to trace. With composition, a class holds small collaborators, so I can change, mock or replace one without touching the others.”
+
+3. Why ThreadLocal for the driver instead of static
+The problem with a plain static driver
+java
+public class DriverManager {
+    public static WebDriver driver;     // one variable for the whole JVM
+}
+
+With parallel execution (TestNG parallel="methods" or "classes", or parallel Cucumber runners):
+
+Thread A starts a browser and stores it in driver.
+Thread B starts another browser and overwrites driver.
+Thread A now sends its clicks to Thread B’s browser.
+Result: wrong pages, NoSuchElementException, or one thread calling quit() and killing everyone else’s session.
+
+These failures are random and depend on timing, so they are hard to debug.
+
+The ThreadLocal fix
+java
+public class DriverManager {
+    private static final ThreadLocal<WebDriver> DRIVER = new ThreadLocal<>();
+
+    public static void init(String browser) {
+        DRIVER.set(DriverFactory.create(browser));
+    }
+
+    public static WebDriver get() {
+        return DRIVER.get();
+    }
+
+    public static void quit() {
+        if (DRIVER.get() != null) {
+            DRIVER.get().quit();
+            DRIVER.remove();            // important
+        }
+    }
+}
+
+ThreadLocal keeps a separate value per thread. Each thread’s get() returns its own driver, so the code stays simple (DriverManager.get().get(url)) and still safe in parallel.
+
+Usage
+java
+@Before
+public void setUp()  { DriverManager.init("chrome"); }
+
+@After
+public void tearDown() { DriverManager.quit(); }
+Why remove() matters
+
+Test runners reuse threads from a pool. If you don’t call remove():
+
+The old driver reference stays attached to the thread (a memory leak).
+The next test on that thread may find a stale, already-quit driver.
+Limits to know
+ThreadLocal fixes thread isolation, not scenario isolation. Within one thread, scenarios run one after another, so you still create and quit per scenario.
+It is a hidden global. It is harder to test and the dependency is not visible in constructors.
+Threads you create yourself (an ExecutorService, parallelStream) do not inherit the value. You would need InheritableThreadLocal or pass the driver explicitly.
+Alternative: dependency injection
+
+With Cucumber and PicoContainer, the driver lives in a per-scenario context object that is injected through constructors. That removes the need for any global, static or ThreadLocal, and the dependency is explicit. Many teams use ThreadLocal with TestNG and DI with Cucumber.
+
+Interview line
+
+“A static driver is one variable shared by all threads, so parallel tests overwrite each other’s browser. ThreadLocal gives each thread its own driver instance, and I call remove() in teardown to avoid leaks on pooled threads.”
+
+4. Where I used method overloading
+What it is
+
+Overloading means several methods with the same name but different parameter lists in the same class. The compiler chooses which one to call from the argument types (compile-time polymorphism). The return type alone cannot distinguish overloads.
+
+Examples in utility and base classes
+
+Different parameter types
+
+java
+protected void click(By locator) {
+    wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
+}
+
+protected void click(WebElement element) {
+    wait.until(ExpectedConditions.elementToBeClickable(element)).click();
+}
+
+Page methods can pass either a locator or an element that is already found, and the wait logic is the same.
+
+Different number of parameters (optional behavior)
+
+java
+protected void type(By locator, String text) {
+    type(locator, text, true);              // default: clear first
+}
+
+protected void type(By locator, String text, boolean clearFirst) {
+    WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+    if (clearFirst) el.clear();
+    el.sendKeys(text);
+}
+
+The short form handles the common case, and the long form handles the exception. The short form delegates to the long one, so the logic lives in one place.
+
+Waits with and without a timeout
+
+java
+protected WebElement waitForVisible(By locator) {
+    return waitForVisible(locator, 10);
+}
+
+protected WebElement waitForVisible(By locator, int seconds) {
+    return new WebDriverWait(driver, Duration.ofSeconds(seconds))
+            .until(ExpectedConditions.visibilityOfElementLocated(locator));
+}
+
+API layer (REST Assured)
+
+java
+public Response get(String endpoint) { ... }
+public Response get(String endpoint, Map<String, String> queryParams) { ... }
+public Response get(String endpoint, int pathId) { ... }
+
+Excel utility
+
+java
+public String getCellData(String sheet, int row, int col) { ... }
+public String getCellData(String sheet, int row, String columnName) { ... }
+Why it helps
+Callers get a clean, consistent method name instead of clickByLocator, clickByElement, typeWithClear and so on.
+Defaults are hidden in the shorter overloads, which keeps step code short.
+One shared implementation avoids duplicated waits and logging.
+Overloading vs overriding
+			Overloading					| Overriding
+Where		| Same class (or subclass adding a new signature)	| Parent and child class
+1. Signature	| Different parameters					| Same name and parameters
+2. Resolved	| Compile time						| Runtime
+3. Example	| click(By) / click(WebElement)				| isLoaded() in each page
+
+Gotchas
+1. Ambiguous calls: with click(Object) and click(String), passing null can pick an unexpected overload or fail to compile.
+2. Don’t overload so heavily that it is hard to see which version runs. Use a distinct name when the meaning differs (clickAndWait rather than another click).
+3. Varargs overloads can make the choice surprising. Keep it simple.
+4. A different return type with the same parameters is not valid overloading.
+
+Interview-ready answers
+1. Interface vs abstract class: “I use an interface for a pure contract with no shared state, like DataReader with JSON and Excel implementations. I use an abstract class like BasePage when subclasses share the driver, waits and common methods, and I want to force each page to implement something like isLoaded().”
+2. Composition over inheritance: “Deep inheritance couples children to parent internals and makes changes ripple. I keep a single base class level and use composition for helpers like waits, tables and screenshots, so each piece can be changed, reused or mocked independently.”
+3. ThreadLocal driver: “A static driver is shared by every thread, so parallel tests overwrite each other’s browser. ThreadLocal gives each thread its own driver, and I call remove() in teardown so pooled threads don’t hold stale references.”
+4. Overloading: “In my base page and utilities I overload methods like click(By) and click(WebElement), and type(By, String) versus type(By, String, boolean clearFirst). The shorter version supplies a default and delegates to the full one, so callers have one name and the logic is in one place.
+
+#====================================================================================================
+# Q : What is the difference between build() and perform()?
+==> 
 
 
 
 
 #====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
-
-
-
-
-#====================================================================================================
-# Q :
+# Q : What is the purpose of perform()?
+What is the difference between build() and perform()?
+Can we perform multiple actions in a single statement?
+What is the difference between keyDown() and keyUp()?
+Can Actions class handle keyboard shortcuts?
+What is the difference between clickAndHold() and click()?
 
 
 
