@@ -253,7 +253,6 @@ Tools & Utilities
 39. How would you verify that a particular row was added to a table after submitting a form?
 
 
-######### Playwright start from here
 ### 6. Exception & Failure Scenarios
 
 40. Your test fails with `StaleElementReferenceException`. What is the root cause and how would you fix it?
@@ -801,7 +800,7 @@ Topmate – Interview Guidance
 13- What is the difference between checked and unchecked exceptions?
 14- If an XPath selects two elements on a webpage, does findElement throw an exception?
 15- Explain smoke testing and sanity testing.
-16-What are relative locators in Selenium?
+16- What are relative locators in Selenium?
 17- Explain the challenges you faced in your project.
 18- How would you pick test cases for regression testing?
 

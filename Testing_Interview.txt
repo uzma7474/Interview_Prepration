@@ -737,11 +737,33 @@ Automation angle for your interviews
 In your framework, you can tag Cucumber scenarios with @smoke and @regression and run them selectively in CI. For example, a smoke suite runs on every commit, and the full regression suite runs nightly. Retesting is typically a manual re-run of the failed test, or a targeted run using a tag like @bug-123.
 
 
-
-
-
 #===================================================================================================
-#  Q  : 
+#  Q  :  Can you explain a defect with High Priority and Low Severity?
+==> A defect with High Priority and Low Severity is one that barely affects the system’s functionality, but must be fixed urgently for business or visibility reasons.
+Severity is the technical impact of the defect on the application (how badly it breaks things).
+Priority is the business urgency of fixing it (how soon it should be fixed).
+
+Examples
+
+Spelling mistake in the company name or logo on the home page. Functionality is unaffected (low severity), but it hurts brand image and is the first thing customers see, so it is fixed immediately (high priority).
+Wrong text on a banner during a sale or launch. For example, a “50% OFF” banner showing “5% OFF”. The app works fine, but the mistake is misleading and must be fixed before the campaign goes live.
+Typo on the legal or compliance page (terms and conditions, privacy policy). No functional impact, but there may be legal consequences.
+Wrong logo or colour on a client demo build. The client sees it tomorrow, so it must be fixed today.
+
+Why it happens
+
+Priority is decided by the business (Product Owner or Project Manager), while severity is decided by QA. A cosmetic issue can still be urgent when it affects reputation, compliance, or a time-bound event.
+
+The four combinations (commonly asked)
+Combination			| Example
+1. High Priority, High Severity	| Login page crashes for all users
+2. High Priority, Low Severity	| Company name misspelled on the home page
+3. Low Priority, High Severity	| App crashes on a rarely used feature, such as a deprecated browser version or an obscure settings path
+4. Low Priority, Low Severity	| Minor alignment issue on an internal admin page
+
+Interview-ready one-liner
+
+“A high priority, low severity defect doesn’t affect functionality much but needs an urgent fix due to business reasons, for example a spelling mistake in the company name on the home page, which is cosmetic but damages brand image and is highly visible to customers.”
 
 
 #===================================================================================================

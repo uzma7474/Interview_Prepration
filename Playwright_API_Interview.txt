@@ -3416,15 +3416,344 @@ I also focus on reusable API methods, dynamic test data, proper error handling, 
 Important interview point: API chaining is different from simply executing multiple APIs. The key concept is passing dynamic data, such as IDs, tokens, or response values, from one API request to another.
 
 #==============================================================================================================================
-# Q :
+# Q : Bypass login screen using saved storage state in Playwright
+==> Bypassing the login screen using a saved storage state is the most efficient way to speed up your Playwright test suite. Instead of executing the UI login steps before every single test, Playwright logs in once, saves the authentication cookies and local storage to a JSON file, and injects that state into subsequent browser contexts.
+Here is the production-ready setup for Playwright with TypeScript.
+
+Step 1: Create an Authentication Setup File
+
+Create a dedicated setup test file that handles the actual UI login process and exports the state to a JSON file.
+typescript
+// src/tests/auth.setup.ts
+import { test as setup, expect } from '@playwright/test';
+
+// Define where the session state will be stored
+const authFile = 'playwright/.auth/user.json';
+
+setup('authenticate user', async ({ page }) => {
+  // 1. Navigate to your login page
+  await page.goto('https://example.com');
+
+  // 2. Perform the UI login actions
+  await page.getByLabel('Username or Email').fill('your-username');
+  await page.getByLabel('Password').fill('your-password');
+  await page.getByRole('button', { name: 'Log in' }).click();
+
+  // 3. Critical: Wait for a post-login element to ensure cookies are dropped
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+
+  // 4. Save the full storage state (cookies, local storage, session storage)
+  await page.context().storageState({ path: authFile });
+});
+Use code with caution.
+
+Step 2: Configure playwright.config.ts
+
+Modify your main configuration file to establish a dependency layout. This ensures that the setup script runs first, saves the file, and automatically feeds that state into your other projects.
+typescript
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './src/tests',
+  fullyParallel: true,
+  reporter: 'html',
+  
+  projects: [
+    // A. Setup Project: This runs first and saves the auth state
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+
+    // B. Main Testing Project: Inherits the saved state
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Tell Playwright to automatically boot this project with the saved session
+        storageState: 'playwright/.auth/user.json',
+      },
+      // Ensures the 'setup' project finishes completely before this runs
+      dependencies: ['setup'],
+    },
+  ],
+});
+Use code with caution.
+
+Step 3: Write Your Standard Tests
+
+Because your playwright.config.ts handles injecting the state globally for your browser contexts, your target test files can completely skip the login screens and jump straight to protected pages.
+typescript
+// src/tests/dashboard.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('should load profile directly without logging in', async ({ page }) => {
+  // Go straight to a protected URL. You are already logged in!
+  await page.goto('https://example.com');
+  
+  // Assert against elements behind the auth wall
+  await expect(page.getByText('Welcome back, User!')).toBeVisible();
+});
+Use code with caution.
+
+💡 Pro-Tips for Storage State Bypasses
+
+• Ignore the .auth Folder in Git: Do not commit your generated session JSON files to source control, as they contain highly sensitive active session cookies. Add playwright/.auth/ to your .gitignore file.
+• Overriding Auth for Negative Tests: If you have specific tests where you intentionally want to test an unauthenticated or guest user, you can clear the state inline inside that specific test file:typescript
+test.use({ storageState: { cookies: [], origins: [] } }); // Resets auth to blank for this file
+Use code with caution.
+• Handling Token Expiration: If your environment's authentication tokens expire quickly, you can add a short script to delete the playwright/.auth/user.json file inside a global setup script or your CI/CD workflow to force a fresh login when needed.
 
 
 #==============================================================================================================================
-# Q : 
+# Q : Schema validation
+
+import { test, expect } from '@playwright/test';
+import Ajv, { JSONSchemaType } from 'ajv';
+
+// 1. Define the TypeScript interface
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+// 2. Define the JSON Schema tied to the interface
+const userSchema: JSONSchemaType<User> = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    name: { type: 'string' },
+    email: { type: 'string', nullable: true },
+  },
+  required: ['id', 'name'],
+  additionalProperties: false,
+};
+
+// 3. Initialize and compile Ajv
+const ajv = new Ajv({ allErrors: true });
+const validateUser = ajv.compile(userSchema);
+
+test('GET /users/1 matches user schema', async ({ request }) => {
+  const response = await request.get('https://api.example.com/users/1');
+  expect(response.ok()).toBeTruthy();
+
+  const body = await response.json();
+  const isValid = validateUser(body);
+
+  // Assert validity and output detailed schema errors if it fails
+  expect(isValid, JSON.stringify(validateUser.errors, null, 2)).toBe(true);
+});
+
 
 
 #==============================================================================================================================
-# Q : 
+# Q : Creates a new booking in the API
+
+post :  https://restful-booker.herokuapp.com/booking
+
+==> 
+1. Install
+
+bash
+npm i -D ajv ajv-formats
+
+2. Schema (schemas/createBooking.schema.ts)
+
+ts
+export const createBookingResponseSchema = {
+  type: 'object',
+  required: ['bookingid', 'booking'],
+  additionalProperties: false,
+  properties: {
+    bookingid: { type: 'integer', minimum: 1 },
+    booking: {
+      type: 'object',
+      required: ['firstname', 'lastname', 'totalprice', 'depositpaid', 'bookingdates'],
+      additionalProperties: false,
+      properties: {
+        firstname: { type: 'string', minLength: 1 },
+        lastname: { type: 'string', minLength: 1 },
+        totalprice: { type: 'number', minimum: 0 },
+        depositpaid: { type: 'boolean' },
+        bookingdates: {
+          type: 'object',
+          required: ['checkin', 'checkout'],
+          additionalProperties: false,
+          properties: {
+            checkin: { type: 'string', format: 'date' },
+            checkout: { type: 'string', format: 'date' },
+          },
+        },
+        additionalneeds: { type: 'string' }, // optional in the API
+      },
+    },
+  },
+} as const;
+
+additionalProperties: false makes the schema fail if the API adds or renames a field, which is what you want from contract validation. additionalneeds is left out of required because the API only returns it when you send it.
+
+3. Reusable validator (utils/schemaValidator.ts)
+
+ts
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+
+const ajv = new Ajv({ allErrors: true, strict: true });
+addFormats(ajv);   // needed for format: 'date'
+
+export function validateSchema(schema: object, data: unknown) {
+  const validate = ajv.compile(schema);
+  const valid = validate(data);
+  return {
+    valid,
+    errors: valid ? '' : ajv.errorsText(validate.errors, { separator: '\n' }),
+  };
+}
+
+allErrors: true reports every violation instead of stopping at the first. Compile once and reuse it if you validate many times.
+
+4. Test file (tests/createBooking.spec.ts)
+
+ts
+import { test, expect, APIRequestContext } from '@playwright/test';
+import { createBookingResponseSchema } from '../schemas/createBooking.schema';
+import { validateSchema } from '../utils/schemaValidator';
+
+const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+
+const buildPayload = (overrides = {}) => ({
+  firstname: 'Uzma',
+  lastname: 'Shaikh',
+  totalprice: 1500,
+  depositpaid: true,
+  bookingdates: { checkin: '2026-12-01', checkout: '2026-12-05' },
+  additionalneeds: 'Breakfast',
+  ...overrides,
+});
+
+const createdIds: number[] = [];
+
+async function getToken(request: APIRequestContext) {
+  const res = await request.post('/auth', {
+    data: { username: process.env.API_USER, password: process.env.API_PASS },
+  });
+  return (await res.json()).token as string;
+}
+
+test.describe('POST /booking', () => {
+  test('creates a booking: status, headers, schema, data, persistence', async ({ request }) => {
+    const payload = buildPayload();
+
+    const start = Date.now();
+    const response = await request.post('/booking', { headers, data: payload });
+    const elapsed = Date.now() - start;
+
+    // 1. Status code (this API returns 200, not 201)
+    expect(response.status()).toBe(200);
+
+    // 2. Headers
+    expect(response.headers()['content-type']).toContain('application/json');
+
+    // 3. Response time (smoke level)
+    expect(elapsed).toBeLessThan(5000);
+
+    // 4. Schema validation with Ajv
+    const body = await response.json();
+    const { valid, errors } = validateSchema(createBookingResponseSchema, body);
+    expect(valid, `Schema errors:\n${errors}`).toBe(true);
+
+    // 5. Business data: response matches what we sent
+    expect(body.booking).toEqual(payload);
+    expect(body.bookingid).toEqual(expect.any(Number));
+    createdIds.push(body.bookingid);
+
+    // 6. Persistence: it was really saved
+    const getRes = await request.get(`/booking/${body.bookingid}`, { headers });
+    expect(getRes.status()).toBe(200);
+    expect(await getRes.json()).toEqual(payload);
+  });
+
+  test('creates a booking without optional additionalneeds', async ({ request }) => {
+    const { additionalneeds, ...payload } = buildPayload();
+    const response = await request.post('/booking', { headers, data: payload });
+
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(validateSchema(createBookingResponseSchema, body).valid).toBe(true);
+    expect(body.booking.additionalneeds).toBeUndefined();
+    createdIds.push(body.bookingid);
+  });
+
+  test('each booking gets a unique id', async ({ request }) => {
+    const a = await (await request.post('/booking', { headers, data: buildPayload() })).json();
+    const b = await (await request.post('/booking', { headers, data: buildPayload() })).json();
+    expect(a.bookingid).not.toBe(b.bookingid);
+    createdIds.push(a.bookingid, b.bookingid);
+  });
+
+  // Negative cases. Restful Booker is known to return 500 for bad payloads
+  // (ideally 400), so assert the real behavior and note the deviation.
+  test('missing mandatory field is rejected', async ({ request }) => {
+    const { firstname, ...payload } = buildPayload();
+    const response = await request.post('/booking', { headers, data: payload });
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+  });
+
+  test('wrong data type for totalprice is rejected', async ({ request }) => {
+    const response = await request.post('/booking', {
+      headers,
+      data: buildPayload({ totalprice: 'abc' }),
+    });
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+  });
+
+  test('empty body is rejected', async ({ request }) => {
+    const response = await request.post('/booking', { headers, data: {} });
+    expect(response.status()).toBeGreaterThanOrEqual(400);
+  });
+
+  // Proves the schema itself can fail (guards against a schema that accepts everything)
+  test('schema rejects an invalid response shape', () => {
+    const bad = { bookingid: 'x', booking: { firstname: 1 } };
+    expect(validateSchema(createBookingResponseSchema, bad).valid).toBe(false);
+  });
+
+  test.afterAll(async ({ request }) => {
+    const token = await getToken(request);
+    for (const id of createdIds) {
+      await request.delete(`/booking/${id}`, { headers: { Cookie: `token=${token}` } });
+    }
+  });
+});
+
+Set baseURL: 'https://restful-booker.herokuapp.com' in playwright.config.ts, and keep API_USER and API_PASS in .env.
+
+What to validate on a create API (checklist)
+
+Area	What to check
+Status code	Exact code from the contract (200 here)
+Headers	Content-Type is JSON, no leaking headers like X-Powered-By
+Schema	Ajv: required fields, types, formats, no extra fields
+Data	Response equals request payload, bookingid is a positive integer
+Persistence	Follow-up GET /booking/:id returns the same data
+Uniqueness	Two creates give different IDs
+Optional fields	Works with and without additionalneeds
+Negative	Missing field, wrong type, empty body, malformed JSON
+Boundaries	Empty strings, totalprice of 0 or negative, checkout before checkin
+Headers sent	Missing Accept or Content-Type can change the response format, so send both
+Response time	Generous smoke-level threshold
+Cleanup	Delete created data in afterAll (DELETE needs the token and returns 201 here)
+
+Points worth saying in an interview
+
+Why Ajv on top of toEqual? toEqual checks values I expect. Ajv checks the structure and types of the whole response, and catches unexpected extra fields or type changes.
+Why format: 'date'? It needs ajv-formats. Without it, Ajv in strict mode throws an “unknown format” error.
+Boundary and business-rule gaps: the public Restful Booker API is lenient. It may accept a checkout before the checkin or a negative price. Assert the real behavior, and raise these as defects in a real project.
+Shared sandbox: it’s a public API, so data can be reset or changed by others. Don’t depend on specific IDs, and always create your own test data.
+
+Separately, your earlier six authentication questions (worker-scoped fixture, token expiry, multiple roles, other auth schemes, cookie auth, secrets) never got their detailed answers. Want me to write those up next?
 
 
 #==============================================================================================================================
