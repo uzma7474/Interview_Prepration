@@ -20894,32 +20894,909 @@ Interview-ready answers
 
 #====================================================================================================
 # Q : What is the difference between build() and perform()?
-==> 
+==> build() vs perform() in Selenium Java (Actions class)
+Short answer
+build() compiles the queued steps into an Action object. Nothing happens in the browser.
+perform() executes the steps. Called on the Actions object, it does build() and then runs the result in one go.
 
+So perform() alone is enough in almost every test, and build() only prepares.
 
+What happens internally
+java
+Actions actions = new Actions(driver);
 
+actions.moveToElement(menu)     // 1. queued, not executed
+       .click(subMenu);          // 2. queued, not executed
+
+Action action = actions.build(); // compiled into a single Action, still nothing happens
+action.perform();                // NOW the browser moves the mouse and clicks
+
+Each method on Actions (moveToElement, click, sendKeys, keyDown, ...) only adds a step to a queue and returns the same Actions object, which is why you can chain them. Execution starts only when you call perform().
+
+Example showing the difference
+java
+// Does NOTHING in the browser: build() only compiles
+new Actions(driver).moveToElement(menu).click(item).build();
+
+// Works: perform() builds and executes
+new Actions(driver).moveToElement(menu).click(item).perform();
+
+// Works, but build() is redundant
+new Actions(driver).moveToElement(menu).click(item).build().perform();
+
+Forgetting perform() is a classic bug: the code compiles, no exception is thrown, and the test silently does nothing.
+
+Two different perform() methods
+Call			| Class				| Behavior
+actions.perform()	| Actions			| Builds the queued steps and executes them
+action.perform()	| Action (returned by build())	| Executes the already-built steps
+
+When build() is actually useful
+Store a sequence and run it more than once:
+
+java
+Action hoverAndClick = new Actions(driver)
+        .moveToElement(menu)
+        .click(item)
+        .build();
+
+hoverAndClick.perform();    // first run
+// ... other steps ...
+hoverAndClick.perform();    // run the same sequence again
+
+Caveats:
+
+The built action holds references to the original WebElements. If the page re-renders, you get StaleElementReferenceException, so rebuild it after navigation.
+Some versions clear the queue after execution, so reusing the same Actions variable starts with an empty sequence. A stored Action object is the reliable way to repeat steps.
+Comparison
+Aspect			| build()			| perform()
+Executes in browser	| No				| Yes
+Returns			| An Action object		| void
+Needed in Selenium 4	| Rarely			| Always (as the last call)
+Typical use		| Store or reuse a sequence	| Run the chain
+Forgetting it		| Harmless			| Test does nothing
+Related method: release()
+
+Key and mouse states persist until released. If a chain leaves a modifier or button pressed (for example, a missing keyUp), reset it with:
+
+new Actions(driver).release().perform();
+
+Interview answer
+
+“build() compiles the queued actions into an Action object but does not run anything in the browser. perform() executes them. When I call perform() on the Actions object it does the build internally, so .build().perform() is redundant in Selenium 4, though you see it in older code. I use build() only when I want to store a sequence and run it several times. The common mistake is ending a chain without perform(), which compiles fine but does nothing.”
+
+Likely follow-ups
+Q: Can you call perform() without build()? 
+==> Yes. Actions.perform() calls build() internally.
+
+Q : Why is perform() needed at all? 
+==> Actions are lazy. They are batched and sent to the driver as one W3C Actions request, which gives smoother, more realistic input than separate commands.
+
+Q : Why do Actions fail with StaleElementReferenceException on a stored Action? 
+==> The built action holds element references captured at build time, so a page refresh invalidates them.
+
+Q : click() on Actions vs WebElement.click()? 
+==> WebElement.click() runs immediately and checks interactability. Actions.click() is queued, moves the pointer to the element first, and runs only on perform().
 
 #====================================================================================================
 # Q : What is the purpose of perform()?
-What is the difference between build() and perform()?
-Can we perform multiple actions in a single statement?
-What is the difference between keyDown() and keyUp()?
-Can Actions class handle keyboard shortcuts?
-What is the difference between clickAndHold() and click()?
+==> 1. What is the purpose of perform()?
+Actions are lazy. Methods like moveToElement(), click(), sendKeys() and keyDown() only add steps to a queue. perform() is the call that sends that queue to the browser driver and makes it happen.
 
+Actions actions = new Actions(driver);
+actions.moveToElement(menu).click(item);   // only queued, nothing happens yet
+actions.perform();                          // the mouse moves and clicks now
 
+Why the design is lazy: the whole sequence goes to the driver as one W3C Actions request, which allows realistic, correctly timed input (a hover followed by a click, a key held while another is pressed). If every call ran immediately, combinations like Ctrl+click would not work.
+
+Key points
+
+It must be the last call in every chain.
+Without it the code compiles, no exception is thrown, and nothing happens in the browser.
+After it runs, the queue is cleared, so the same Actions variable starts fresh.
+2. What is the difference between build() and perform()?
+		| build()					| perform()
+What it does	| Compiles queued steps into an Action object	| Executes the steps in the browser
+Browser effect	| None						| Yes
+Returns		| Action					| void
+Required?	| No						| Yes
+java
+
+Action a = new Actions(driver).moveToElement(menu).click(item).build();   // nothing happens
+a.perform();                                                              // executes now
+
+new Actions(driver).moveToElement(menu).click(item).perform();            // normal usage
+
+Calling perform() on the Actions object takes care of the building, so .build().perform() is redundant in Selenium 4. It appears in older Selenium 3 code. build() is useful only when you want to store a sequence and run it repeatedly. A stored action holds element references, so it can throw StaleElementReferenceException after a page refresh.
+
+3. Can we perform multiple actions in a single statement?
+==> Yes, through method chaining. Every Actions method returns the same Actions object, so you can link as many steps as you need and finish with one perform():
+
+java
+new Actions(driver)
+    .moveToElement(menu)                       // hover
+    .pause(Duration.ofMillis(500))             // wait for submenu animation
+    .click(subMenu)                            // click
+    .sendKeys("Selenium")                      // type
+    .sendKeys(Keys.ENTER)                      // press Enter
+    .perform();
+
+Other examples of multi-step chains:
+
+java
+// Select several items with Ctrl+click
+new Actions(driver)
+    .keyDown(Keys.CONTROL)
+    .click(item1).click(item3).click(item5)
+    .keyUp(Keys.CONTROL)
+    .perform();
+
+// Drag and drop manually
+new Actions(driver)
+    .clickAndHold(source)
+    .moveToElement(target)
+    .release()
+    .perform();
+
+Why chain: it runs as one batched request, keeps the order guaranteed, and reads like the user’s actions.
+
+Caveats
+
+1. Order matters: steps run exactly in the order you wrote them.
+2. If one step fails, the remaining steps are not executed, and the key or mouse state may be left pressed. Call release() afterward if needed.
+3. Very long chains are hard to debug. Split a sequence when part of it needs a wait for the UI to change (for example, a submenu that loads via AJAX), because perform() does not wait for the page between steps. Use pause() for short fixed gaps, or finish the chain, wait explicitly, and start a new one.
+4. Elements captured before the chain must not go stale halfway through.
+
+4. What is the difference between keyDown() and keyUp()?
+		| keyDown(key)			| keyUp(key)
+Action		| Presses and holds the key	| Releases the key
+Browser events	| keydown			| keyup
+Used for	| Starting a modifier state	| Ending it
+
+They are always used as a pair:
+
+java
+new Actions(driver)
+    .keyDown(Keys.SHIFT)              // Shift is now held
+    .sendKeys("selenium")             // typed as SELENIUM
+    .keyUp(Keys.SHIFT)                // Shift released
+    .sendKeys("selenium")             // typed as selenium
+    .perform();
+
+Typical uses
+
+keyDown(Keys.CONTROL) with sendKeys("a") for select all.
+keyDown(Keys.SHIFT) with click() for range selection.
+keyDown(Keys.CONTROL) with several click() calls for multi-select.
+keyDown(Keys.ALT) for Alt-based shortcuts.
+
+Reasoning and pitfalls
+1. The key stays pressed in the driver until you release it. Forgetting keyUp can affect later actions in the same session, such as every following letter coming out uppercase.
+2. sendKeys() presses and releases a key in one go. keyDown/keyUp give you control over how long the key is held.
+3. Selenium 3 allowed only modifier keys (Ctrl, Shift, Alt, Command) in keyDown() and threw IllegalArgumentException for others. Selenium 4 accepts any key under the W3C protocol, but modifiers are still the practical use case.
+4. On macOS use Keys.COMMAND instead of Keys.CONTROL for shortcuts like select all.
+
+5. Can the Actions class handle keyboard shortcuts?
+==> Yes. That is one of its main uses. The pattern is: hold the modifier, press the letter, release the modifier.
+
+java
+Actions actions = new Actions(driver);
+
+// Ctrl+A (select all)
+actions.keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL).perform();
+
+// Ctrl+C then Ctrl+V
+actions.click(source)
+       .keyDown(Keys.CONTROL).sendKeys("a").sendKeys("c").keyUp(Keys.CONTROL)
+       .click(target)
+       .keyDown(Keys.CONTROL).sendKeys("v").keyUp(Keys.CONTROL)
+       .perform();
+
+// Shift+Tab, Tab, Enter, Escape, arrows
+actions.keyDown(Keys.SHIFT).sendKeys(Keys.TAB).keyUp(Keys.SHIFT).perform();
+actions.sendKeys(Keys.ENTER).perform();
+actions.sendKeys(Keys.ESCAPE).perform();
+actions.sendKeys(Keys.ARROW_DOWN).perform();
+
+Alternatives
+
+element.sendKeys(Keys.chord(Keys.CONTROL, "a")) is a compact one-liner for a single element.
+Actions.sendKeys(element, ...) clicks the element first and then types.
+
+What to watch for
+
+1. Focus: the keys go to the focused element. Click the target field first, otherwise Ctrl+A selects the whole page.
+
+2. OS differences: Command on Mac, Control on Windows and Linux.
+
+3. Browser-level shortcuts (Ctrl+T for a new tab, Ctrl+W, Ctrl+F5, F12) are handled by the browser UI, not the page, so Selenium cannot trigger them reliably. Use driver.switchTo().newWindow(WindowType.TAB) or driver.navigate().refresh() instead.
+
+4. Clipboard in headless mode: copy and paste may silently do nothing.
+
+5. Lowercase letters: use "a" rather than "A" with Ctrl to avoid an unintended Shift combination.
+
+6. Page-defined shortcuts (for example, a web app’s own “Ctrl+S to save” listener) work well, because they react to the key events Actions dispatches.
+
+6. What is the difference between clickAndHold() and click()?
+			| click()				| clickAndHold()
+Mouse events		| mousedown, then mouseup, then click	| Only mousedown
+Button after the call	| Released				| Still pressed
+Release needed		| No					| Yes, with release()
+Typical use		| Buttons, links, checkboxes		| Drag and drop, sliders, resizing, text selection
+
+// click: press and release immediately
+new Actions(driver).click(button).perform();
+
+// clickAndHold: press, move while pressed, release
+new Actions(driver)
+    .clickAndHold(slider)
+    .moveByOffset(80, 0)       // drag 80 pixels to the right
+    .release()
+    .perform();
+
+Variants
+
+1. click() with no argument clicks at the current mouse position. click(element) moves to the element first.
+
+2. clickAndHold() with no argument holds at the current position. clickAndHold(element) moves to the element and holds there.
+
+3. doubleClick() and contextClick() (right click) are separate methods.
+
+4. dragAndDrop(source, target) is effectively clickAndHold(source), moveToElement(target), release() in one method. Use the manual version when the app does not respond to the shortcut (some JavaScript drag libraries need intermediate mousemove events).
+
+Reasoning and pitfalls
+
+1. With clickAndHold(), the button stays pressed in the driver’s state until release(). If a failure occurs between them, call new Actions(driver).release().perform() to reset.
+
+2. For HTML5 drag and drop, Selenium’s Actions sometimes does not trigger the drop. Workarounds are a JavaScript drag-and-drop script, or in Selenium 4 a drag using moveByOffset in small steps with short pauses.
+
+3. click() is generally preferable for normal buttons. WebElement.click() is even better for simple clicks, because it checks interactability and runs immediately.
+
+Interview-ready answers
+
+1. Purpose of perform(): “Actions are queued lazily, so perform() is what sends the queued steps to the browser and executes them. Without it, nothing happens, and no error is raised.”
+
+2. build() vs perform(): “build() only compiles the queue into an Action object. perform() executes. perform() on Actions builds internally, so I use build() only to store a sequence for reuse.”
+
+3. Multiple actions in one statement: “Yes. Every method returns the Actions object, so I chain steps such as hover, click, type and Enter, and end with a single perform(). Steps run in the written order.”
+
+4. keyDown vs keyUp: “keyDown presses and holds a key, keyUp releases it. I use them as a pair around other actions, for example holding Ctrl while clicking several items. Forgetting keyUp leaves the key pressed for later steps.”
+
+5. Keyboard shortcuts: “Yes. I use keyDown(Keys.CONTROL).sendKeys("a").keyUp(Keys.CONTROL) for shortcuts like select all. I focus the element first and use Command on Mac. Browser-level shortcuts such as opening a new tab are outside the page and need a different approach.”
+
+6. clickAndHold vs click: “click presses and releases the button in one step. clickAndHold only presses it and keeps it down until I call release(), which makes it the right tool for drag and drop, sliders and text selection.”
+
+1. How do you do drag and drop? 
+==> dragAndDrop(source, target), or the manual clickAndHold, moveToElement, release sequence when the shortcut fails.
+
+2. How do you hover over a menu? 
+==> moveToElement(menu).perform(), then wait for the submenu to be clickable before clicking it.
+
+3. How do you right click or double click? 
+==> contextClick(element) and doubleClick(element).
+
+4. What does pause() do? 
+==> It adds a delay inside the action chain (for example, pause(Duration.ofMillis(300))) for animations, without using Thread.sleep.
+
+5. What is the difference between moveToElement() and moveByOffset()? 
+==> moveToElement moves the pointer to the element’s center, or to an offset from it. moveByOffset moves relative to the current pointer position.
+
+#====================================================================================================
+# Q : Authentication in selenium ? 
+Examples : 
+import java.net.URI;
+import java.util.function.Predicate;
+
+import org.openqa.selenium.HasAuthentication;
+import org.openqa.selenium.UsernameAndPassword;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class Basic_Authentication {
+
+	public static void main(String[] args) {
+		
+		ChromeDriver driver = new ChromeDriver();
+		
+		Predicate<URI> uriPredicate = uri -> uri.getHost().contains("httpbin.org");
+		
+		((HasAuthentication)driver).register(uriPredicate, UsernameAndPassword.of("foo", "bar"));
+		
+		driver.get("https://httpbin.org/basic-auth/foo/bar");	
+	}
+}
+
+1. What the code does
+
+It opens a page protected by HTTP Basic Auth without the browser’s native login popup, which Selenium can’t interact with because it isn’t part of the DOM. Instead, you tell the driver up front which credentials to use for which URLs.
+
+Line by line
+
+(1) new ChromeDriver() launches Chrome. ChromeDriver extends ChromiumDriver, which implements HasAuthentication, HasDevTools and others.
+
+(2) Predicate<URI> (java.util.function.Predicate) is a functional interface with a boolean test(URI) method. Here the lambda returns true when the request’s host contains httpbin.org. This scopes the credentials so they are not sent to other hosts, such as third-party scripts or ads on the page.
+
+(3) register(...) needs a cast because driver is declared as ChromeDriver, and the method lives on the HasAuthentication interface. Its signature is roughly:
+
+void register(Predicate<URI> whenThisMatches, Supplier<Credentials> useTheseCredentials);
+default void register(Supplier<Credentials> alwaysUseTheseCredentials); // matches every URI
+
+UsernameAndPassword.of("foo", "bar") creates the credentials object (org.openqa.selenium.UsernameAndPassword).
+
+(4) driver.get(...): the endpoint /basic-auth/{user}/{passwd} on httpbin returns 401 unless the credentials match. Chrome receives the 401 challenge, the registered handler supplies foo/bar, and the page loads normally. The response is JSON like {"authenticated": true, "user": "foo"}.
+
+How it works internally
+1. register enables the Chrome DevTools Protocol (CDP) Fetch domain with auth handling.
+2. When the server answers 401 Unauthorized with WWW-Authenticate: Basic, Chrome fires a Fetch.authRequired event.
+3. Selenium evaluates your Predicate against the request URI. If it matches, Selenium replies with Fetch.continueWithAuth carrying your username and password.
+4. If no predicate matches, the challenge is cancelled and the page ends in a 401.
+
+This is why it only works on Chromium-based browsers (Chrome, Edge) and needs the DevTools connection.
+import org.openqa.selenium.By;
+import org.openqa.selenium.HasAuthentication;
+import org.openqa.selenium.UsernameAndPassword;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+import java.net.URI;
+import java.util.function.Predicate;
+
+public class BasicAuthDemo {
+    public static void main(String[] args) {
+        ChromeDriver driver = new ChromeDriver();
+        try {
+            Predicate<URI> uriPredicate = uri -> uri.getHost().contains("httpbin.org");
+
+            ((HasAuthentication) driver).register(uriPredicate, UsernameAndPassword.of("foo", "bar"));
+
+            driver.get("https://httpbin.org/basic-auth/foo/bar");
+
+            String body = driver.findElement(By.tagName("body")).getText();
+            System.out.println(body);   // { "authenticated": true, "user": "foo" }
+        } finally {
+            driver.quit();
+        }
+    }
+}
+Variations
+
+Apply credentials to every URL (no predicate):
+
+java
+((HasAuthentication) driver).register(UsernameAndPassword.of("foo", "bar"));
+
+Match an exact host:
+
+java
+Predicate<URI> p = uri -> uri.getHost().equals("httpbin.org");
+
+Match a path:
+
+java
+Predicate<URI> p = uri -> uri.getPath().startsWith("/basic-auth");
+
+Different credentials for different hosts: register multiple handlers, each with its own predicate.
+
+java
+HasAuthentication auth = (HasAuthentication) driver;
+auth.register(uri -> uri.getHost().contains("site-a.com"), UsernameAndPassword.of("a", "1"));
+auth.register(uri -> uri.getHost().contains("site-b.com"), UsernameAndPassword.of("b", "2"));
+
+Remote/Grid driver: RemoteWebDriver doesn’t implement the interface directly, so wrap it with Augmenter:
+
+java
+WebDriver augmented = new Augmenter().augment(remoteDriver);
+((HasAuthentication) augmented).register(UsernameAndPassword.of("foo", "bar"));
+
+Edge works the same way (EdgeDriver is also Chromium-based).
+
+Alternatives
+Approach	Notes
+HasAuthentication (Selenium 4)	Recommended. Scoped, works on Chromium.
+Credentials in the URL: https://foo:bar@httpbin.org/basic-auth/foo/bar	Quick, but modern Chrome strips or blocks credentials for subresources, and it leaks the password into logs. Works on Firefox for the top-level navigation.
+Robot class / AutoIT	Old workaround for native popups. Fragile and OS-dependent.
+Manually adding an Authorization: Basic base64(user:pass) header via the DevTools Network.setExtraHTTPHeaders	Works, but sends the header to all requests.
+Common problems
+ClassCastException on the cast. The driver isn’t Chromium-based (e.g. FirefoxDriver), or it’s a RemoteWebDriver that hasn’t been augmented.
+Still getting 401. The predicate didn’t match. Print uri.getHost() to debug. Also check the credentials, and remember uri.getHost() excludes the port.
+Register after get(). Registration must happen before navigating, otherwise the challenge is already rejected.
+Selenium version. This requires Selenium 4+. In Selenium 3 you had to use the URL trick or Robot.
+Predicate NullPointerException. uri.getHost() can be null for odd URIs (for example data: URLs). In real frameworks, use uri.getHost() != null && uri.getHost().contains(...).
+Likely interview questions
+
+Q: How do you handle a browser authentication popup in Selenium 4?
+Cast the driver to HasAuthentication and call register(predicate, UsernameAndPassword.of(user, pass)) before navigating. It uses CDP and avoids the native popup entirely.
+
+Q: Why is a Predicate<URI> needed?
+It limits where credentials are sent, so they don’t leak to unrelated domains the page loads resources from.
+
+Q: Does this work in Firefox?
+Not through the CDP-based HasAuthentication on FirefoxDriver. Chromium browsers are the supported path. For Firefox, the URL-embedded credentials approach typically works for the top-level page.
+
+Q: Why not just put credentials in the URL?
+Chrome restricts credentials in URLs for subresource requests, they appear in logs and history, and it’s less secure and less reliable than the registered handler.
+
+Q: Is this a Selenium 3 or 4 feature?
+Selenium 4, built on the DevTools protocol support added in that release.
+
+Do you want the same scenario written as a TestNG test with a @BeforeMethod setup and an assertion, or a Page Object version?
+
+#========================================================================================================
+# Q : All the approches to authenticate user in selenium java
+===>  Which approach fits depends on what kind of authentication the app uses. They fall into three groups:
+
+Group				| Approaches
+1. Web page login		| 1. UI form login, 2. Session/cookie reuse, 3. Token injection
+2. Browser-level auth (popup)	| 4. HasAuthentication, 5. URL credentials, 6. DevTools header, 7. Robot/AutoIt (legacy)
+3. Enterprise/advanced		| 8. Chrome profile reuse, 9. NTLM/Kerberos (SSO), 10. Client certificates, 11. MFA/OTP
+
+1. UI form login (the standard way)
+ 
+Use this when the app has a normal HTML login page. Wrap it in a Page Object and use explicit waits.
+
+java
+public class LoginPage {
+    private final WebDriver driver;
+    private final WebDriverWait wait;
+
+    private final By username = By.id("user-name");
+    private final By password = By.id("password");
+    private final By loginBtn = By.id("login-button");
+
+    public LoginPage(WebDriver driver) {
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    }
+
+    public void login(String user, String pass) {
+        wait.until(ExpectedConditions.visibilityOfElementLocated(username)).sendKeys(user);
+        driver.findElement(password).sendKeys(pass);
+        driver.findElement(loginBtn).click();
+    }
+}
+java
+driver.get("https://www.saucedemo.com");
+new LoginPage(driver).login("standard_user", "secret_sauce");
+
+Pros: simple, tests the real login flow.
+Cons: slow if repeated in every test. Do it once, then reuse the session (approaches 2 and 3).
+
+2. Session/cookie reuse (login once, reuse everywhere)
+
+Log in once (via UI or API), save the cookies, then inject them into other sessions to skip the login page.
+
+java
+// Step 1: after a successful login, capture cookies
+Set<Cookie> cookies = driver.manage().getCookies();
+
+// Step 2: in a new session, open the domain FIRST, then add cookies
+WebDriver driver2 = new ChromeDriver();
+driver2.get("https://example.com");          // must be on the same domain before addCookie
+for (Cookie c : cookies) {
+    driver2.manage().addCookie(c);
+}
+driver2.navigate().refresh();                // now you're logged in
+
+Add a single cookie manually:
+
+java
+Cookie session = new Cookie.Builder("JSESSIONID", sessionId)
+        .domain("example.com")
+        .path("/")
+        .isSecure(true)
+        .isHttpOnly(true)
+        .build();
+driver.manage().addCookie(session);
+
+You can also serialize cookies to a file and load them in later runs.
+
+Gotcha: addCookie throws InvalidCookieDomainException if you haven’t opened the matching domain first.
+
+3. API login + token injection (fastest, most robust)
+
+Get the token through the API with REST Assured, then place it where the app expects it: a cookie, localStorage, or sessionStorage.
+
+java
+// Get the token via API
+String token = given()
+        .contentType(ContentType.JSON)
+        .body(Map.of("username", "admin", "password", "pass123"))
+        .when().post("https://example.com/api/login")
+        .then().statusCode(200)
+        .extract().path("token");
+
+// Inject into the browser
+driver.get("https://example.com");           // open the domain first
+JavascriptExecutor js = (JavascriptExecutor) driver;
+js.executeScript("window.localStorage.setItem('authToken', arguments[0]);", token);
+driver.navigate().refresh();
+
+Or inject as a cookie:
+
+java
+driver.manage().addCookie(new Cookie("access_token", token));
+
+This is very common for SPAs (React/Angular) using JWT. It saves a lot of execution time in a big suite.
+
+4. HasAuthentication (Selenium 4, Chromium)
+
+What you just asked about. Best for browser-level Basic/Digest auth popups.
+
+java
+((HasAuthentication) driver).register(
+        uri -> uri.getHost().contains("httpbin.org"),
+        UsernameAndPassword.of("foo", "bar"));
+
+driver.get("https://httpbin.org/basic-auth/foo/bar");
+
+For a Grid/remote driver, augment first:
+
+java
+WebDriver augmented = new Augmenter().augment(remoteDriver);
+((HasAuthentication) augmented).register(UsernameAndPassword.of("foo", "bar"));
+5. Credentials embedded in the URL
+java
+driver.get("https://foo:bar@httpbin.org/basic-auth/foo/bar");
+
+Special characters in the password must be URL-encoded (@ becomes %40).
+
+Cons: modern Chrome blocks or strips credentials for subresources, the password leaks into logs and history, and it’s unreliable. Use it only for quick demos and top-level navigation. It works best on Firefox.
+
+6. DevTools: custom Authorization header (Bearer/Basic)
+
+You can attach an auth header to every request using the Chrome DevTools Protocol. This is useful for Bearer tokens on pages that don’t have a login form.
+
+java
+ChromeDriver driver = new ChromeDriver();
+DevTools devTools = driver.getDevTools();
+devTools.createSession();
+devTools.send(Network.enable(Optional.empty(), Optional.empty(), Optional.empty()));
+
+String basic = Base64.getEncoder()
+        .encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+
+Map<String, Object> headers = new HashMap<>();
+headers.put("Authorization", "Basic " + basic);   // or "Bearer " + token
+devTools.send(Network.setExtraHTTPHeaders(new Headers(headers)));
+
+driver.get("https://httpbin.org/basic-auth/foo/bar");
+
+Note: the Headers and Network imports are version-specific (for example org.openqa.selenium.devtools.v130.network.Network). Match them to your Chrome and Selenium version. The header is sent to all requests, including third-party domains, so it’s less scoped than approach 4.
+
+7. Robot class / AutoIt / Sikuli (legacy)
+
+These were used in Selenium 3 for native OS popups.
+
+java
+Robot robot = new Robot();
+// type username, TAB, password, ENTER using KeyEvent...
+
+Cons: OS-dependent, needs window focus, doesn’t work in headless mode or on Grid/CI. Avoid it in new projects. In Selenium 4, use approach 4 or 6 instead.
+
+8. Reuse an existing Chrome profile
+
+Start Chrome with a profile that’s already logged in.
+
+java
+ChromeOptions options = new ChromeOptions();
+options.addArguments("--user-data-dir=C:/selenium/profile");
+options.addArguments("--profile-directory=Default");
+WebDriver driver = new ChromeDriver(options);
+
+Pros: useful for sites where automated login is blocked (Google, some SSO).
+Cons: the profile can’t be used by another Chrome instance at the same time, and it’s not good for parallel tests. Use it for local, ad-hoc automation only.
+
+9. Windows Integrated Auth (NTLM / Kerberos / SSO)
+
+Intranet apps often authenticate using your Windows login. Whitelist the domain so the browser sends the credentials automatically.
+
+Chrome:
+
+java
+ChromeOptions options = new ChromeOptions();
+options.addArguments("--auth-server-allowlist=*.mycompany.com");
+options.addArguments("--auth-negotiate-delegate-allowlist=*.mycompany.com");
+
+(Older Chrome versions use --auth-server-whitelist.)
+
+Firefox:
+
+java
+FirefoxOptions options = new FirefoxOptions();
+options.addPreference("network.automatic-ntlm-auth.trusted-uris", "mycompany.com");
+options.addPreference("network.negotiate-auth.trusted-uris", "mycompany.com");
+
+The test must run as a Windows user who has access to the app.
+
+10. Client certificate authentication (mutual TLS)
+
+The popup asks you to pick a certificate, and Selenium can’t click it. Instead:
+
+Install the client certificate in the OS/browser store, and
+Configure Chrome’s policy AutoSelectCertificateForUrls so it picks the certificate automatically, or
+Pass the certificate to the HTTP client layer when you use an API for login (approach 3).
+
+For test servers with self-signed certificates only:
+
+java
+options.setAcceptInsecureCerts(true);
+
+That handles an untrusted certificate, not client authentication.
+
+11. MFA / OTP handling
+
+You can’t automate a human second factor, so use one of these:
+
+Test accounts with MFA disabled in the test environment (best option).
+Generate TOTP codes in code using the shared secret:
+java
+// dependency: com.warrenstrange:googleauth
+GoogleAuthenticator gAuth = new GoogleAuthenticator();
+int code = gAuth.getTotpPassword(System.getenv("TOTP_SECRET"));
+
+driver.findElement(By.id("otp")).sendKeys(String.valueOf(code));
+Fixed OTP configured on the test environment (for example 123456).
+Read the OTP from email/SMS through an API (MailSlurp, Mailosaur, a Twilio test number, or the Gmail API).
+Bypass through the API (approach 3), skipping the UI entirely.
+Handling credentials safely
+
+Never hard-code passwords in your code.
+
+java
+String user = System.getenv("APP_USER");
+String pass = System.getenv("APP_PASS");
+
+You can also use a config.properties file excluded from Git, Maven -D parameters (-Dapp.pass=...), or CI secrets (Jenkins credentials, GitHub Secrets).
+
+Quick decision guide
+1. Scenario				| Use
+2. Normal login page			| Form login via Page Object (1)
+3. Many tests need login		| API login + token/cookie injection (2 or 3)
+4. Browser Basic-auth popup		| HasAuthentication (4)
+5. Bearer token with no login page	| DevTools extra header (6)
+6. Intranet / Windows SSO		| NTLM/Kerberos browser flags (9)
+7. MFA					| Test-account bypass or TOTP generator (11)
+8. Firefox / Safari popup		| Credentials in URL, or an API-based approach
+9. Legacy Selenium 3 native popup	| Robot/AutoIt (7), not recommended
+
+Interview questions you may get
+
+Q: How do you handle a browser authentication popup in Selenium 4?
+Use HasAuthentication.register(predicate, UsernameAndPassword.of(...)), or send an Authorization header with DevTools.
+
+Q: How do you avoid logging in before every test?
+Log in once through the API, then inject the cookie or token into the browser. Alternatively, save and reuse cookies in a @BeforeClass setup.
+
+Q: Why can’t Selenium handle the Basic-auth popup directly?
+It’s a native browser dialog, not part of the DOM, and WebDriver can only interact with the page content (and JS alerts).
+
+Q: Why must you open the domain before addCookie?
+Cookies are tied to a domain, and the browser rejects cookies for a domain that doesn’t match the current page.
+
+Q: How would you automate a login that has MFA?
+Prefer disabling MFA or using a fixed OTP in the test environment. Otherwise generate a TOTP from the shared secret, or authenticate through the API.
+
+Q: What’s the difference between HasAuthentication and the DevTools header approach?
+HasAuthentication responds to a 401 challenge and can be scoped per URL through a predicate. The DevTools approach attaches the header to every request.
+
+Would you like a ready-to-use BaseTest class that combines API login and cookie injection with TestNG, in the style of your REST Assured frameworks?
 
 
 #====================================================================================================
-# Q :
+# Q : Q1: How do you handle a browser authentication popup in Selenium 4?
 
+Short answer: Use HasAuthentication.register(predicate, UsernameAndPassword.of(user, pass)) before navigating. Alternatively, send an Authorization header using the DevTools protocol.
 
+Background: what is the popup?
 
-#====================================================================================================
-# Q :
+When a server responds with:
 
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Basic realm="Secure Area"
 
+the browser shows a native username/password dialog. If the user enters credentials, the browser re-sends the request with:
 
+Authorization: Basic Zm9vOmJhcg==      (base64 of "foo:bar")
+
+Option A: HasAuthentication (recommended)
+java
+ChromeDriver driver = new ChromeDriver();
+
+((HasAuthentication) driver).register(
+        uri -> uri.getHost().contains("httpbin.org"),
+        UsernameAndPassword.of("foo", "bar"));
+
+driver.get("https://httpbin.org/basic-auth/foo/bar");
+
+Selenium uses the DevTools Fetch domain behind the scenes. When Chrome raises an auth challenge, Selenium checks your predicate and, if it matches, answers the challenge with the credentials. The popup never appears.
+
+Key points:
+1. It must be registered before driver.get().
+2. It’s scoped by the predicate, so credentials only go to the matching hosts.
+3. It works on Chromium browsers (Chrome, Edge).
+4. For RemoteWebDriver or Grid, wrap it with new Augmenter().augment(driver) first.
+
+Option B: DevTools Authorization header
+java
+ChromeDriver driver = new ChromeDriver();
+DevTools devTools = driver.getDevTools();
+devTools.createSession();
+devTools.send(Network.enable(Optional.empty(), Optional.empty(), Optional.empty()));
+
+String encoded = Base64.getEncoder().encodeToString("foo:bar".getBytes(StandardCharsets.UTF_8));
+
+Map<String, Object> headers = new HashMap<>();
+headers.put("Authorization", "Basic " + encoded);
+
+devTools.send(Network.setExtraHTTPHeaders(new Headers(headers)));
+driver.get("https://httpbin.org/basic-auth/foo/bar");
+
+Here you send the header proactively, so the server never has to challenge you. This is also the approach for Bearer tokens ("Bearer " + token). The Network and Headers imports depend on the DevTools version package (for example v130), so match it to your Chrome version.
+#-----------------------------------------------#
+Q2: How do you avoid logging in before every test?
+==> 
+Short answer: Log in once through the API, then inject the cookie or token into the browser. Alternatively, save and reuse cookies in a @BeforeClass setup.
+
+Why it matters
+
+UI login in every test is slow (typing, page loads, redirects) and makes unrelated tests fail whenever the login page breaks. In a suite of 500 tests, 5 seconds of login each adds over 40 minutes.
+
+Approach 1: API login, then inject a token
+java
+String token = given()
+        .contentType(ContentType.JSON)
+        .body(Map.of("username", "admin", "password", "pass123"))
+        .when().post("https://example.com/api/login")
+        .then().statusCode(200)
+        .extract().path("token");
+
+driver.get("https://example.com");   // open the domain first
+((JavascriptExecutor) driver)
+        .executeScript("window.localStorage.setItem('authToken', arguments[0]);", token);
+driver.navigate().refresh();         // app now sees you as logged in
+
+If the app uses a session cookie instead of localStorage:
+
+java
+driver.manage().addCookie(new Cookie("JSESSIONID", sessionId));
+
+Approach 2: login once, reuse cookies
+java
+public class BaseTest {
+    protected WebDriver driver;
+    private static Set<Cookie> savedCookies;
+
+    @BeforeClass
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.get("https://example.com/login");
+
+        if (savedCookies == null) {
+            new LoginPage(driver).login("admin", "pass123");
+            savedCookies = driver.manage().getCookies();
+        } else {
+            for (Cookie c : savedCookies) {
+                driver.manage().addCookie(c);
+            }
+            driver.navigate().refresh();
+        }
+    }
+
+    @AfterClass
+    public void tearDown() {
+        driver.quit();
+    }
+}
+
+Keep one dedicated test that verifies the real UI login flow, so you still cover it.
+
+#-----------------------------------------------#
+Q3: Why can’t Selenium handle the Basic-auth popup directly?
+==> Short answer: It’s a native browser dialog, not part of the DOM, and WebDriver can only interact with page content (and JS alerts).
+
+Explanation
+
+Selenium locates elements using DOM locators such as By.id and By.xpath. The Basic-auth dialog is drawn by the browser itself (browser chrome, like the address bar), so:
+
+There’s nothing to locate. No HTML element exists.
+driver.switchTo().alert() doesn’t work either. That only handles JavaScript dialogs (alert, confirm, prompt), which are a different mechanism.
+Dialog type			| Handled by Selenium?
+JS alert/confirm/prompt		| Yes, using switchTo().alert()
+HTML modal (Bootstrap popup)	| Yes, it’s a normal DOM element
+Basic-auth login popup		| No (native), so use HasAuthentication/DevTools/URL
+File upload OS dialog		| No, use sendKeys(path) on input[type=file]
+
+That’s why Selenium 3 users relied on workarounds such as Robot or AutoIt, and Selenium 4 added a proper solution through DevTools.
+#-------------------------------------------------------#
+Q4: Why must you open the domain before addCookie?
+=> Short answer: Cookies are tied to a domain, and the browser rejects cookies for a domain that doesn’t match the current page.
+
+Explanation
+
+A cookie belongs to a domain and path. WebDriver’s addCookie sets the cookie for the current browsing context, so the browser checks that the cookie’s domain matches the page you’re on. A fresh browser starts on about:blank or data:,, which has no domain.
+
+java
+WebDriver driver = new ChromeDriver();
+
+// Wrong: browser is on about:blank
+driver.manage().addCookie(new Cookie("session", "abc123"));
+// throws InvalidCookieDomainException (or UnableToSetCookieException)
+
+// Correct
+driver.get("https://example.com");     // any page on that domain (a 404 page is fine)
+driver.manage().addCookie(new Cookie("session", "abc123"));
+driver.navigate().refresh();           // reload so the app reads the cookie
+
+Related points interviewers like:
+
+Cookie domain must match the current host: you can’t add a google.com cookie while on example.com.
+You must refresh or navigate after adding the cookie, because the page already loaded without it.
+HttpOnly cookies can be set and read through WebDriver’s cookie API, but not through JavaScript (document.cookie).
+If the site is slow to load, open a lightweight page on the same domain (for example /favicon.ico or a 404 page) to save time.
+
+#-----------------------------------------------#
+Q5: How would you automate a login that has MFA?
+
+Short answer: Prefer disabling MFA or using a fixed OTP in the test environment. Otherwise generate a TOTP from the shared secret, or authenticate through the API.
+
+Explanation
+
+MFA is designed to stop automation, so you shouldn’t try to defeat it in production. You change the test environment so the second factor becomes controllable.
+
+1. Disable MFA for test accounts (best). Ask the dev team for a flag or a test user exempt from MFA in QA/staging.
+
+2. Fixed OTP in the test environment. The QA environment accepts a known code (for example 123456) for test users.
+
+3. Generate TOTP in code. Authenticator apps (Google Authenticator) compute a 6-digit code from a shared secret and the current time. If you have the secret, your code can do the same:
+
+java
+// Maven: com.warrenstrange:googleauth
+GoogleAuthenticator gAuth = new GoogleAuthenticator();
+int code = gAuth.getTotpPassword(System.getenv("TOTP_SECRET"));
+
+driver.findElement(By.id("username")).sendKeys(user);
+driver.findElement(By.id("password")).sendKeys(pass);
+driver.findElement(By.id("login")).click();
+driver.findElement(By.id("otp")).sendKeys(String.format("%06d", code));
+driver.findElement(By.id("verify")).click();
+
+Note %06d, because codes can start with zeros.
+
+4. Read the OTP from email/SMS using services such as Mailosaur, MailSlurp, or the Twilio API, and extract the code with a regex.
+
+5. Bypass through the API. Get the session token by API using a test credential or service account, then inject it (see Q2). Keep one separate test for the real MFA flow.
+
+Store the secret in an environment variable or CI secret, never in source code.
+
+#----------------------------------------------------------------------------------#
+Q6: What’s the difference between HasAuthentication and the DevTools header approach?
+
+Short answer: HasAuthentication responds to a 401 challenge and can be scoped per URL through a predicate. The DevTools approach attaches the header to every request.
+
+Comparison
+Aspect		| HasAuthentication				| DevTools setExtraHTTPHeaders
+Mechanism	| Waits for a 401 challenge, then replies 	| Adds an Authorization header up front to outgoing requests
+		| with credentials (Fetch.authRequired / continueWithAuth)|
+Scope		| Per URL, using a Predicate<URI>		| All requests, including third-party domains
+Auth types	| Basic/Digest-style challenges			| Anything you put in the header: Basic, Bearer, API keys
+Extra requests	| One extra round trip (request, 401, retry)	| None, the first request already carries auth
+Credential leakage risk	| Low (only matching hosts)		| Higher, because every request carries the header
+Code complexity	| Very simple (one line)			| More setup (session, Network.enable, version-specific imports)
+Browser support	| Chromium					| Chromium
+
+When to choose which
+1. Page shows a Basic-auth popup: HasAuthentication.
+2. App expects a Bearer/JWT or API-key header and never issues a 401 challenge: DevTools header.
+3. You need to limit where credentials go: HasAuthentication.
+
+Quick example of the leakage difference
+
+If the page loads an analytics script from analytics.thirdparty.com:
+
+1. With HasAuthentication and a host predicate, that request is sent without your credentials.
+2. With setExtraHTTPHeaders, your Authorization header goes to that third party too.
+
+One-minute summary to memorize
+
+The Basic-auth popup is a native browser dialog, so Selenium can’t see it in the DOM. In Selenium 4 I use HasAuthentication.register() with a URI predicate, or I set an Authorization header through DevTools. To avoid repeated logins, I log in once through the API and inject the cookie or token, opening the domain first because cookies are domain-bound. For MFA, I use a test account without MFA, a fixed OTP, or generate a TOTP from the shared secret.
 
 #====================================================================================================
 # Q :

@@ -10277,8 +10277,8 @@ export class ProductPage {
 Use code with caution.
 
 📊 Summary of Architectural Shift
-Metric		| ❌ 1-to-1 Mapping	| Component & Domain Mapping
-1 .Class Count	| 100 classes		| ~15 to 20 highly focused classes
+Metric		| ❌ 1-to-1 Mapping		| Component & Domain Mapping
+1 .Class Count	| 100 classes			| ~15 to 20 highly focused classes
 2. Locators	| Duplicated across files	| Centralised in components or dynamically generated
 3. Maintenance	| High risk of broken locators	| Low risk; fix once, updates everywhere
 

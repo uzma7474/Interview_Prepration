@@ -4599,10 +4599,115 @@ Short interview answers
 6. Singleton in framework: “ConfigReader, the DriverManager (holding a ThreadLocal driver for parallel runs), and the Extent report manager.”
 
 
-
-
 #==========================================================================================================
-# Q : 
+# Q : Are Static Methods Overridden in Java?
+==> Are Static Methods Overridden in Java?
+
+No. Static methods are not overridden. If a child class defines a static method with the same signature as a static method in the parent, the child’s method hides the parent’s method. This is called method hiding.
+
+Why overriding doesn’t apply to static methods
+
+Overriding is runtime polymorphism (dynamic method dispatch): the JVM looks at the actual object and picks that class’s version of an instance method. Static methods break every part of that:
+
+They belong to the class, not to an object. There is no object whose type the JVM could inspect.
+They are bound at compile time (static / early binding), using the declared reference type, not the actual object type.
+They are not part of the virtual method table, which the JVM uses for dynamic dispatch.
+Example: hiding in action
+java
+class Parent {
+    static void show() { System.out.println("Parent static show"); }
+    void display()     { System.out.println("Parent instance display"); }
+}
+
+class Child extends Parent {
+    static void show() { System.out.println("Child static show"); }      // hides Parent.show()
+    @Override
+    void display()     { System.out.println("Child instance display"); } // overrides Parent.display()
+}
+
+public class Test {
+    public static void main(String[] args) {
+        Parent p = new Child();
+
+        p.show();         // Parent static show    (reference type Parent, compile-time binding)
+        p.display();      // Child instance display (actual object Child, runtime binding)
+
+        Child c = new Child();
+        c.show();         // Child static show
+
+        Parent.show();    // Parent static show
+        Child.show();     // Child static show
+    }
+}
+
+The key line is Parent p = new Child(); p.show();. The object is a Child, but the compiler already decided at compile time that p.show() means Parent.show(), because p is declared as Parent. Compare with p.display(), an instance method, where the JVM checks the real object and runs the child’s version.
+
+Proof it is not overriding
+@Override on a static method gives a compile error:
+java
+class Child extends Parent {
+    @Override
+    static void show() { }   // compile error: static methods cannot be annotated with @Override
+}
+Calling through a null reference still works, because no object is needed:
+java
+Parent p = null;
+p.show();                    // prints "Parent static show", no NullPointerException
+
+The compiler converts it to Parent.show().
+
+Hiding vs overriding
+	Overriding	Hiding
+Applies to	Instance methods	Static methods
+Binding	Runtime (dynamic)	Compile time (static)
+Decided by	Actual object type	Reference type
+Polymorphism	Yes	No
+@Override allowed	Yes	No (compile error)
+Can call parent version with	super.method()	Parent.method()
+Rules around static methods and inheritance
+A static method cannot hide an instance method, and an instance method cannot override a static method. Both are compile errors:
+java
+class Parent { void a() { } static void b() { } }
+class Child extends Parent {
+    static void a() { }   // error: static method cannot hide instance method
+    void b() { }          // error: instance method cannot override static method
+}
+The hiding method cannot reduce visibility, and its return type must be compatible.
+A static final method cannot be hidden: static final void util() in the parent makes static void util() in the child a compile error.
+A private static method is not inherited, so the child’s same-named method is simply a new, unrelated method.
+Static methods are inherited (the child can call show() without defining it), but they can’t be overridden.
+Static methods can be overloaded (different parameters), since overloading is compile-time anyway.
+Fields behave the same way: they are also bound by reference type (field hiding), not by object.
+Why Java designs it this way
+
+Static methods represent behaviour of the class as a whole (utilities, factories), not of a particular instance. Their results should not depend on which object you happen to hold. Making them resolve at compile time also makes them faster and predictable.
+
+Framework example
+java
+class BasePage {
+    static void log(String msg) { System.out.println("[BASE] " + msg); }
+}
+
+class LoginPage extends BasePage {
+    static void log(String msg) { System.out.println("[LOGIN] " + msg); }   // hides, not overrides
+}
+
+BasePage page = new LoginPage();
+page.log("clicked");      // [BASE] clicked  (surprising if you expected polymorphism)
+
+This is a common accidental bug when utility or logging helpers are static. If different pages need different behaviour, make the method an instance method and override it. I also avoid calling static methods through an object reference (page.log()), and write BasePage.log() so the code says what actually happens.
+
+Short interview answer
+
+“No, static methods can’t be overridden. If a subclass declares a static method with the same signature, it hides the parent’s method, and that’s called method hiding. Overriding is runtime polymorphism where the JVM picks the method from the actual object, but static methods belong to the class and are resolved at compile time using the reference type. So Parent p = new Child(); p.show(); calls the Parent’s static method. That’s also why @Override on a static method is a compile error. A static method can’t hide an instance method or vice versa, and a static final method can’t be hidden at all. If I need different behaviour per subclass, I use an instance method and override it.”
+
+Likely follow-ups
+Can we overload static methods? Yes, overloading just needs different parameters.
+Can we override a private method? No, it isn’t inherited, so the child’s method is a separate method.
+Can we override a final method? No, it’s a compile error.
+Can a static method access instance variables? No, it has no this, so it can access only static members directly.
+Can main() be overridden? No, it’s static, so it can only be hidden or overloaded.
+What is the difference between method hiding and field hiding? Both resolve by reference type, but hiding applies to static methods and fields, while instance methods are overridden
 
 
 #==========================================================================================================
